@@ -1,0 +1,133 @@
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+
+# disable debuginfo
+%define debug_package %{nil}
+
+
+Name:           myrepo
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Tool to create and maintain your yum repositories
+Group:          Development/Tools
+License:        GPLv3+
+URL:            https://github.com/ssato/python-myrepo
+Source0:        https://github.com/ssato/python-myrepo/tarball/master/%{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+BuildRequires:  python
+Requires:       rpm-python
+Requires:       autoconf
+Requires:       automake
+Requires:       createrepo
+Requires:       mock
+Requires:       packagemaker
+Requires:       rpm-build
+Obsoletes:      rpmkit < 0.2.10-1
+
+
+%description
+Simple tool to create and maintain packages in your yum repositories.
+
+
+%prep
+%setup -q
+
+
+%build
+%{__python} setup.py build
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/myrepo.d
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+%doc README
+%doc tests
+%{_bindir}/*
+%{python_sitelib}/*
+%{_sysconfdir}/myrepo.d
+%{_datadir}/myrepo/templates/1
+
+
+%changelog
+* Sun May 28 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10-1
+- New package forked from rpmkit
+
+* Sun May 20 2012 Satoru SATOH <ssato@redhat.com> - 0.2.9-1
+- New upstream
+- some updates and fixes in rpmkit.rhncachedb
+- fixed some bugs in newly introduced utility routines in rpmkit.rpmutils
+
+* Fri May 18 2012 Satoru SATOH <ssato@redhat.com> - 0.2.8-1
+- New upstream
+- new module and command, rhncachedb to create cache database of RHN
+- added some useful utility routines in rpmkit.rpmutils
+
+* Sat Mar  3 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6.20120303-1
+- Switched to multiprocessing module to avoid deadlock in threads
+
+* Thu Feb 29 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6-2
+- Fixed a myrepo bug that default template search path list is not set
+- Moved some common parts from rpmkit.myrepo.* to rpmkit.{globals,utils}
+
+* Wed Feb 29 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6-1
+- New upstream
+- Fixed a bug that remote command is not used
+
+* Wed Feb 29 2012 Satoru SATOH <ssato@redhat.com> - 0.2.5-1
+- New upstream
+- Modularized myrepo and added some testing code for it
+- Switched template engine from Cheetah to Tenjin (built-in)
+
+* Thu Nov 17 2011 Satoru SATOH <ssato@redhat.com> - 0.2.4-1
+- New upstream
+- swapi: started to adding experimental virtual rpcs (swapi.cve.getCvss)
+- started to adding test cases separately
+- started to checking codes with pep8 command
+
+* Wed Nov  9 2011 Satoru SATOH <ssato@redhat.com> - 0.2.3.20111109-1
+- New snapshot release
+- swapi: changed scheme to construct caching dir path for each objects to avoid
+  too many subdirs made in caching top dir
+
+* Wed Nov  9 2011 Satoru SATOH <ssato@redhat.com> - 0.2.3-1
+- New upstream
+- swapi: various fixes and enhancements including no online access is needed if
+  cache is enough, system cache, read-only cache, pep8 error fixes, etc.
+
+* Thu Sep 15 2011 Satoru SATOH <ssato@redhat.com> - 0.2.2-1
+- New upstream
+- src/swapi: fixed a grave bug wrongly calls rpmkit.swapi.main()
+- swapi: fixed internal API breakage in main()
+- identrpm: added --debug option
+
+* Sun Sep 11 2011 Satoru SATOH <ssato@redhat.com> - 0.2.1-1
+- Bump version
+- identrpm: fixed some bugs in parse_package_label()
+
+* Sat Sep 10 2011 Satoru SATOH <ssato@redhat.com> - 0.2.0.20110910.1-1
+- identrpm: added new command to get metadata for given package labels
+- fixed some rpmlint errors
+- cleaned up some modules not used any more
+- swapi: added custom JSON encoder to format date strings in XML-RPC query results
+- swapi: make it allow setting cache expiration dates per API
+
+* Wed Aug 24 2011 Satoru SATOH <ssato@redhat.com> - 0.2.0.20110824.1-1
+- make %{_sysconfdir}/myrepo.d owned by this package: suggested by yamato@redhat.com
+
+* Thu Aug  4 2011 Satoru SATOH <ssato@redhat.com> - 0.2.0.20110804.1-1
+- myrepo: followed updates in packagemaker
+- myrepo: added unit / system test driver
+- all python code: moved into python_sitelib/rpmkit/ and arranged wrappers for each
+- bump up to 0.2.0
+
+* Mon Aug  1 2011 Satoru SATOH <ssato@redhat.com> - 0.1.20110801.1-1
+- Initial (static) packaging
