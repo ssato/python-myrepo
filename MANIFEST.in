@@ -1,0 +1,8 @@
+include MANIFEST.in
+include README.md
+include python-myrepo.spec.in
+include setup.py
+include tests/*
+recursive-include myrepo *.py
+recursive-include templates *
+include src/*
