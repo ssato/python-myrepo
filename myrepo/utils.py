@@ -21,6 +21,7 @@ import myrepo.globals as G
 import rpmkit.tenjinwrapper as T
 import rpmkit.utils as U
 import os.path
+import os
 
 
 # Aliases:
@@ -28,7 +29,12 @@ typecheck = U.typecheck
 is_local = U.is_local
 
 
-def compile_template(tmpl, context={}, spaths=[G.MYREPO_TEMPLATE_PATH]):
+TEMPLATE_PATHS = [
+    G.MYREPO_TEMPLATE_PATH, os.path.join(os.curdir, "templates")
+]
+
+
+def compile_template(tmpl, context={}, spaths=TEMPLATE_PATHS):
     """
     :param tmpl: Template file name or (abs or rel) path
     :param context: Context parameters to instantiate the template :: dict
