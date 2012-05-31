@@ -78,7 +78,7 @@ def create_repos_from_dists_option_g(config, degenerate=False):
     :param config:  Configuration parameters :: B.Bunch
     :param degenerate:  Is the dists to be degenerated?
 
-    see also: rpmkit.myrepo.parser.parse_dists_option
+    see also: myrepo.parser.parse_dists_option
     """
     dists_s = config.dists
     logging.debug("config.dists=" + dists_s)
@@ -234,13 +234,15 @@ def main(argv=sys.argv):
     (options, args) = p.parse_args(argv[1:])
 
     if options.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+        loglevel = logging.INFO
     elif options.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+        loglevel = logging.DEBUG
     elif options.quiet:
-        logging.getLogger().setLevel(logging.ERROR)
+        loglevel = logging.ERROR
     else:
-        logging.getLogger().setLevel(logging.WARN)
+        loglevel = logging.WARN
+
+    logging.getLogger().setLevel(loglevel)
 
     if not args:
         p.print_usage()
