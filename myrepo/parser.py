@@ -72,17 +72,19 @@ def parse_dist_option(dist, sep=":"):
     ... except AssertionError:
     ...     pass
     >>> try:
-    ...     parse_dist_option("feodra-16-x86_64:no-arch-dist")
+    ...     parse_dist_option("fedora-16-x86_64:no-arch-dist")
     ... except AssertionError:
     ...     pass
     >>> try:
-    ...     parse_dist_option("feodra-16-x86_64:invalid-arch-dist-i386")
+    ...     parse_dist_option("fedora-16-x86_64:invalid-arch-dist-i386")
     ... except AssertionError:
     ...     pass
     >>> parse_dist_option("fedora-16-i386")
     ('fedora', '16', 'i386', 'fedora-16')
     >>> parse_dist_option("fedora-16-i386:fedora-extras-16-i386")
     ('fedora', '16', 'i386', 'fedora-extras-16')
+    >>> parse_dist_option("fedora-nrt-ssato-fedora-17-x86_64")
+    ('fedora-nrt-ssato-fedora', '17', 'x86_64', 'fedora-nrt-ssato-fedora-17')
     """
     emh = "Invalid distribution label '%s'. " % dist
 
@@ -92,7 +94,7 @@ def parse_dist_option(dist, sep=":"):
     assert "-" in label, emh + "Separator '-' not found"
 
     try:
-        (name, ver, arch) = label.split("-")
+        (name, ver, arch) = label.rsplit("-", 2)
     except ValueError:
         raise RuntimeError(
             emh + "Its format must be <name>-<ver>-<arch>: " + label
