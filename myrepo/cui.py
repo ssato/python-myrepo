@@ -137,6 +137,10 @@ Examples:
   # build SRPM and deploy RPMs and SRPMs into your yum repos:
   %prog deploy packagemaker-0.1-1.src.rpm
   %prog d --dists rhel-6-x86_64 packagemaker-0.1-1.src.rpm
+
+  # build SRPM and deploy RPMs and SRPMs into your yum repo; fedora-17-x86_64
+  # is base distribution and my-fedora-17-x86_64 is target distribution:
+  %prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm
   """
     )
 
