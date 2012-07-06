@@ -16,12 +16,9 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  python
 Requires:       rpm-python
-Requires:       autoconf
-Requires:       automake
 Requires:       createrepo
-Requires:       mock
-Requires:       packagemaker
-Requires:       rpm-build
+Requires:       packagemaker >= 0.4.1-1
+Requires:       rpmkit >= 0.2.10-1
 Obsoletes:      rpmkit < 0.2.10-1
 
 
@@ -58,6 +55,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jul  6 2012 Satoru SATOH <ssato@redhat.com> - 0.2.11-1
+- Cleaned up deps
+
 * Sun May 28 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10-1
 - New package forked from rpmkit
 
