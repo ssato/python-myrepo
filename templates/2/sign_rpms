@@ -1,0 +1,1 @@
+rpm --resign --define \"_signature gpg\" --define \"_gpg_name {{ keyid }}\" {% rpms|join(" ") %}
