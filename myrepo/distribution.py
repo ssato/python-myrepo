@@ -110,6 +110,9 @@ class Distribution(object):
         self.bdist = self.dist if bdist is None else bdist
         self.blabel = self.bdist + '-' + arch
 
+    def get_mockcfg_path(self):
+        return _get_mockcfg_path(self.blabel)
+
     def load_mockcfg_config_opts(self):
         return load_mockcfg_config_opts(self.blabel)
 
