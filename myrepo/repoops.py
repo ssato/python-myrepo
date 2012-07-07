@@ -63,6 +63,24 @@ def mock_cfg_content(repo, dist):
     return U.compile_template("mock.cfg", context)
 
 
+def mock_cfg_content_2(repo, dist):
+    """
+    Updated mock.cfg with addingg repository definitions in
+    given content and returns it.
+
+    :param repo:  Repo object
+    :param dist:  Distribution object
+    """
+    ctx = {
+        "base_mock_cfg_path": dist.get_mockcfg_path(),
+        "release_file_content": release_file_content(repo),
+        "repo": repo,
+        "dist": dist,
+    }
+
+    return U.compile_template_2("mock.cfg", ctx)
+
+
 def sign_rpms_cmd(keyid, rpms):
     """
     TODO: It might ask user about the gpg passphrase everytime this method is
