@@ -35,7 +35,8 @@ pkgdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../"))
 print "# path=" + pkgdir
 sys.path.append(pkgdir)
 
-from rpmkit.myrepo import *
+from myrepo import *
+from rpmkit.utils import memoize
 
 
 TEST_CHOICES = (TEST_BASIC, TEST_FULL) = ("basic", "full")
