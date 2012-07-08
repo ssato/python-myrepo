@@ -18,6 +18,7 @@ VERSION = VERSION + datetime.datetime.now().strftime(".%Y%m%d")
 data_files = [
     # see myrepo/globals.py:
     ("share/myrepo/templates/1", glob.glob("templates/1/*")),
+    ("share/myrepo/templates/2", glob.glob("templates/2/*")),
 ]
 
 
