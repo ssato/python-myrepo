@@ -151,6 +151,7 @@ Examples:
     p.set_defaults(**defaults)
 
     p.add_option("-C", "--config", help="Configuration file")
+    p.add_option("-P", "--profile", help="Specify configuration profile [%default]")
     p.add_option("-T", "--timeout", type="int",
         help="Timeout [sec] for each operations [%default]")
 
@@ -283,9 +284,8 @@ def main(argv=sys.argv):
         logging.error(" Unknown command '%s'" % a0)
         sys.exit(1)
 
-    if options.config:
-        params = C.init(options.config)
-
+    if options.config or options.profile:
+        params = C.init(options.config, options.profile)
         p.set_defaults(**params)
 
         # re-parse to overwrite configurations with given options.
