@@ -1,3 +1,16 @@
+[DEFAULT]
+server: yumrepo.example.com
+email: %(user)s@example.com
+name: %(distname)s-example-%(user)s
+subdir: yum
+topdir: /var/www/html/pub/yum/fedora/17
+
+fullname: John Doe
+dists: fedora-17-x86_64,fedora-17-i386
+
+baseurl: http://%(server)s/yum/fedora/17
+
+
 [test-local]
 server: localhost
 
