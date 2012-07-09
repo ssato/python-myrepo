@@ -61,6 +61,8 @@ def _init_by_defaults():
         "dists_full": ",".join(distributions_full),
         "dists": ",".join(distributions),
         "genconf": True,
+        "config": None,
+        "profile": None,
     })
 
     defaults["distribution_choices"] = defaults["dists_full"]  # save it.
@@ -98,14 +100,19 @@ def _init_by_config_file(config=None, profile=None):
     if not loaded:
         return {}
 
-    d = cparser.items(profile) if profile else cparser.defaults().iteritems()
+    if profile:
+        logging.debug("Use profile: " + profile)
+        d = cparser.items(profile)
+    else:
+        logging.debug("Use default profile")
+        d = cparser.defaults().iteritems()
 
     return B.Bunch((k, P.parse_conf_value(v)) for k, v in d)
 
 
-def init(config_path=None):
+def init(config_path=None, profile=None):
     cfg = _init_by_defaults()
-    cfg.update(_init_by_config_file(config_path))
+    cfg.update(_init_by_config_file(config_path, profile))
 
     return cfg
 
