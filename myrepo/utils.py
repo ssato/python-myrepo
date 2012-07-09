@@ -20,6 +20,7 @@
 import myrepo.globals as G
 import rpmkit.tenjinwrapper as T
 import rpmkit.utils as U
+import jinja2
 import os.path
 import os
 
@@ -40,6 +41,15 @@ def compile_template(tmpl, context={}, spaths=TEMPLATE_PATHS):
     :param context: Context parameters to instantiate the template :: dict
     """
     return T.template_compile(os.path.join("1", tmpl), context, spaths)
+
+
+def compile_template_2(tmpl, context={}, spaths=TEMPLATE_PATHS):
+    """
+    :param tmpl: Template file name or (abs or rel) path
+    :param context: Context parameters to instantiate the template :: dict
+    """
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(spaths))
+    return env.get_template(tmpl).render(**context)
 
 
 # vim:sw=4:ts=4:et:

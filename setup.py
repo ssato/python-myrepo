@@ -18,6 +18,7 @@ VERSION = "0.2.10.1"
 data_files = [
     # see myrepo/globals.py:
     ("share/myrepo/templates/1", glob.glob("templates/1/*")),
+    ("share/myrepo/templates/2", glob.glob("templates/2/*")),
 ]
 
 

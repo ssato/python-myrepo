@@ -1,0 +1,18 @@
+{% set reponame = name|default("unknown") %}
+{% if "mock" in pkgname %}{% set group = "Development/Tools" %}{% set summary = "Mock cfg files of yum repo " + reponame %}
+{% else %}{% set group = "System Environment/Base" %}{% set summary = "Yum repo files for  " + reponame %}{% endif %}
+pmaker -n {{ pkgname }} \
+-w {{ workdir }} \
+--stepto sbuild \
+--license MIT \
+--group "{{ group }}" \
+--url {{ baseurl }} \
+--summary "{{ summary }}" \
+--packager "{{ fullname }}" \
+--email "{{ email }}" \
+--pversion {{ distversion }}  \
+--no-rpmdb \
+--ignore-owner \
+{{ logopt }} \
+--destdir {{ workdir }} \
+#{listfile }}
