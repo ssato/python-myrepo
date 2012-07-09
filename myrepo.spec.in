@@ -38,7 +38,8 @@ Simple tool to create and maintain packages in your yum repositories.
 %install
 rm -rf $RPM_BUILD_ROOT
 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/myrepo.d
+
+rm -f $RPM_BUILD_ROOTT%{python_sitelib}/*.egg-info
 
 
 %clean
@@ -51,9 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc tests
 %{_bindir}/*
 %{python_sitelib}/*
-%{_sysconfdir}/myrepo.d
 %{_datadir}/myrepo/templates/1
 %{_datadir}/myrepo/templates/2
+%{_sysconfdir}/myrepo.d/*
 
 
 %changelog
