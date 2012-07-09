@@ -1,0 +1,14 @@
+[test-local]
+server: localhost
+
+user: foo
+email: foo@example.com
+
+name: fedora-local
+
+subdir: yum
+topdir: /tmp/%(user)s/yum/
+
+baseurl: file:///tmp/%(user)s/yum/fedora/17
+
+dists: fedora-17-x86_64
