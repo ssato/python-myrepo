@@ -6,3 +6,4 @@ include tests/*
 recursive-include myrepo *.py
 recursive-include templates *
 include src/*
+include data/etc/myrepo.d/*
