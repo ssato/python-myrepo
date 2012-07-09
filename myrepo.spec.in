@@ -53,9 +53,13 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/*
 %{_sysconfdir}/myrepo.d
 %{_datadir}/myrepo/templates/1
+%{_datadir}/myrepo/templates/2
 
 
 %changelog
+* Mon Jul  9 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10.2-1
+- Fixed files list missing 2nd generation of template files
+
 * Mon Jul  9 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10.1-1
 - Cleaned up deps suggested by Masatake YAMATO <yamato@redhat.com>
 
