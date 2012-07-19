@@ -1,6 +1,7 @@
 #
 # Copyright (C) 2012 Red Hat, Inc.
 # Red Hat Author(s): Masatake YAMATO <yamato@redhat.com>
+# Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,75 +16,69 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import sys
-import os.path
-import glob
+import myrepo.plugin as MP
 import logging
+import sys
 
-mod   = sys.modules['myrepo.hook']
-dname = os.path.dirname(mod.__file__)
-callback_glob = os.path.join(dname, 'hook_callbacks', '[0-9]*.py*')
-callback_modules = map(lambda s: 'myrepo.hook_callbacks.' + s[0:-3],
-                       map(os.path.basename, 
-                           sorted(glob.glob(callback_glob))))
-rcallback_modules = reversed(callback_modules)
+from functools import partial as curry
 
-for m in callback_modules:
+
+PRE_HOOKS_PREFIX = "pre_"
+POST_HOOKS_PREFIX = "post_"
+
+HOOK_MODULES = MP.find_plugin_modules()
+
+
+# TODO:
+for m in HOOK_MODULES:
     __import__(m)
 
 
-def nop(*args, **kwargs):
+def noop(*args, **kwargs):
     return False
 
 
-def find_entry_point(module_name, func, suffix):
-    m = sys.modules[module_name]
-    k = func.func_name + suffix;
-    return getattr(m, k, False) or nop
+def find_hook(f, prefix, mod_name):
+    """
+    @param f: function to run commands. @see myrepo.commands
+    @param prefix: prefix of callbacks to run before/after f
+    @param mod_name: Module's name, e.g. "myrepo.plugins.foo"
+    """
+    m = sys.modules.get(mod_name, object)
+    return getattr(m, prefix + f.func_name, noop)
 
 
-def prepare(f):
-    def run(*args, **kwargs):
-        def make_find_entry_point(suffix):
-            return lambda m: find_entry_point(m, f, suffix)
+def run_in_sandbox(f, ignore_exceptions=True):
+    try:
+        return f(*args, **kwargs)
+    except Exception, e:
+        logging.warn(str(e))
 
-        def run_in_sandbox_pre(c):
-            try:
-                return c(*args, **kwargs)
-            except Exception, e:
-                # TODO
-                print e
-                return e
-
-        def run_in_sandbox_post(c, original_result, pre_result):
-            try:
-                return c(original_result, pre_result, *args, **kwargs)
-            except Exception, e:
-                # TODO
-                print e
-                return e
-
-        def run_pre():
-            callback_pre  = map(make_find_entry_point('_pre'), callback_modules)
-            return map(run_in_sandbox_pre, callback_pre)
-
-        def run_post(r_original, r_pre):
-            callback_post = map(make_find_entry_point('_post'), rcallback_modules)
-            map(run_in_sandbox_post, 
-                callback_post, 
-                map(lambda ignored: r_original, r_pre),
-                r_pre)
-
-        results_pre = run_pre()
-
-        try:
-            r = f(*args, **kwargs)
-        except Exception, e:
-            run_post(e, results_pre)
-            raise
+        if ignore_exceptions:
+            return e
         else:
-            run_post(r, results_pre)
-            return r
+            raise
+
+
+def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
+        pre_prefix=PRE_HOOKS_PREFIX, post_prefix=POST_HOOKS_PREFIX):
+    """
+    Decorator to run hooks before/after wrapped functions.
+    """
+    def run(*args, **kwargs):
+        def run_pre_post(prefix):
+            h = curry(find_hook, f, prefix)
+            return [run_in_sandbox(h(m), ignore_exceptions) for m in hmodules]
+
+        run_pre = curry(run_pre_post, pre_prefix)
+        run_post = curry(run_pre_post, post_prefix)
+
+        # TODO: What should be done with resutls especially failed ones?
+        pre_results = run_pre()
+        r = f(*args, **kwargs)
+        post_results = run_post()
+
+        return r
 
     return run
 
