@@ -83,6 +83,7 @@ setup(name=PACKAGE,
     packages=[
         "myrepo",
         "myrepo.tests",
+        "myrepo.plugins",
     ],
     scripts=glob.glob("src/*"),
     data_files=data_files,
