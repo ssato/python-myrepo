@@ -58,9 +58,9 @@ def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
             h = curry(find_hook, f, prefix)
             return [run_in_sandbox(h(m), ignore_exceptions) for m in hmodules]
 
-        def run_in_sandbox(f, ignore_exceptions=True):
+        def run_in_sandbox(g, ignore_exceptions=True):
             try:
-                return f(*args, **kwargs)
+                return g(*args, **kwargs)
             except Exception, e:
                 logging.warn(str(e))
 
