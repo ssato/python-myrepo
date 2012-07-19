@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import logging
 import os.path
 import tempfile
 
@@ -25,6 +26,17 @@ def selfdir():
 
 def setup_workdir():
     return tempfile.mkdtemp(dir="/tmp", prefix="myrepo-tests")
+
+
+def log_called(f):
+    def run_f(*args, **kwargs):
+        logging.info(
+            "called: %s, args=%s, kwargs=%s" % \
+                (f.func_name, str(args), str(kwargs))
+        )
+        return f(*args, **kwargs)
+
+    return run_f
 
 
 def cleanup_workdir(workdir):
