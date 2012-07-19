@@ -40,7 +40,7 @@ def update(repo):
     return repo.update_metadata()
 
 
-def deploy(repo, srpm, build_=True):
+def build_rpms(repo, srpm, build_=True):
     """
     FIXME: ugly code around signkey check.
     """
@@ -75,6 +75,10 @@ def deploy(repo, srpm, build_=True):
         c = sign_rpms_cmd(repo.signkey, rpms_to_sign)
         subprocess.check_call(c, shell=True)
 
+    return rpms_to_deploy
+
+
+def deploy_rpms(repo, rpms_to_deploy):
     tasks = [
         SH.Task(
             RO.copy_cmd(repo, rpm, dest), timeout=repo.timeout
@@ -87,6 +91,10 @@ def deploy(repo, srpm, build_=True):
     assert all(rc == 0 for rc in rcs), "results=" + str(rcs)
 
     return 0
+
+
+def deploy(repo, srpm, build_=True):
+    return deploy_rpms(repo, build_rpms(repo, srpm, build_))
 
 
 def init(repo):
