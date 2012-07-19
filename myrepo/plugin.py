@@ -48,18 +48,21 @@ def _mk_modname(pyfile, prefix):
     return "%s.%s" % (prefix, os.path.basename(os.path.splitext(pyfile)[0]))
 
 
-def find_plugin_modules(pluginsdir, prefix=PLUGINS_PREFIX,
+def find_plugin_modules(plugdir=None, prefix=PLUGINS_PREFIX,
         pattern=PLUGINS_FILENAME_PATTERN):
     """
-    Scan $pluginsdir and return a list of plugin module names in that dir with
+    Scan $plugdir and return a list of plugin module names in that dir with
     prefixed $prefix.
 
-    @param pluginsdir: Dir to search plugin modules
+    @param plugdir: Dir to search plugin modules
     @param prefix: Module name prefix
     """
+    if not plugdir:
+        plugdir = pluginsdir()
+
     return [
         _mk_modname(f, prefix) for f in
-            sorted(glob.glob(os.path.join(pluginsdir, pattern)))
+            sorted(glob.glob(os.path.join(plugdir, pattern)))
     ]
 
 
