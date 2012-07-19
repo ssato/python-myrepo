@@ -48,18 +48,6 @@ def find_hook(f, prefix, mod_name):
     return getattr(m, prefix + f.func_name, noop)
 
 
-def run_in_sandbox(f, ignore_exceptions=True):
-    try:
-        return f(*args, **kwargs)
-    except Exception, e:
-        logging.warn(str(e))
-
-        if ignore_exceptions:
-            return e
-        else:
-            raise
-
-
 def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
         pre_prefix=PRE_HOOKS_PREFIX, post_prefix=POST_HOOKS_PREFIX):
     """
@@ -69,6 +57,17 @@ def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
         def run_pre_post(prefix):
             h = curry(find_hook, f, prefix)
             return [run_in_sandbox(h(m), ignore_exceptions) for m in hmodules]
+
+        def run_in_sandbox(f, ignore_exceptions=True):
+            try:
+                return f(*args, **kwargs)
+            except Exception, e:
+                logging.warn(str(e))
+
+                if ignore_exceptions:
+                    return e
+                else:
+                    raise
 
         run_pre = curry(run_pre_post, pre_prefix)
         run_post = curry(run_pre_post, post_prefix)
