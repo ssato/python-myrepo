@@ -17,17 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import glob
-import logging
 import os.path
-import sys
 
 
 PLUGINS_SUBDIR = "plugins"
 PLUGINS_PREFIX = "myrepo.plugins"
 PLUGINS_FILENAME_PATTERN = "[0-9]*.py*"
-
-PRE_HOOKS_PREFIX = "pre_"
-POST_HOOKS_PREFIX = "post_"
 
 
 def selfdir():
