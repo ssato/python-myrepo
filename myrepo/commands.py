@@ -32,10 +32,7 @@ def __setup_workdir(prefix, topdir="/tmp"):
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
 
 
-def build(repo, srpm):
-    return RO.build(repo, srpm)
-
-
+@hook
 def update(repo):
     """Update and synchronize repository's metadata.
     """
@@ -43,12 +40,11 @@ def update(repo):
 
 
 @hook
-def build_rpms(repo, srpm, build_=True):
+def build(repo, srpm, build_=True):
     """
     FIXME: ugly code around signkey check.
     """
-    if build_:
-        assert all(rc == 0 for rc in build(repo, srpm))
+    assert all(rc == 0 for rc in RO.build(repo, srpm))
 
     destdir = repo.destdir()
     rpms_to_deploy = []  # :: [(rpm_path, destdir)]
@@ -74,17 +70,18 @@ def build_rpms(repo, srpm, build_=True):
 
         rpms_to_sign += brpms
 
-    # Hack:
+    # Dirty hack:
     setattr(repo, "rpms_to_sign", rpms_to_sign)
 
-    return rpms_to_deploy
+    return 0
 
 
-def deploy_rpms(repo, rpms_to_deploy):
+@hook
+def deploy_rpms(repo):
     tasks = [
         SH.Task(
             RO.copy_cmd(repo, rpm, dest), timeout=repo.timeout
-        ) for rpm, dest in rpms_to_deploy
+        ) for rpm, dest in repo.rpms_to_deploy
     ]
     rcs = SH.prun(tasks)
     assert all(rc == 0 for rc in rcs), "results=" + str(rcs)
@@ -95,10 +92,12 @@ def deploy_rpms(repo, rpms_to_deploy):
     return 0
 
 
-def deploy(repo, srpm, build_=True):
-    return deploy_rpms(repo, build_rpms(repo, srpm, build_))
+@hook
+def deploy(repo, srpm):
+    return deploy_rpms(repo) if build(repo, srpm) == 0 else 1
 
 
+@hook
 def init(repo):
     """Initialize yum repository.
     """
@@ -113,6 +112,7 @@ def init(repo):
     return rc
 
 
+@hook
 def genconf(repo):
     workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
 
