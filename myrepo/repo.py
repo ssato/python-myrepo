@@ -64,8 +64,9 @@ class Repo(object):
         :param subdir: Sub directory for this repository
         :param topdir: Topdir or its format string for this repository,
             e.g. "/var/www/html/%(subdir)s".
-        :param baseurl: Base url or its format string, e.g. "file://%(topdir)s".
-        :param signkey: GPG key ID to sign built, or None indicates will never sign
+        :param baseurl: Base url or its format string, e.g.
+            "file://%(topdir)s".
+        :param signkey: GPG key ID to sign, or None indicates will never sign
         :param bdist: Distribution label to build srpms,
             e.g. "fedora-custom-addons-14-x86_64"
         :param metadata_expire: Metadata expiration period, e.g. "2h", "1d"

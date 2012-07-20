@@ -104,7 +104,7 @@ def init(repo):
         "mkdir -p " + " ".join(repo.rpmdirs()), repo.user, repo.server,
         timeout=repo.timeout,
     )
-    
+
     if repo.genconf and rc == 0:
         rc = genconf(repo)
 

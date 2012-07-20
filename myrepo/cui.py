@@ -151,7 +151,9 @@ Examples:
     p.set_defaults(**defaults)
 
     p.add_option("-C", "--config", help="Configuration file")
-    p.add_option("-P", "--profile", help="Specify configuration profile [%default]")
+    p.add_option("-P", "--profile",
+        help="Specify configuration profile [%default]"
+    )
     p.add_option("-T", "--timeout", type="int",
         help="Timeout [sec] for each operations [%default]")
 
