@@ -17,6 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import glob
+import imp
+import logging
 import os.path
 
 
@@ -63,6 +65,62 @@ def find_plugin_modules(plugdir=None, prefix=PLUGINS_PREFIX,
     return [
         _mk_modname(f, prefix) for f in
             sorted(glob.glob(os.path.join(plugdir, pattern)))
+    ]
+
+
+def import_plugin_modules(plugdir=None, prefix=PLUGINS_PREFIX,
+        pattern=PLUGINS_FILENAME_PATTERN):
+    """
+    Effecful version of function to load plugin modules in plugdir.
+
+    @return: [fully_qualified_plugin_module_name]
+
+    NOTE: plugin modules are imported and visible in top level environment
+    after called this.
+    """
+    ms = find_plugin_modules(plugdir, prefix, pattern)
+    for m in ms:
+        __import__(m)
+
+    return ms
+
+
+def _mname(pyfile):
+    """
+    >>> _mname("/a/b/c/d.py")
+    'd'
+    """
+    return os.path.basename(os.path.splitext(pyfile)[0])
+
+
+def _load_module(mname, mdir):
+    """
+    Load module $mname in $mdir and returns itself.
+    """
+    try:
+        (fp, fn, stuff) = imp.find_module(mname, [mdir])
+        return imp.load_module(m, fp, fn, stuff)
+    except ImportError:
+        logging.warn("Could not load module: name=%s, dir=%s" % (mname, mdir))
+        return None
+    finally:
+        if fp:
+            fp.close()
+
+
+def load_plugin_modules(plugdir=None, pattern=PLUGINS_FILENAME_PATTERN):
+    """
+    Less effectful version of function to load plugin modules in plugdir.
+
+    @return [(fully_qualified_plugin_module_name, plugin_module)]
+    """
+    if not plugdir:
+        plugdir = pluginsdir()
+
+    return [
+        ("%s.%s" % (prefix, m), _load_module(m, plugdir)) for m in
+            _mname(f) for f in
+                sorted(glob.glob(os.path.join(plugdir, pattern)))
     ]
 
 
