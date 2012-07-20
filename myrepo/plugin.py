@@ -107,6 +107,9 @@ def load_plugin_modules(plugdir=None, pattern=PLUGINS_FILENAME_PATTERN):
 
     @return [plugin_module]
     """
+    if not plugdir:
+        plugdir = pluginsdir()
+
     return [
         _load_module(m, plugdir) for m in
             list_plugin_modules(plugdir, pattern)
