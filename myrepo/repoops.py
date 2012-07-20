@@ -89,7 +89,7 @@ def sign_rpms_cmd(keyid, rpms):
     :param keyid:  GPG Key ID to sign with :: str
     :param rpms:  RPM file path list :: [str]
     """
-    return U.compile_template("sign_rpms", {"keyid": keyid, "rpms": rpms})
+    return U.compile_template_2("sign_rpms", {"keyid": keyid, "rpms": rpms})
 
 
 def copy_cmd(repo, src, dst):
