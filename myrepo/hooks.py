@@ -42,7 +42,7 @@ def find_hook(f, prefix, module):
     return getattr(module, prefix + f.func_name, noop)
 
 
-def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
+def hook(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
         pre_prefix=PRE_HOOKS_PREFIX, post_prefix=POST_HOOKS_PREFIX):
     """
     Decorator to run hooks before/after wrapped functions.
