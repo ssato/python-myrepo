@@ -88,15 +88,17 @@ def _load_module(mname, mdir):
     """
     Load module $mname in $mdir and returns itself.
     """
+    fp = None
     try:
         (fp, fn, stuff) = imp.find_module(mname, [mdir])
         return imp.load_module(mname, fp, fn, stuff)
     except ImportError:
         logging.warn("Could not load module: name=%s, dir=%s" % (mname, mdir))
-        return None
     finally:
         if fp:
             fp.close()
+
+    return None
 
 
 def load_plugin_modules(plugdir=None, pattern=PLUGINS_FILENAME_PATTERN):
