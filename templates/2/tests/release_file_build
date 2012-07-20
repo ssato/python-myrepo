@@ -1,0 +1,16 @@
+pmaker \
+-n custom-fedora-17-i386-release \
+-w /tmp/w \
+--stepto sbuild \
+--license MIT \
+--group "System Environment/Base" \
+--url http://yumrepo.example.com/yum/fedora/17/ \
+--summary "Yum repo files for custom-fedora-17-i386" \
+--packager "John Doe" \
+--email "jdoe@example.com" \
+--pversion 17 \
+--no-rpmdb \
+--ignore-owner \
+-v \
+--destdir /tmp/w \
+a b c

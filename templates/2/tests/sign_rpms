@@ -1,0 +1,1 @@
+rpm --resign --define \"_signature gpg\" --define \"_gpg_name XYZ01234\" aaa-0.1-1.noarch.rpm aaa-bbb-0.1-1.noarch.rpm aaa-ccc-0.1-1.noarch.rpm

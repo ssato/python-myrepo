@@ -1,0 +1,18 @@
+{% set reponame = name|default("unknown") %}
+{% if "mock" in pkgname %}{% set group = "Development/Tools" %}{% set summary = "Mock cfg files of yum repo " + reponame %}
+{% else %}{% set group = "System Environment/Base" %}{% set summary = "Yum repo files for  " + reponame %}{% endif %}
+pmaker -n {{ pkgname }} \
+-w /tmp/w \
+--stepto sbuild \
+--license MIT \
+--group "{{ group }}" \
+--url http://yumrepo.example.com/yum/fedora/17/ \
+--summary "{{ summary }}" \
+--packager "John Doe" \
+--email "jdoe@example.com" \
+--pversion 17 \
+--no-rpmdb \
+--ignore-owner \
+-v \
+--destdir /tmp/w \
+a b c
