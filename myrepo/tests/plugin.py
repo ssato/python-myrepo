@@ -70,7 +70,6 @@ class Test_10_effecful_functions(unittest.TestCase):
 
         self.assertEquals(sorted(MP.list_plugin_modules(dst)), basenames)
 
-
     def test_20_load_plugin_modules__w_plugdir(self):
         srcs = glob.glob(
             os.path.join(TC.selfdir(), MP.PLUGINS_FILENAME_PATTERN)
