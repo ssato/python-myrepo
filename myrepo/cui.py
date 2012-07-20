@@ -116,6 +116,7 @@ def create_repos_from_dists_option_g(config, degenerate=False):
             config.metadata_expire,
             config.timeout,
             config.genconf,
+            config.trace,
         )
 
 
@@ -174,6 +175,7 @@ Examples:
     p.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     p.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
     p.add_option("", "--debug", action="store_true", help="Debug mode")
+    p.add_option("", "--trace", action="store_true", help="Trace mode")
 
     iog = optparse.OptionGroup(p, "Options for 'init' command")
     iog.add_option('', "--name",

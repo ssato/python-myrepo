@@ -35,6 +35,7 @@ REPO_DEFAULT = B.Bunch(
     keydir="/etc/pki/rpm-gpg",
     keyurl="file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s",
     metadata_expire="2h",
+    trace=0,
 )
 
 

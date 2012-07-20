@@ -50,7 +50,7 @@ class Repo(object):
     def __init__(self, server, user, email, fullname, dname, dver, archs,
             name=None, subdir=None, topdir=None, baseurl=None, signkey=None,
             bdist=None, metadata_expire=None, timeout=None,
-            genconf=False, *args, **kwargs):
+            genconf=False, trace=False, *args, **kwargs):
         """
         :param server: Server's hostname to provide this yum repo
         :param user: Username on the server
@@ -71,6 +71,7 @@ class Repo(object):
             e.g. "fedora-custom-addons-14-x86_64"
         :param metadata_expire: Metadata expiration period, e.g. "2h", "1d"
         :param timeout: Timeout
+        :param trace: Trace mode
         """
         self.server = server
         self.user = user
@@ -125,6 +126,7 @@ class Repo(object):
             self.metadata_expire = metadata_expire
 
         self.timeout = timeout
+        self.trace = trace
 
     def as_dict(self):
         return self.__dict__.copy()
