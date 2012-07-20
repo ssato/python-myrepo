@@ -26,26 +26,20 @@ from functools import partial as curry
 PRE_HOOKS_PREFIX = "pre_"
 POST_HOOKS_PREFIX = "post_"
 
-HOOK_MODULES = MP.find_plugin_modules()
-
-
-# TODO:
-for m in HOOK_MODULES:
-    __import__(m)
+HOOK_MODULES = MP.load_plugin_modules()
 
 
 def noop(*args, **kwargs):
     return False
 
 
-def find_hook(f, prefix, mod_name):
+def find_hook(f, prefix, module):
     """
-    @param f: function to run commands. @see myrepo.commands
+    @param f: function to run commands (see also myrepo.commands)
     @param prefix: prefix of callbacks to run before/after f
-    @param mod_name: Module's name, e.g. "myrepo.plugins.foo"
+    @param module: Plugin module to find hooks
     """
-    m = sys.modules.get(mod_name, object)
-    return getattr(m, prefix + f.func_name, noop)
+    return getattr(module, prefix + f.func_name, noop)
 
 
 def prepare(f, hmodules=HOOK_MODULES, ignore_exceptions=True,
