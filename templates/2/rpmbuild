@@ -10,7 +10,7 @@ pmaker -n {{ pkgname }} \
 --summary "{{ summary }}" \
 --packager "{{ fullname }}" \
 --email "{{ email }}" \
---pversion {{ distversion }}  \
+--pversion {{ distversion }} \
 --no-rpmdb \
 --ignore-owner \
 {{ logopt }} \

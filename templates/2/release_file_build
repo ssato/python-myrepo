@@ -8,7 +8,7 @@ pmaker \
 --summary "Yum repo files for {{ name }}" \
 --packager "{{ fullname }}" \
 --email "{{ email }}" \
---pversion {{ distversion }}  \
+--pversion {{ distversion }} \
 --no-rpmdb \
 --ignore-owner \
 {{ logopt }} \
