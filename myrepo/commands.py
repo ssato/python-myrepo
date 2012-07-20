@@ -71,9 +71,8 @@ def build_rpms(repo, srpm, build_=True):
 
         rpms_to_sign += brpms
 
-    if repo.signkey:
-        c = sign_rpms_cmd(repo.signkey, rpms_to_sign)
-        subprocess.check_call(c, shell=True)
+    # Hack:
+    setattr(repo, "rpms_to_sign", rpms_to_sign)
 
     return rpms_to_deploy
 
