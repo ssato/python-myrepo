@@ -18,6 +18,8 @@
 import myrepo.repoops as RO
 import rpmkit.shell as SH
 
+from myrepo.hooks import hook
+
 import glob
 import logging
 import os
@@ -40,6 +42,7 @@ def update(repo):
     return repo.update_metadata()
 
 
+@hook
 def build_rpms(repo, srpm, build_=True):
     """
     FIXME: ugly code around signkey check.
