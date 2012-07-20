@@ -19,6 +19,7 @@ import myrepo.plugin as MP
 import myrepo.tests.common as TC
 
 import glob
+import itertools
 import os
 import os.path
 import shutil
@@ -51,7 +52,7 @@ class Test_10_effecful_functions(unittest.TestCase):
         #TC.cleanup_workdir(self.workdir)
         pass
 
-    def test_00_find_plugin_modules__w_pluginsdir(self):
+    def test_00_list_plugin_modules__w_pluginsdir(self):
         srcs = glob.glob(
             os.path.join(TC.selfdir(), MP.PLUGINS_FILENAME_PATTERN)
         )
@@ -63,13 +64,33 @@ class Test_10_effecful_functions(unittest.TestCase):
         for f in srcs:
             shutil.copy(f, dst)
 
-        basenames = [os.path.basename(os.path.splitext(f)[0]) for f in srcs]
-        refs = sorted("%s.%s" % (MP.PLUGINS_PREFIX, n) for n in basenames)
-
-        self.assertEquals(
-            sorted(MP.find_plugin_modules(dst, MP.PLUGINS_PREFIX)),
-            refs
+        basenames = sorted(
+            os.path.basename(os.path.splitext(f)[0]) for f in srcs
         )
+
+        self.assertEquals(sorted(MP.list_plugin_modules(dst)), basenames)
+
+
+    def test_20_load_plugin_modules__w_plugdir(self):
+        srcs = glob.glob(
+            os.path.join(TC.selfdir(), MP.PLUGINS_FILENAME_PATTERN)
+        )
+        dst = os.path.join(self.workdir, MP.PLUGINS_SUBDIR)
+
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+
+        for f in srcs:
+            shutil.copy(f, dst)
+
+        modnames = sorted(
+            os.path.basename(os.path.splitext(f)[0]) for f in srcs
+        )
+
+        ms = MP.load_plugin_modules(dst, MP.PLUGINS_FILENAME_PATTERN)
+
+        for n, m in itertools.izip(modnames, ms):
+            self.assertEquals(n, m.__name__)
 
 
 # vim:sw=4:ts=4:et:
