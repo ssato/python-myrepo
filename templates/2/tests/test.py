@@ -36,13 +36,26 @@ def expected_s(tmpl_name):
     return open(os.path.join(TESTDIR, tmpl_name)).read()
 
 
-def result_and_expected(tmpl_name, ctx):
-    return (tcompile(tmpl_name, ctx), expected_s(tmpl_name))
+def trim(s):
+    return s.rstrip().strip()
+
+
+def result_and_expected(tmpl_name, ctx, dump=False,
+        dumpdir="/tmp/myrepo-templates-out"):
+    s = trim(tcompile(tmpl_name, ctx))
+    exp_s = trim(expected_s(tmpl_name))
+
+    if dump:
+        if not os.path.exists(dumpdir):
+            os.makedirs(dumpdir)
+        open(os.path.join(dumpdir, tmpl_name), 'w').write(s)
+
+    return (trim(s), trim(exp_s))
 
 
 def diff(s, ref):
-    return "".join(
-        difflib.context_diff(
+    return "\n" + "".join(
+        difflib.unified_diff(
             s.splitlines(), ref.splitlines(), 'Original', 'Current'
         )
     )
@@ -55,7 +68,7 @@ class Test_2(unittest.TestCase):
             "rpmsdir": \
                 "/var/cache/mock/fedora-17-i386/yum_cache/fedora/packages/",
         }
-        (s, ref) = result_and_expected("list_rpms_to_gc.py", ctx)
+        (s, ref) = result_and_expected("list_rpms_to_gc.py", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_01_mock_cfg(self):
@@ -70,7 +83,7 @@ class Test_2(unittest.TestCase):
             },
             "release_file_content": "HERE_IS_RELEASE_FILE_CONTENT",
         }
-        (s, ref) = result_and_expected("mock.cfg", ctx)
+        (s, ref) = result_and_expected("mock.cfg", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_02_mock_cfg_build(self):
@@ -83,7 +96,7 @@ class Test_2(unittest.TestCase):
             "distversion": 17,
             "listfile": "a b c",
         }
-        (s, ref) = result_and_expected("mock_cfg_build", ctx)
+        (s, ref) = result_and_expected("mock_cfg_build", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_03_release_file(self):
@@ -95,7 +108,7 @@ class Test_2(unittest.TestCase):
             "metadata_expire": 2,
             "signkey": False
         }
-        (s, ref) = result_and_expected("release_file", ctx)
+        (s, ref) = result_and_expected("release_file", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_04_release_file_build(self):
@@ -109,13 +122,10 @@ class Test_2(unittest.TestCase):
             "listfile": "a b c",
             "logopt": "-v",
         }
-        (s, ref) = result_and_expected("release_file_build", ctx)
+        (s, ref) = result_and_expected("release_file_build", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_05_rpmbuild(self):
-        """TODO: rpmbuild"""
-        pass
-
         ctx = {
             "name": "custom-fedora-17-i386",
             "workdir": "/tmp/w",
@@ -126,8 +136,8 @@ class Test_2(unittest.TestCase):
             "listfile": "a b c",
             "logopt": "-v",
         }
-        (s, ref) = result_and_expected("rpmbuild", ctx)
-        #self.assertEquals(s, ref, diff(s, ref))
+        (s, ref) = result_and_expected("rpmbuild", ctx, True)
+        self.assertEquals(s, ref, diff(s, ref))
 
     def test_06_sign_rpms(self):
         ctx = {
@@ -138,7 +148,7 @@ class Test_2(unittest.TestCase):
                 "aaa-ccc-0.1-1.noarch.rpm",
             ],
         }
-        (s, ref) = result_and_expected("sign_rpms", ctx)
+        (s, ref) = result_and_expected("sign_rpms", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
 

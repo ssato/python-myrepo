@@ -1,15 +1,14 @@
-[{{ name }}]
-name=Custom yum repository on {{ server }} by {{ user }}
-baseurl={{ baseurl }}/$basearch/
-metadata_expire={{ metadata_expire }}
+[custom-fedora-17-i386]
+name=Custom yum repository on yumrepo.example.com by jdoe
+baseurl=http://yumrepo.example.com/yum/fedora/17//$basearch/
+metadata_expire=2
 enabled=1
-{% if signkey %}gpgcheck=1
-gpgkey={{ keyurl }}{% else %}gpgcheck=0
-{% endif %}
+gpgcheck=0
 
-[{{ name }}-source]
-name=Custom yum repository on {{ server }} by {{ user }} (source)
-baseurl={{ baseurl }}/sources/
-metadata_expire={{ metadata_expire }}
+
+[custom-fedora-17-i386-source]
+name=Custom yum repository on yumrepo.example.com by jdoe (source)
+baseurl=http://yumrepo.example.com/yum/fedora/17//sources/
+metadata_expire=2
 enabled=0
 gpgcheck=0

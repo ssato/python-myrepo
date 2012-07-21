@@ -15,4 +15,4 @@ pmaker -n {{ pkgname }} \
 --ignore-owner \
 {{ logopt }} \
 --destdir {{ workdir }} \
-#{listfile }}
+{{ listfile }}
