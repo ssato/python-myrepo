@@ -21,6 +21,13 @@ import collections
 import logging
 import os.path
 
+try:
+    from collections import OrderedDict as dict
+except ImportError:
+    # TODO: Needs estimation of impact not using collections.OrderedDict and
+    # implement similar class if any bad influences exist.
+    pass
+
 
 def _get_mockcfg_path(blabel, topdir="/etc/mock"):
     """
@@ -33,7 +40,7 @@ def _get_mockcfg_path(blabel, topdir="/etc/mock"):
     return os.path.join(topdir, blabel + ".cfg")
 
 
-def _load_mockcfg_config(blabel, cfg=collections.OrderedDict()):
+def _load_mockcfg_config(blabel, cfg=dict()):
     """
     FIXME: This is very naive and frail. It may be better to implement in
     similar manner as setup_default_config_opts() does in /usr/sbin/mock.
@@ -45,7 +52,7 @@ def _load_mockcfg_config(blabel, cfg=collections.OrderedDict()):
 
     except KeyError, e:
         ## Make it constructs a dict recursively:
-        #cfg[str(e)] = collections.OrderedDict()
+        #cfg[str(e)] = dict()
         #return _load_mockcfg_config(mockcfg, cfg)  # run recursively
         #
         ## or just make it raising an exception (current choice):
@@ -55,16 +62,16 @@ def _load_mockcfg_config(blabel, cfg=collections.OrderedDict()):
 def _load_mockcfg_config_opts(blabel):
     """
     Load mock config file and returns $mock_config["config_opts"] as a
-    dict (collections.OrderedDict).
+    dict (dict or collections.OrderedDict).
 
     :param blabel: Build target distribution label, e.g. fedora-addon-16-x86_64
     """
-    cfg = collections.OrderedDict()
-    cfg["config_opts"] = collections.OrderedDict()
+    cfg = dict()
+    cfg["config_opts"] = dict()
 
     # see also: setup_default_config_opts() in /usr/sbin/mock.
     for k in ["macros", "plugin_conf"]:
-        cfg["config_opts"][k] = collections.OrderedDict()
+        cfg["config_opts"][k] = dict()
 
     cfg = _load_mockcfg_config(blabel, cfg)
 
