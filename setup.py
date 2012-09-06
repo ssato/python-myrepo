@@ -1,7 +1,8 @@
 from distutils.core import setup, Command
+from glob import glob
 
 import datetime
-import glob
+import os.path
 import os
 import sys
 
@@ -15,11 +16,16 @@ VERSION = "0.2.11"
 VERSION = VERSION + datetime.datetime.now().strftime(".%Y%m%d")
 
 
+def list_files(tdir):
+    return [f for f in glob(os.path.join(tdir, '*')) if os.path.isfile(f)]
+
+
 data_files = [
     # see myrepo/globals.py:
-    ("share/myrepo/templates/1", glob.glob("templates/1/*")),
-    ("share/myrepo/templates/2", glob.glob("templates/2/*")),
-    ("/etc/myrepo.d/", glob.glob("data/etc/myrepo.d/*")),
+    ("share/myrepo/templates/1", list_files("templates/1/*")),
+    ("share/myrepo/templates/2", list_files("templates/2/*")),
+    ("share/myrepo/templates/2/tests", list_files("templates/2/tests/*")),
+    ("/etc/myrepo.d/", list_files("data/etc/myrepo.d/*")),
 ]
 
 
@@ -85,13 +91,12 @@ setup(name=PACKAGE,
         "myrepo.tests",
         "myrepo.plugins",
     ],
-    scripts=glob.glob("src/*"),
+    scripts=glob("src/*"),
     data_files=data_files,
     cmdclass={
         "srpm": SrpmCommand,
         "rpm":  RpmCommand,
     },
 )
-
 
 # vim:sw=4:ts=4:et:
