@@ -22,10 +22,10 @@ def list_files(tdir):
 
 data_files = [
     # see myrepo/globals.py:
-    ("share/myrepo/templates/1", list_files("templates/1/*")),
-    ("share/myrepo/templates/2", list_files("templates/2/*")),
-    ("share/myrepo/templates/2/tests", list_files("templates/2/tests/*")),
-    ("/etc/myrepo.d/", list_files("data/etc/myrepo.d/*")),
+    ("share/myrepo/templates/1", list_files("templates/1/")),
+    ("share/myrepo/templates/2", list_files("templates/2/")),
+    ("share/myrepo/templates/2/tests", list_files("templates/2/tests/")),
+    ("/etc/myrepo.d/", list_files("data/etc/myrepo.d/")),
 ]
 
 
