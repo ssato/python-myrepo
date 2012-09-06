@@ -71,6 +71,7 @@ def build(repo, srpm, build_=True):
         rpms_to_sign += brpms
 
     # Dirty hack:
+    setattr(repo, "rpms_to_deploy", rpms_to_deploy)
     setattr(repo, "rpms_to_sign", rpms_to_sign)
 
     return 0
