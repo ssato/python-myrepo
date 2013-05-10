@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.globals as G
-import rpmkit.tenjinwrapper as T
+import myrepo.tenjinwrapper as T
 import rpmkit.utils as U
 import jinja2
 import os.path
