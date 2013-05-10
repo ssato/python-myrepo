@@ -1,7 +1,6 @@
 from distutils.core import setup, Command
 from glob import glob
 
-import datetime
 import os.path
 import os
 import sys
@@ -10,10 +9,12 @@ curdir = os.getcwd()
 sys.path.append(curdir)
 
 PACKAGE = "myrepo"
-VERSION = "0.2.11"
+VERSION = "0.2.12"
 
-# daily snapshots:
-VERSION = VERSION + datetime.datetime.now().strftime(".%Y%m%d")
+# For daily snapshot versioning mode:
+if os.environ.get("_SNAPSHOT_BUILD", None) is not None:
+    import datetime
+    VERSION = VERSION + datetime.datetime.now().strftime(".%Y%m%d")
 
 
 def list_files(tdir):
@@ -88,6 +89,7 @@ setup(name=PACKAGE,
     url="https://github.com/ssato/python-myrepo",
     packages=[
         "myrepo",
+        "myrepo.imported",
         "myrepo.tests",
         "myrepo.plugins",
     ],

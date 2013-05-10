@@ -59,6 +59,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12-1
+- Fixed a bug that myrepo refers rpmkit.tenjinwrapper which removed in the
+  newer rpmkit release, and add tenjinwrapper in myrepo itself
+
 * Mon Jul  9 2012 Satoru SATOH <ssato@redhat.com> - 0.2.11-1
 - Bumped up the version
 
