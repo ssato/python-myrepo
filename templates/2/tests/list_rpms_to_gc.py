@@ -1,7 +1,7 @@
 #! /usr/bin/python
 import glob,itertools,operator,os,os.path,rpm,sys,yum
 
-RPM_DIR = "/var/cache/mock/fedora-17-i386/yum_cache/fedora/packages/"
+RPM_DIR = "/var/cache/mock/fedora-18-x86_64/yum_cache/fedora/packages/"
 RPM_KEYS = ["name", "version", "release", "epoch", "arch"]
 KEEP_LIMIT = 1  # may be changed depends on 'num-deltas' in createrepo
 
