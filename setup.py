@@ -93,7 +93,7 @@ setup(name=PACKAGE,
         "myrepo.tests",
         "myrepo.plugins",
     ],
-    scripts=glob("src/*"),
+    scripts=glob("tools/*"),
     data_files=data_files,
     cmdclass={
         "srpm": SrpmCommand,
