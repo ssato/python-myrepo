@@ -1,7 +1,7 @@
 #
 # misc utility routines
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.globals as G
-import myrepo.tenjinwrapper as T
 import rpmkit.utils as U
 import jinja2
 import os.path
@@ -35,21 +34,13 @@ TEMPLATE_PATHS = [
 ]
 
 
-def compile_template(tmpl, context={}, spaths=TEMPLATE_PATHS):
+def compile_template_2(tmpl, context={}, tpaths=TEMPLATE_PATHS):
     """
     :param tmpl: Template file name or (abs or rel) path
     :param context: Context parameters to instantiate the template :: dict
+    :param tpaths: List of template search path :: [str]
     """
-    return T.template_compile(os.path.join("1", tmpl), context, spaths)
-
-
-def compile_template_2(tmpl, context={}, spaths=TEMPLATE_PATHS):
-    """
-    :param tmpl: Template file name or (abs or rel) path
-    :param context: Context parameters to instantiate the template :: dict
-    """
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(spaths))
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(tpaths))
     return env.get_template(tmpl).render(**context)
-
 
 # vim:sw=4:ts=4:et:
