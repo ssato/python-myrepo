@@ -33,16 +33,21 @@ def __setup_workdir(prefix, topdir="/tmp"):
 
 
 @hook
-def update(repo):
+def update(repo, *args, **kwargs):
     """Update and synchronize repository's metadata.
+
+    :param repo: myrepo.repo.Repo object
     """
     return repo.update_metadata()
 
 
 @hook
-def build(repo, srpm, build_=True):
+def build(repo, srpm, *args, **kwargs):
     """
     FIXME: ugly code around signkey check.
+
+    :param repo: myrepo.repo.Repo object
+    :param srpm: Path to src.rpm to build
     """
     assert all(rc == 0 for rc in RO.build(repo, srpm))
 
@@ -78,7 +83,7 @@ def build(repo, srpm, build_=True):
 
 
 @hook
-def deploy_rpms(repo):
+def deploy_rpms(repo, *args, **kwargs):
     tasks = [
         SH.Task(
             RO.copy_cmd(repo, rpm, dest), timeout=repo.timeout
@@ -94,12 +99,12 @@ def deploy_rpms(repo):
 
 
 @hook
-def deploy(repo, srpm):
+def deploy(repo, srpm, *args, **kwargs):
     return deploy_rpms(repo) if build(repo, srpm) == 0 else 1
 
 
 @hook
-def init(repo):
+def init(repo, *args, **kwargs):
     """Initialize yum repository.
     """
     rc = SH.run(
@@ -114,7 +119,7 @@ def init(repo):
 
 
 @hook
-def genconf(repo):
+def genconf(repo, *args, **kwargs):
     workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
 
     srpms = [
