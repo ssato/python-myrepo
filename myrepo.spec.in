@@ -21,6 +21,7 @@ Requires:       packagemaker >= 0.4.1-1
 Requires:       rpmkit >= 0.2.10-1
 Obsoletes:      rpmkit < 0.2.10-1
 Requires:       python-jinja2
+Requires:       python-gevent
 
 
 %description
