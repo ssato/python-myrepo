@@ -239,11 +239,7 @@ def do_command(cmd, repos_g, srpm=None, timeout=G.BUILD_TIMEOUT):
     """
     f = getattr(CMD, cmd)
 
-    if srpm:
-        jobs = [gevent.spawn(f, repo, srpm) for repo in repos_g]
-    else:
-        jobs = [gevent.spawn(f, repo) for repo in repos_g]
-
+    jobs = [gevent.spawn(f, repo, srpm) for repo in repos_g]
     gevent.joinall(jobs, timeout)
 
     errors = [j.exception for j in jobs if not j.successful()]
