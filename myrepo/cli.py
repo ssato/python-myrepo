@@ -24,6 +24,7 @@ import myrepo.parser as P
 import myrepo.repo as R
 import rpmkit.Bunch as B
 
+import gevent
 import itertools
 import logging
 import multiprocessing
@@ -199,7 +200,7 @@ def _action(func, args):
     func(*args)
 
 
-def do_command(cmd, repos_g, srpm=None):
+def do_command_org(cmd, repos_g, srpm=None):
     """
     :param cmd: sub command name :: str
     :param repos_g: Repository objects (generator)
@@ -228,6 +229,27 @@ def do_command(cmd, repos_g, srpm=None):
 
             proc.join(G.BUILD_TIMEOUT)  # one more wait
             proc.terminate()
+
+
+def do_command(cmd, repos_g, srpm=None, timeout=G.BUILD_TIMEOUT):
+    """
+    :param cmd: sub command name :: str
+    :param repos_g: Repository objects (generator)
+    :param srpm: path to the target src.rpm :: str
+    """
+    f = getattr(CMD, cmd)
+
+    if srpm:
+        jobs = [gevent.spawn(f, repo, srpm) for repo in repos_g]
+    else:
+        jobs = [gevent.spawn(f, repo) for repo in repos_g]
+
+    gevent.joinall(jobs, timeout)
+
+    errors = [j.exception for j in jobs if not j.successful()]
+    if errors:
+        es = ["### %d\n%s\n" % (i, str(e)) for i, e in enumerate(errors)]
+        raise RuntimeError("Failed: " + ''.join(es))
 
 
 def main(argv=sys.argv):
