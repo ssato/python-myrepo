@@ -30,7 +30,8 @@ is_local = U.is_local
 
 
 TEMPLATE_PATHS = [
-    G.MYREPO_TEMPLATE_PATH, os.path.join(os.curdir, "templates")
+    os.path.join(G.MYREPO_TEMPLATE_PATH, "2"),
+    os.path.join(os.curdir, "templates", "2")
 ]
 
 
