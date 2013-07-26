@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ def dists_by_srpm(repo, srpm):
 
 @M.memoize
 def release_file_content(repo):
-    return U.compile_template_2("release_file", repo.as_dict())
+    return U.compile_template("release_file", repo.as_dict())
 
 
 def mock_cfg_content(repo, dist):
@@ -60,7 +60,7 @@ def mock_cfg_content(repo, dist):
 
     context = {"cfg": cfg_opts}
 
-    return U.compile_template_2("mock.cfg", context)
+    return U.compile_template("mock.cfg", context)
 
 
 def mock_cfg_content_2(repo, dist):
@@ -78,7 +78,7 @@ def mock_cfg_content_2(repo, dist):
         "dist": dist,
     }
 
-    return U.compile_template_2("mock.cfg", context)
+    return U.compile_template("mock.cfg", context)
 
 
 def sign_rpms_cmd(keyid, rpms):
@@ -89,7 +89,7 @@ def sign_rpms_cmd(keyid, rpms):
     :param keyid:  GPG Key ID to sign with :: str
     :param rpms:  RPM file path list :: [str]
     """
-    return U.compile_template_2("sign_rpms", {"keyid": keyid, "rpms": rpms})
+    return U.compile_template("sign_rpms", {"keyid": keyid, "rpms": rpms})
 
 
 def copy_cmd(repo, src, dst):
@@ -147,7 +147,7 @@ def rpm_build_cmd(repo, workdir, listfile, pname):
         "pkgname": pname,
     })
 
-    return U.compile_template_2("rpmbuild", context)
+    return U.compile_template("rpmbuild", context)
 
 
 def build(repo, srpm):

@@ -35,7 +35,7 @@ TEMPLATE_PATHS = [
 ]
 
 
-def compile_template_2(tmpl, context={}, tpaths=TEMPLATE_PATHS):
+def compile_template(tmpl, context={}, tpaths=TEMPLATE_PATHS):
     """
     :param tmpl: Template file name or (abs or rel) path
     :param context: Context parameters to instantiate the template :: dict
