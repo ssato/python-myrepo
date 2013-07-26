@@ -58,27 +58,7 @@ def mock_cfg_content(repo, dist):
     cfg_opts["myrepo_distname"] = dist.name
     cfg_opts["yum.conf"] += "\n" + release_file_content(repo)
 
-    context = {"cfg": cfg_opts}
-
-    return U.compile_template("mock.cfg", context)
-
-
-def mock_cfg_content_2(repo, dist):
-    """
-    Updated mock.cfg with addingg repository definitions in
-    given content and returns it.
-
-    :param repo:  Repo object
-    :param dist:  Distribution object
-    """
-    context = {
-        "base_mock_cfg_path": dist.get_mockcfg_path(),
-        "release_file_content": release_file_content(repo),
-        "repo": repo,
-        "dist": dist,
-    }
-
-    return U.compile_template("mock.cfg", context)
+    return U.compile_template("mock.cfg", dict(cfg=cfg_opts))
 
 
 def sign_rpms_cmd(keyid, rpms):
@@ -89,7 +69,7 @@ def sign_rpms_cmd(keyid, rpms):
     :param keyid:  GPG Key ID to sign with :: str
     :param rpms:  RPM file path list :: [str]
     """
-    return U.compile_template("sign_rpms", {"keyid": keyid, "rpms": rpms})
+    return U.compile_template("sign_rpms", dict(keyid=keyid, rpms=rpms))
 
 
 def copy_cmd(repo, src, dst):
@@ -112,7 +92,7 @@ def release_file_gen(repo, workdir):
 
     relpath = os.path.join(reldir, repo.name + ".repo")
 
-    open(relpath, 'w').write(release_file_content(repo))  # may throw IOError.
+    open(relpath, 'w').write(release_file_content(repo))
     return relpath
 
 
@@ -127,7 +107,7 @@ def mock_cfg_gen_g(repo, workdir):
         mcpath = os.path.join(
             mockcfgdir, "%s-%s.cfg" % (repo.name, dist.label)
         )
-        open(mcpath, "w").write(mc)  # may throw IOError.
+        open(mcpath, "w").write(mc)
 
         yield mcpath
 
@@ -141,21 +121,19 @@ def mock_cfg_gen(repo, workdir):
 def rpm_build_cmd(repo, workdir, listfile, pname):
     logopt = logging.getLogger().level < logging.INFO and "--verbose" or ""
 
-    context = repo.as_dict()
-    context.update({
-        "workdir": workdir, "logopt": logopt, "listfile": listfile,
-        "pkgname": pname,
-    })
+    ctx = repo.as_dict()
 
-    return U.compile_template("rpmbuild", context)
+    ctx["workdir"] = workdir
+    ctx["logopt"] = logopt
+    ctx["listfile"] = listfile
+    ctx["pkgname"] = pname
+
+    return U.compile_template("rpmbuild", ctx)
 
 
 def build(repo, srpm):
-    tasks = [
-        SH.Task(
-            d.build_cmd(srpm), timeout=repo.timeout
-        ) for d in dists_by_srpm(repo, srpm)
-    ]
+    tasks = [SH.Task(d.build_cmd(srpm), timeout=repo.timeout) for d in
+             dists_by_srpm(repo, srpm)]
     return SH.prun(tasks)
 
 
@@ -176,11 +154,8 @@ def update_metadata(repo):
     c += " && createrepo --update --deltas --oldpackagedirs . --database ."
     c += " || createrepo --deltas --oldpackagedirs . --database ."
 
-    tasks = [
-        SH.Task(
-            c, repo.user, repo.server, d, timeout=repo.timeout
-        ) for d in repo.rpmdirs()
-    ]
+    tasks = [SH.Task(c, repo.user, repo.server, d, timeout=repo.timeout)
+             for d in repo.rpmdirs()]
     return SH.prun(tasks)
 
 
@@ -197,11 +172,8 @@ def build_mock_cfg_srpm(repo, workdir):
 
     pname = "mock-data-" + repo.name
 
-    rc = SH.run(
-        rpm_build_cmd(repo, workdir, listfile, pname),
-        repo.user,
-        timeout=G.BUILD_TIMEOUT
-    )
+    rc = SH.run(rpm_build_cmd(repo, workdir, listfile, pname),
+                repo.user, timeout=G.BUILD_TIMEOUT)
     if rc != 0:
         raise RuntimeError("Failed to create mock.cfg rpm")
 
@@ -228,11 +200,9 @@ def build_release_srpm(repo, workdir):
         keydir = os.path.join(workdir, repo.keydir[1:])
         os.makedirs(keydir)
 
-        rc = SH.run(
-            "gpg --export --armor %s > ./%s" % (repo.signkey, repo.keyfile),
-            workdir=workdir,
-            timeout=G.MIN_TIMEOUT,
-        )
+        rc = SH.run("gpg --export --armor %s > ./%s" % (repo.signkey,
+                                                        repo.keyfile),
+                    workdir=workdir, timeout=G.MIN_TIMEOUT)
         c += workdir + repo.keyfile + "\n"
 
     listfile = os.path.join(workdir, "release.files.list")
@@ -240,11 +210,8 @@ def build_release_srpm(repo, workdir):
 
     pname = repo.name + "-release"
 
-    rc = SH.run(
-        rpm_build_cmd(repo, workdir, listfile, pname),
-        repo.user,
-        timeout=G.BUILD_TIMEOUT
-    )
+    rc = SH.run(rpm_build_cmd(repo, workdir, listfile, pname),
+                repo.user, timeout=G.BUILD_TIMEOUT)
 
     pattern = "%s/%s-release-%s/%s-release*.src.rpm" % \
         (workdir, repo.name, repo.distversion, repo.name)
