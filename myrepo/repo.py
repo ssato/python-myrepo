@@ -36,16 +36,17 @@ def _format(repo, fmt_or_val):
 class Repo(object):
     """Yum repository.
     """
-    name = G.REPO_DEFAULT.name
-    subdir = G.REPO_DEFAULT.subdir
-    topdir = G.REPO_DEFAULT.topdir
-    baseurl = G.REPO_DEFAULT.baseurl
+    name = G.REPO_DEFAULT["name"]
+    subdir = G.REPO_DEFAULT["subdir"]
+    topdir = G.REPO_DEFAULT["topdir"]
+    baseurl = G.REPO_DEFAULT["baseurl"]
 
-    signkey = G.REPO_DEFAULT.signkey
-    keydir = G.REPO_DEFAULT.keydir
-    keyurl = G.REPO_DEFAULT.keyurl
+    signkey = G.REPO_DEFAULT["signkey"]
+    keydir = G.REPO_DEFAULT["keydir"]
+    keyurl = G.REPO_DEFAULT["keyurl"]
 
-    metadata_expire = G.REPO_DEFAULT.metadata_expire
+    conn_timeout = G.REPO_DEFAULT["conn_timeout"]
+    metadata_expire = G.REPO_DEFAULT["metadata_expire"]
 
     def __init__(self, server, user, email, fullname, dname, dver, archs,
             name=None, subdir=None, topdir=None, baseurl=None, signkey=None,
@@ -70,7 +71,7 @@ class Repo(object):
         :param bdist: Distribution label to build srpms,
             e.g. "fedora-custom-addons-14-x86_64"
         :param metadata_expire: Metadata expiration period, e.g. "2h", "1d"
-        :param timeout: Timeout
+        :param timeout: Command execution timeout in seconds or None
         :param trace: Trace mode
         """
         self.server = server
@@ -138,9 +139,5 @@ class Repo(object):
         return [
             os.path.join(self.destdir(), d) for d in ["sources"] + self.archs
         ]
-
-    def update_metadata(self):
-        return RO.update_metadata(self)
-
 
 # vim:sw=4:ts=4:et:
