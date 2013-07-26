@@ -15,28 +15,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import rpmkit.Bunch as B
-
-
 MYREPO_TEMPLATE_PATH = "/usr/share/myrepo/templates"
-
 
 # timeouts [sec]:
 (REMOTE_TIMEOUT, BUILD_TIMEOUT, LOCAL_TIMEOUT, MIN_TIMEOUT) = (
     60 * 10, 60 * 10, 60 * 5, 5
 )
 
-REPO_DEFAULT = B.Bunch(
-    name="%(distname)s-%(hostname)s-%(user)s",
-    subdir="yum",
-    topdir="~%(user)s/public_html/%(subdir)s",
-    baseurl="http://%(server)s/%(user)s/%(subdir)s/%(distdir)s",
-    signkey="",
-    keydir="/etc/pki/rpm-gpg",
-    keyurl="file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s",
-    metadata_expire="2h",
-    trace=0,
-)
+REPO_DEFAULT = \
+    dict(name="%(distname)s-%(hostname)s-%(user)s",
+         subdir="yum",
+         topdir="~%(user)s/public_html/%(subdir)s",
+         baseurl="http://%(server)s/%(user)s/%(subdir)s/%(distdir)s",
+         signkey="",
+         keydir="/etc/pki/rpm-gpg",
+         keyurl="file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s",
+         metadata_expire="2h",
+         trace=0,
+         conn_timeout=20)
 
 
 # vim:sw=4:ts=4:et:
