@@ -24,7 +24,6 @@ import myrepo.parser as P
 import myrepo.repo as R
 import rpmkit.Bunch as B
 
-import gevent
 import itertools
 import logging
 import multiprocessing
@@ -96,29 +95,13 @@ def create_repos_from_dists_option_g(config, degenerate=False):
     for dist in dists:
         (dname, dver, archs, bdist) = dist
 
-        logging.debug(
-            "Creating repo: dname=%s, dver=%s, archs=%s, bdist=%s" % \
-                (dname, dver, archs, bdist)
-        )
-        yield R.Repo(
-            config.server,
-            config.user,
-            config.email,
-            config.fullname,
-            dname,
-            dver,
-            archs,
-            config.name,
-            config.subdir,
-            config.topdir,
-            config.baseurl,
-            config.signkey,
-            bdist,
-            config.metadata_expire,
-            config.timeout,
-            config.genconf,
-            config.trace,
-        )
+        logging.debug("Creating repo: dname=%s, dver=%s, archs=%s, "
+                      "bdist=%s" % (dname, dver, archs, bdist))
+        yield R.Repo(config.server, config.user, config.email,
+                     config.fullname, dname, dver, archs, config.name,
+                     config.subdir, config.topdir, config.baseurl,
+                     config.signkey, bdist, config.metadata_expire,
+                     config.timeout, config.genconf, config.trace)
 
 
 def opt_parser():
@@ -143,8 +126,7 @@ Examples:
   # build SRPM and deploy RPMs and SRPMs into your yum repo; fedora-17-x86_64
   # is base distribution and my-fedora-17-x86_64 is target distribution:
   %prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm
-  """
-    )
+  """)
 
     for k in ("verbose", "quiet", "debug"):
         if not defaults.get(k, False):
@@ -154,24 +136,23 @@ Examples:
 
     p.add_option("-C", "--config", help="Configuration file")
     p.add_option("-P", "--profile",
-        help="Specify configuration profile [%default]"
-    )
+                 help="Specify configuration profile [%default]")
     p.add_option("-T", "--timeout", type="int",
-        help="Timeout [sec] for each operations [%default]")
+                 help="Timeout [sec] for each operations [%default]")
 
     p.add_option("-s", "--server", help="Server to provide your yum repos.")
     p.add_option("-u", "--user", help="Your username on the server [%default]")
     p.add_option("-m", "--email",
-        help="Your email address or its format string [%default]")
+                 help="Your email address or its format string [%default]")
     p.add_option("-F", "--fullname", help="Your full name [%default]")
 
     p.add_option("", "--dists",
-        help="Comma separated distribution labels including arch "
-        "(optionally w/ build (mock) distribution label). "
-        "Options are some of " + distribution_choices + " [%default] "
-        "and these combinations: e.g. fedora-16-x86_64, "
-        "rhel-6-i386:my-custom-addon-rhel-6-i386"
-    )
+                 help="Comma separated distribution labels including arch "
+                      "(optionally w/ build (mock) distribution label). "
+                      "Options are some of " + distribution_choices +
+                      " [%default] and these combinations: e.g. "
+                      "fedora-16-x86_64, "
+                      "rhel-6-i386:my-custom-addon-rhel-6-i386")
 
     p.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     p.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
@@ -180,17 +161,18 @@ Examples:
 
     iog = optparse.OptionGroup(p, "Options for 'init' command")
     iog.add_option('', "--name",
-        help="Name of your yum repo or its format string [%default].")
-    iog.add_option("", "--subdir",
-        help="Repository sub dir name [%default]")
+                   help="Name of your yum repo or its format string "
+                        "[%default].")
+    iog.add_option("", "--subdir", help="Repository sub dir name [%default]")
     iog.add_option("", "--topdir",
-        help="Repository top dir or its format string [%default]")
+                   help="Repository top dir or its format string [%default]")
     iog.add_option('', "--baseurl",
-        help="Repository base URL or its format string [%default]")
+                   help="Repository base URL or its format string [%default]")
     iog.add_option('', "--signkey",
-        help="GPG key ID if signing RPMs to deploy")
+                   help="GPG key ID if signing RPMs to deploy")
     iog.add_option('', "--no-genconf", action="store_false", dest="genconf",
-        help="Do not run genconf command after initialization finished")
+                   help="Do not run genconf command after initialization "
+                        "finished")
     p.add_option_group(iog)
 
     return p
@@ -237,15 +219,8 @@ def do_command(cmd, repos_g, srpm=None, timeout=G.BUILD_TIMEOUT):
     :param repos_g: Repository objects (generator)
     :param srpm: path to the target src.rpm :: str
     """
-    f = getattr(CMD, cmd)
-
-    jobs = [gevent.spawn(f, repo, srpm) for repo in repos_g]
-    gevent.joinall(jobs, timeout)
-
-    errors = [j.exception for j in jobs if not j.successful()]
-    if errors:
-        es = ["### %d\n%s\n" % (i, str(e)) for i, e in enumerate(errors)]
-        raise RuntimeError("Failed: " + ''.join(es))
+    for repo in repos_g:
+        getattr(CMD, cmd)(repo, srpm)
 
 
 def main(argv=sys.argv):
