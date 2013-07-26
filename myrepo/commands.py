@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,40 @@ import tempfile
 
 def __setup_workdir(prefix, topdir="/tmp"):
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
+
+
+@hook
+def init(repo, *args, **kwargs):
+    """Initialize yum repository.
+
+    :param repo: myrepo.repo.Repo object
+    """
+    rc = SH.run(
+        "mkdir -p " + " ".join(repo.rpmdirs()), repo.user, repo.server,
+        timeout=repo.timeout,
+    )
+
+    if repo.genconf and rc == 0:
+        rc = genconf(repo)
+
+    return rc
+
+
+@hook
+def genconf(repo, *args, **kwargs):
+    workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
+
+    srpms = [
+        RO.build_release_srpm(repo, workdir),
+        RO.build_mock_cfg_srpm(repo, workdir)
+    ]
+
+    assert len(srpms) == 2, "Failed to make release and/or mock.cfg SRPMs"
+
+    for srpm in srpms:
+        deploy(repo, srpm, True)
+
+    return 0
 
 
 @hook
@@ -101,38 +135,6 @@ def deploy_rpms(repo, *args, **kwargs):
 @hook
 def deploy(repo, srpm, *args, **kwargs):
     return deploy_rpms(repo) if build(repo, srpm) == 0 else 1
-
-
-@hook
-def init(repo, *args, **kwargs):
-    """Initialize yum repository.
-    """
-    rc = SH.run(
-        "mkdir -p " + " ".join(repo.rpmdirs()), repo.user, repo.server,
-        timeout=repo.timeout,
-    )
-
-    if repo.genconf and rc == 0:
-        rc = genconf(repo)
-
-    return rc
-
-
-@hook
-def genconf(repo, *args, **kwargs):
-    workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
-
-    srpms = [
-        RO.build_release_srpm(repo, workdir),
-        RO.build_mock_cfg_srpm(repo, workdir)
-    ]
-
-    assert len(srpms) == 2, "Failed to make release and/or mock.cfg SRPMs"
-
-    for srpm in srpms:
-        deploy(repo, srpm, True)
-
-    return 0
 
 
 # vim:sw=4:ts=4:et:
