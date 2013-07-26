@@ -49,9 +49,9 @@ class Repo(object):
     metadata_expire = G.REPO_DEFAULT["metadata_expire"]
 
     def __init__(self, server, user, email, fullname, dname, dver, archs,
-            name=None, subdir=None, topdir=None, baseurl=None, signkey=None,
-            bdist=None, metadata_expire=None, timeout=None,
-            genconf=False, trace=False, *args, **kwargs):
+                 name=None, subdir=None, topdir=None, baseurl=None,
+                 signkey=None, bdist=None, metadata_expire=None, timeout=None,
+                 genconf=False, trace=False, *args, **kwargs):
         """
         :param server: Server's hostname to provide this yum repo
         :param user: Username on the server
@@ -118,10 +118,8 @@ class Repo(object):
         else:
             self.signkey = signkey
             self.keyurl = _format(self, Repo.keyurl)
-            self.keyfile = os.path.join(
-                self.keydir,
-                os.path.basename(self.keyurl)
-            )
+            self.keyfile = os.path.join(self.keydir,
+                                        os.path.basename(self.keyurl))
 
         if metadata_expire is not None:
             self.metadata_expire = metadata_expire
@@ -136,8 +134,7 @@ class Repo(object):
         return os.path.join(self.topdir, self.distdir)
 
     def rpmdirs(self):
-        return [
-            os.path.join(self.destdir(), d) for d in ["sources"] + self.archs
-        ]
+        return [os.path.join(self.destdir(), d) for d in
+                ["sources"] + self.archs]
 
 # vim:sw=4:ts=4:et:
