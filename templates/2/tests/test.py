@@ -30,7 +30,7 @@ MOCK_BUILD_DIR = "/var/cache/mock/fedora-18-x86_64"
 
 
 def tcompile(tmpl_name, ctx):
-    return U.compile_template_2(tmpl_name, ctx, [TEMPLATE_PATH])
+    return U.compile_template(tmpl_name, ctx, [TEMPLATE_PATH])
 
 
 def expected_s(tmpl_name):

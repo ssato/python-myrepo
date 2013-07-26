@@ -1,13 +1,13 @@
 [custom-fedora-18-x86_64]
 name=Custom yum repository on yumrepo.example.com by jdoe
 baseurl=http://yumrepo.example.com/yum/fedora/18//$basearch/
-metadata_expire=2
 enabled=1
 gpgcheck=0
+metadata_expire=2
 
 [custom-fedora-18-x86_64-source]
 name=Custom yum repository on yumrepo.example.com by jdoe (source)
 baseurl=http://yumrepo.example.com/yum/fedora/18//sources/
-metadata_expire=2
 enabled=0
 gpgcheck=0
+metadata_expire=2
