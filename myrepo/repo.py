@@ -17,20 +17,23 @@
 #
 import myrepo.distribution as D
 import myrepo.globals as G
-import myrepo.repoops as RO
 import rpmkit.Bunch as B
 
 import os.path
 
 
-is_noarch = RO.is_noarch
-
-
-def _format(repo, fmt_or_val):
+def _format(fmt_or_val, ctx={}):
     """
     (Format Str | Str) -> Str
+
+    >>> _format("aaa", {})
+    'aaa'
+    >>> _format("%(a)s", dict(a="123", ))
+    '123'
+
+    :param ctx: Context dict object for format strings
     """
-    return fmt_or_val % repo.as_dict() if "%" in fmt_or_val else fmt_or_val
+    return fmt_or_val % ctx if "%" in fmt_or_val else fmt_or_val
 
 
 class Repo(object):
@@ -95,7 +98,7 @@ class Repo(object):
         ]
         self.distdir = "%s/%s" % (dname, dver)
         self.subdir = self.subdir if subdir is None else subdir
-        self.email = _format(self, email)
+        self.email = self._format(email)
 
         if name is None:
             name = Repo.name
@@ -107,9 +110,9 @@ class Repo(object):
             baseurl = Repo.baseurl
 
         # expand parameters which are format strings:
-        self.name = _format(self, name)
-        self.topdir = _format(self, topdir)
-        self.baseurl = _format(self, baseurl)
+        self.name = self._format(name)
+        self.topdir = self._format(topdir)
+        self.baseurl = self._format(baseurl)
 
         self.keydir = Repo.keydir
 
@@ -117,7 +120,7 @@ class Repo(object):
             self.signkey = self.keyurl = self.keyfile = ""
         else:
             self.signkey = signkey
-            self.keyurl = _format(self, Repo.keyurl)
+            self.keyurl = self._format(Repo.keyurl)
             self.keyfile = os.path.join(self.keydir,
                                         os.path.basename(self.keyurl))
 
@@ -126,6 +129,9 @@ class Repo(object):
 
         self.timeout = timeout
         self.trace = trace
+
+    def _format(self, fmt_or_val):
+        return _format(fmt_or_val, self.as_dict())
 
     def as_dict(self):
         return self.__dict__.copy()
