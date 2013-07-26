@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
 import myrepo.globals as G
 import myrepo.parser as P
 import rpmkit.utils as U
-import rpmkit.Bunch as B
 import rpmkit.environ as E
 
 import ConfigParser as cp
@@ -31,15 +30,13 @@ import os.path
 
 def get_timeout(config):
     """
-    :param config: Configuration object :: B.Bunch
+    :param config: Configuration object :: dict
     """
-    U.typecheck(config, B.Bunch)
-
     timeo = config.get("timeout", None)
     if timeo:
         return timeo
     else:
-        if U.is_local(config.server):
+        if U.is_local(config["server"]):
             return G.LOCAL_TIMEOUT
         else:
             return G.REMOTE_TIMEOUT
@@ -53,17 +50,15 @@ def _init_by_defaults():
 
     defaults = G.REPO_DEFAULT
 
-    defaults.update({
-        "server": E.hostname(),
-        "user": E.get_username(),
-        "email":  E.get_email(),
-        "fullname": E.get_fullname(),
-        "dists_full": ",".join(distributions_full),
-        "dists": ",".join(distributions),
-        "genconf": True,
-        "config": None,
-        "profile": None,
-    })
+    # Overwrite some parameters:
+    defaults["server"] = E.hostname()
+    defaults["user"] = E.get_username()
+    defaults["email"] = E.get_email()
+    defaults["fullname"] = E.get_fullname()
+    defaults["dists_full"] = ",".join(distributions_full)
+    defaults["dists"] = ",".join(distributions)
+    defaults["genconf"] = True
+    defaults["config"] = defaults["profile"] = None
 
     defaults["distribution_choices"] = defaults["dists_full"]  # save it.
     defaults["timeout"] = get_timeout(defaults)
@@ -107,7 +102,7 @@ def _init_by_config_file(config=None, profile=None):
         logging.debug("Use default profile")
         d = cparser.defaults().iteritems()
 
-    return B.Bunch((k, P.parse_conf_value(v)) for k, v in d)
+    return dict((k, P.parse_conf_value(v)) for k, v in d)
 
 
 def init(config_path=None, profile=None):
