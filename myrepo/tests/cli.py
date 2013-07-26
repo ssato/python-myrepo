@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2012, 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato at redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.cui as CUI
+import myrepo.cli as TT
 import myrepo.config as C
 import myrepo.repo as R
 import myrepo.utils as U
@@ -31,11 +31,11 @@ class Test_00(unittest.TestCase):
     def test_00_create_repos_from_dists_option_g(self):
         cfg = C.init()
 
-        for repo in CUI.create_repos_from_dists_option_g(cfg):
+        for repo in TT.create_repos_from_dists_option_g(cfg):
             U.typecheck(repo, R.Repo)
 
     def test_10_opt_parser(self):
-        p = CUI.opt_parser()
+        p = TT.opt_parser()
         U.typecheck(p, optparse.OptionParser)
 
         defaults = C.init()
