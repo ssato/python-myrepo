@@ -51,9 +51,9 @@ class Test_00(unittest.TestCase):
         bdist = sample_dist()
         self.assertTrue(isinstance(D._load_mockcfg_config_opts(bdist), dict))
 
-    def test_10_build_cmd(self):
+    def test_10__build_cmd(self):
         bdist = sample_dist()
-        c = D.build_cmd(bdist, "foo-x.y.z.src.rpm")
+        c = D._build_cmd(bdist, "foo-x.y.z.src.rpm")
         self.assertTrue(isinstance(c, str))
         self.assertNotEquals(c, "")
 
