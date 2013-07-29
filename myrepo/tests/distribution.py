@@ -71,6 +71,8 @@ class Test_10_Distribution(unittest.TestCase):
         blabel = "%s-%s-%s" % (n, v, a)
         self.assertEquals(d.blabel, blabel)
 
+        self.assertEquals(d.get_base_mockcfg_path(),
+                          "/etc/mock/%s.cfg" % blabel)
         self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
         self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
 
@@ -91,6 +93,8 @@ class Test_10_Distribution(unittest.TestCase):
         blabel = "%s-%s" % (bdist, a)
         self.assertEquals(d.blabel, blabel)
 
+        self.assertEquals(d.get_base_mockcfg_path(),
+                          "/etc/mock/%s-%s-%s.cfg" % (n, v, a))
         self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
         self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
 

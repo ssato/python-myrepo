@@ -66,7 +66,11 @@ class Distribution(object):
         self.bdist = self.dist if bdist is None else bdist
         self.blabel = "%s-%s" % (self.bdist, arch)
 
+        self.base_mockcfg_path = "/etc/mock/%s.cfg" % self.label
         self.mockcfg_path = "/etc/mock/%s.cfg" % self.blabel
+
+    def get_base_mockcfg_path(self):
+        return self.base_mockcfg_path
 
     def get_mockcfg_path(self):
         return self.mockcfg_path
