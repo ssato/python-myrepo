@@ -129,7 +129,8 @@ class Test_2(unittest.TestCase):
                     baseurl="http://yumrepo.example.com/yum/fedora/19/",
                     distversion=19)
 
-        ctx = dict(repo=repo, workdir="/tmp/w", fullname="John Doe",
+        ctx = dict(repo=repo, workdir="/tmp/w",
+                   pkgname="fedora-custom-19-release", fullname="John Doe",
                    email="jdoe@example.com", listfile="a b c", logopt="-v")
 
         (s, ref) = result_and_expected("rpmbuild", ctx, True)

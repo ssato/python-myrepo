@@ -1,4 +1,4 @@
-pmaker -n  \
+pmaker -n fedora-custom-19-release \
 -w /tmp/w \
 --stepto sbuild \
 --license MIT \
