@@ -30,8 +30,7 @@ REPO_DEFAULT = \
          signkey="",
          keydir="/etc/pki/rpm-gpg",
          keyurl="file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s",
-         metadata_expire="2h",
-         trace=0,
+         metadata_expire="1d",
          conn_timeout=20)
 
 
