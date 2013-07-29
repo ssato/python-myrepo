@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+from operator import attrgetter
+
 import myrepo.distribution as D
 import myrepo.globals as G
-import rpmkit.Bunch as B
 
 import os.path
 
@@ -49,7 +50,7 @@ class Repo(object):
     keydir = G.REPO_DEFAULT["keydir"]
     keyurl = G.REPO_DEFAULT["keyurl"]
 
-    conn_timeout = G.REPO_DEFAULT["conn_timeout"]
+    timeout = G.REPO_DEFAULT["conn_timeout"]
     metadata_expire = G.REPO_DEFAULT["metadata_expire"]
 
     def __init__(self, server, user, dname, dver, archs=None,
@@ -81,15 +82,16 @@ class Repo(object):
         self.multiarch = "i386" in self.archs and "x86_64" in self.archs
         self.primary_arch = "x86_64" if self.multiarch else self.archs[0]
 
-        self.bdist = bdist
+        if self.multiarch:
+            self.archs = [self.primary_arch] + \
+                         [a for a in archs if a != self.primary_arch]
 
         self.distname = dname
         self.distversion = dver
         self.dist = "%s-%s" % (dname, dver)
 
-        self.dists = [
-            D.Distribution(dname, dver, a, bdist) for a in self.archs
-        ]
+        self.dists = [D.Distribution(dname, dver, a, bdist) for a in
+                      self.archs]
         self.distdir = "%s/%s" % (dname, dver)
         self.subdir = self.subdir if subdir is None else subdir
 
@@ -101,6 +103,14 @@ class Repo(object):
 
         if baseurl is None:
             baseurl = Repo.baseurl
+
+        if bdist is None:
+            bdist = "%s-%s-%s" % (name, self.distversion, self.primary_arch)
+
+        self.bdist = bdist
+
+        if timeout is not None:
+            self.timeout = timeout
 
         # expand parameters which are format strings:
         self.name = self._format(name)
@@ -116,8 +126,6 @@ class Repo(object):
             self.keyurl = self._format(Repo.keyurl)
             self.keyfile = os.path.join(self.keydir,
                                         os.path.basename(self.keyurl))
-
-        self.timeout = timeout
 
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
