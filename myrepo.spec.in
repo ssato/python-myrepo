@@ -20,8 +20,9 @@ Requires:       createrepo
 Requires:       packagemaker >= 0.4.1-1
 Requires:       rpmkit >= 0.2.10-1
 Obsoletes:      rpmkit < 0.2.10-1
-Requires:       python-jinja2
+Requires:       python-bunch
 Requires:       python-gevent
+Requires:       python-jinja2
 
 
 %description
@@ -60,6 +61,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12.999-1
+- A lot of refactoring
+- migrated to gevent based job handling code
+- cleanup old tenjin-based templates not used any more
+
 * Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12-1
 - Fixed a bug that myrepo refers rpmkit.tenjinwrapper which removed in the
   newer rpmkit release, and add tenjinwrapper in myrepo itself
