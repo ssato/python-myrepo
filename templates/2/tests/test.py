@@ -71,20 +71,19 @@ class Test_2(unittest.TestCase):
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_01_mock_cfg(self):
-        ctx = dict(base_mock_cfg_path="/etc/mock/fedora-19-x86_64.cfg",
-                   dist=D.Distribution("fedora", "19", "x86_64"),
-                   repo_file_content="HERE_IS_REPO_FILE_CONTENT")
+        d = D.Distribution("fedora", "19", "x86_64", "fedora-custom-19")
+        ctx = dict(dist=d, repo_file_content="REPO_FILE_CONTENT")
 
         (s, ref) = result_and_expected("mock.cfg", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_02_mock_cfg_build(self):
-        ctx = dict(name="custom-fedora-18-x86_64",
+        ctx = dict(name="fedora-custom-19",
                    workdir="/tmp/w",
-                   baseurl="http://yumrepo.example.com/yum/fedora/18/",
+                   baseurl="http://yumrepo.example.com/yum/fedora/19/",
                    fullname="John Doe",
                    email="jdoe@example.com",
-                   distversion=18,
+                   distversion=19,
                    listfile="a b c")
 
         (s, ref) = result_and_expected("mock_cfg_build", ctx, True)

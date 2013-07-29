@@ -1,13 +1,13 @@
-pmaker -n custom-fedora-18-x86_64-release \
+pmaker -n fedora-custom-19-release \
 -w /tmp/w \
 --stepto sbuild \
 --license MIT \
 --group "Development/Tools" \
---url http://yumrepo.example.com/yum/fedora/18/ \
---summary "Mock cfg files of yum repo custom-fedora-18-x86_64" \
+--url http://yumrepo.example.com/yum/fedora/19/ \
+--summary "Mock cfg files of yum repo fedora-custom-19" \
 --packager "John Doe" \
 --email "jdoe@example.com" \
---pversion 18 \
+--pversion 19 \
 --no-rpmdb \
 --ignore-owner \
 --destdir /tmp/w \
