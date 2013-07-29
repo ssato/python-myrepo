@@ -20,3 +20,4 @@ pmaker -n {{ pkgname }} \
 {{ logopt }} \
 --destdir {{ workdir }} \
 {{ listfile }}
+
