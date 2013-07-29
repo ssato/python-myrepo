@@ -102,6 +102,17 @@ class Test_2(unittest.TestCase):
         (s, ref) = result_and_expected("release_file", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
 
+    def test_03_repo_file(self):
+        ctx = dict(name="custom-fedora-19-x86_64",
+                   server="yumrepo.example.com",
+                   user="jdoe",
+                   baseurl="http://yumrepo.example.com/yum/fedora/19/",
+                   metadata_expire=2,
+                   signkey=False)
+
+        (s, ref) = result_and_expected("repo_file", ctx, True)
+        self.assertEquals(s, ref, diff(s, ref))
+
     def test_04_release_file_build(self):
         ctx = dict(name="custom-fedora-18-x86_64",
                    workdir="/tmp/w",
