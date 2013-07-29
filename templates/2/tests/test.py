@@ -56,9 +56,9 @@ def result_and_expected(tmpl_name, ctx, dump=False,
 
 
 def diff(s, ref):
-    return "\n" + "".join(difflib.unified_diff(s.splitlines(),
-                                               ref.splitlines(),
-                                               'Original', 'Current'))
+    return "\n" + "\n".join(difflib.unified_diff(s.splitlines(),
+                                                 ref.splitlines(),
+                                                 'Original', 'Current'))
 
 
 class Test_2(unittest.TestCase):
@@ -70,11 +70,11 @@ class Test_2(unittest.TestCase):
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_01_mock_cfg(self):
-        ctx = dict(base_mock_cfg_path="/etc/mock/fedora-18-x86_64.cfg",
+        ctx = dict(base_mock_cfg_path="/etc/mock/fedora-19-x86_64.cfg",
                    repo=dict(name="custom"),
-                   dist=dict(label="fedora-18-x86_64",
+                   dist=dict(label="fedora-19-x86_64",
                              name="fedora"),
-                   release_file_content="HERE_IS_RELEASE_FILE_CONTENT")
+                   repo_file_content="HERE_IS_REPO_FILE_CONTENT")
 
         (s, ref) = result_and_expected("mock.cfg", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
