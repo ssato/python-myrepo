@@ -125,14 +125,12 @@ class Test_2(unittest.TestCase):
         self.assertEquals(s, ref, diff(s, ref))
 
     def test_05_rpmbuild(self):
-        ctx = dict(name="custom-fedora-18-x86_64",
-                   workdir="/tmp/w",
-                   baseurl="http://yumrepo.example.com/yum/fedora/18/",
-                   fullname="John Doe",
-                   email="jdoe@example.com",
-                   distversion=18,
-                   listfile="a b c",
-                   logopt="-v")
+        repo = dict(name="fedora-custom-19-x86_64",
+                    baseurl="http://yumrepo.example.com/yum/fedora/19/",
+                    distversion=19)
+
+        ctx = dict(repo=repo, workdir="/tmp/w", fullname="John Doe",
+                   email="jdoe@example.com", listfile="a b c", logopt="-v")
 
         (s, ref) = result_and_expected("rpmbuild", ctx, True)
         self.assertEquals(s, ref, diff(s, ref))
