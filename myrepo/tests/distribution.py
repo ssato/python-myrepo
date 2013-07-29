@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2012, 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato at redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -46,11 +46,6 @@ def sample_base_dist():
 
 class Test_00(unittest.TestCase):
 
-    # NOTE: Effectful computation.
-    def test_00__load_mockcfg_config_opts(self):
-        bdist = sample_dist()
-        self.assertTrue(isinstance(D._load_mockcfg_config_opts(bdist), dict))
-
     def test_10__build_cmd(self):
         bdist = sample_dist()
         c = D._build_cmd(bdist, "foo-x.y.z.src.rpm")
@@ -61,47 +56,42 @@ class Test_00(unittest.TestCase):
 class Test_10_Distribution(unittest.TestCase):
 
     def test_00__init__w_min_args(self):
-        (n, v, _a) = sample_base_dist().split("-")
-        d = D.Distribution(n, v)
-
-        self.assertTrue(isinstance(d, D.Distribution))
-
-    def test_01__init__w_arch(self):
         (n, v, a) = sample_base_dist().split("-")
         d = D.Distribution(n, v, a)
 
         self.assertTrue(isinstance(d, D.Distribution))
 
-    def test_02__init__w_bdist_label(self):
-        """
-        FIXME: Distribution.__init__(..., bdist_label=bdist) requires mock
-        config file actually exists for bdist.
-        """
-        return
+        self.assertEquals(d.name, n)
+        self.assertEquals(d.version, v)
+        self.assertEquals(d.arch, a)
+        self.assertEquals(d.dist, "%s-%s" % (n, v))
+        self.assertEquals(d.label, "%s-%s-%s" % (n, v, a))
+        self.assertEquals(d.bdist, "%s-%s" % (n, v))
 
-        (n, v, _a) = sample_base_dist().split("-")
-        bdist = "%s-extra-packages-%s-%s" % (n, n, v)
-        d = D.Distribution(n, v, bdist=bdist)
+        blabel = "%s-%s-%s" % (n, v, a)
+        self.assertEquals(d.blabel, blabel)
 
+        self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
+        self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
+
+    def test_05__init__w_bdist(self):
+        (n, v, a) = sample_base_dist().split("-")
+        bdist = "%s-custom-%s-%s" % (n, v, a)
+
+        d = D.Distribution(n, v, a, bdist)
         self.assertTrue(isinstance(d, D.Distribution))
 
-    def test_10_load_mockcfg_config_opts__w_min_args(self):
-        (n, v, _a) = sample_base_dist().split("-")
-        d = D.Distribution(n, v)
+        self.assertEquals(d.name, n)
+        self.assertEquals(d.version, v)
+        self.assertEquals(d.arch, a)
+        self.assertEquals(d.dist, "%s-%s" % (n, v))
+        self.assertEquals(d.label, "%s-%s-%s" % (n, v, a))
+        self.assertEquals(d.bdist, bdist)
 
-        self.assertTrue(isinstance(d.load_mockcfg_config_opts(), dict))
+        blabel = "%s-%s" % (bdist, a)
+        self.assertEquals(d.blabel, blabel)
 
-    def test_20_rpmdir__w_min_args(self):
-        (n, v, _a) = sample_base_dist().split("-")
-        d = D.Distribution(n, v)
-
-        self.assertNotEquals(d.rpmdir(), "")
-
-    def test_30_build_cmd__w_min_args(self):
-        (n, v, _a) = sample_base_dist().split("-")
-        d = D.Distribution(n, v)
-
-        self.assertNotEquals(d.build_cmd("foo-0.1.2-3.src.rpm"), "")
-
+        self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
+        self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
 
 # vim:sw=4:ts=4:et:

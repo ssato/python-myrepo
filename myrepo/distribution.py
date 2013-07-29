@@ -18,69 +18,6 @@
 import logging
 import os.path
 
-try:
-    from collections import OrderedDict as dict
-except ImportError:
-    # TODO: Needs estimation of impact not using collections.OrderedDict and
-    # implement similar class if any bad influences exist.
-    pass
-
-
-def _get_mockcfg_path(blabel, topdir="/etc/mock"):
-    """
-    Return the path to mock.cfg for given distribution.
-
-    >>> _get_mockcfg_path("fedora-19-x86_64")
-    '/etc/mock/fedora-19-x86_64.cfg'
-
-    :param blabel: Build target distribution label, e.g. fedora-19-x86_64
-    :param topdir: Mock's top dir to build srpms
-
-    :return: The path to mock.cfg :: str
-    """
-    return os.path.join(topdir, blabel + ".cfg")
-
-
-def _load_mockcfg_config(blabel, cfg=dict()):
-    """
-    FIXME: This is very naive and frail. It may be better to implement in
-    similar manner as setup_default_config_opts() does in /usr/sbin/mock.
-
-    :param blabel: Build target distribution label, e.g. fedora-19-x86_64
-    :param cfg: Mock configuration dict object
-    """
-    mockcfg = _get_mockcfg_path(blabel)
-    try:
-        execfile(mockcfg, cfg)
-        return cfg
-
-    except KeyError as e:
-        ## Make it constructs a dict recursively:
-        #cfg[str(e)] = dict()
-        #return _load_mockcfg_config(mockcfg, cfg)  # run recursively
-        #
-        ## or just make it raising an exception (current choice):
-        raise RuntimeError(str(e))
-
-
-def _load_mockcfg_config_opts(blabel):
-    """
-    Load mock config file and return $mock_config["config_opts"] as a
-    dict (dict or collections.OrderedDict).
-
-    :param blabel: Build distribution label, e.g. fedora-addon-19-x86_64
-    """
-    cfg = dict()
-    cfg["config_opts"] = dict()
-
-    # see also: setup_default_config_opts() in /usr/sbin/mock.
-    for k in ["macros", "plugin_conf"]:
-        cfg["config_opts"][k] = dict()
-
-    cfg = _load_mockcfg_config(blabel, cfg)
-
-    return cfg["config_opts"]
-
 
 def _build_cmd(blabel, srpm):
     """
@@ -111,28 +48,28 @@ def _build_cmd(blabel, srpm):
 
 class Distribution(object):
 
-    def __init__(self, dname, dver, arch="x86_64", bdist=None):
+    def __init__(self, name, version, arch, bdist=None):
         """
-        :param dname:  Distribution name, e.g. "fedora", "rhel"
-        :param dver:   Distribution version, e.g. "19", "6"
+        :param name:  Distribution name, e.g. "fedora", "rhel"
+        :param version:   Distribution version, e.g. "19", "6"
         :param arch:   Architecture, e.g. "i386", "x86_64"
-        :param bdist:  Build target distribution, e.g. "fedora-19"
+        :param bdist:  Build target distribution or None,
+            e.g. "fedora-19", "fedora-custom-19".
         """
-        self.name = dname
-        self.version = dver
+        self.name = name
+        self.version = version
         self.arch = arch
-        self.dist = dname + '-' + dver
 
-        self.label = '-'.join((dname, dver, arch))
+        self.dist = "%s-%s" % (name, version)
+        self.label = "%s-%s-%s" % (name, version, arch)
 
         self.bdist = self.dist if bdist is None else bdist
-        self.blabel = self.bdist + '-' + arch
+        self.blabel = "%s-%s" % (self.bdist, arch)
+
+        self.mockcfg_path = "/etc/mock/%s.cfg" % self.blabel
 
     def get_mockcfg_path(self):
-        return _get_mockcfg_path(self.blabel)
-
-    def load_mockcfg_config_opts(self):
-        return _load_mockcfg_config_opts(self.blabel)
+        return self.mockcfg_path
 
     def rpmdir(self):
         """Dir to save built RPMs.
