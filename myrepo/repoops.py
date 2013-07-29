@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from logging import INFO
+
 import myrepo.globals as G
 import myrepo.utils as U
 import rpmkit.memoize as M
@@ -26,116 +28,145 @@ import os
 import os.path
 
 
+_SIGN = "rpm --resign --define '_signature gpg' --define '_gpg_name %s' %s"
+
+
 @M.memoize
-def gen_release_file_content(repo):
-    return U.compile_template("release_file", repo.as_dict())
+def gen_repo_file_content(repo, tpaths):
+    """
+    Make up the content of .repo file for given yum repositoriy ``repo``
+    will be put in /etc/yum.repos.d/ and return it.
+
+    :param repo: A myrepo.repo.Repo instance
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of .repo file will be put in
+        /etc/yum.repos.d/ :: str.
+    """
+    return U.compile_template("repo_file", repo, tpaths)
 
 
-def gen_mock_cfg_content(repo, dist):
+def gen_mock_cfg_content(repo, dist, tpaths):
     """
     Update mock.cfg with addingg repository definitions in
     given content and return it.
 
     :param repo:  Repo object
     :param dist:  Distribution object
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of mock.cfg file for given repo will
+        be put in /etc/mock/ :: str
     """
-    cfg_opts = dist.load_mockcfg_config_opts()
+    ctx = dict(dist=dist,
+               base_mock_cfg_path=dist.get_base_mockcfg_path(),
+               repo_file_content=gen_repo_file_content(repo, tpaths))
 
-    cfg_opts["root"] = "%s-%s" % (repo.name, dist.label)
-    cfg_opts["myrepo_distname"] = dist.name
-    cfg_opts["yum.conf"] += "\n" + gen_release_file_content(repo)
-
-    return U.compile_template("mock.cfg", dict(cfg=cfg_opts))
+    return U.compile_template("mock.cfg", ctx, tpaths)
 
 
-def sign_rpms_cmd(keyid, rpms):
+def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
     """
+    Make up the command string to sign RPMs.
+
+    >>> sign_rpms_cmd("ABCD123", ["a.rpm", "b.rpm"])
+    "rpm --resign --define '_signature gpg' --define '_gpg_name ABCD123' a.rpm b.rpm"
+
     TODO: It might ask user about the gpg passphrase everytime this method is
     called.  How to store the passphrase or streamline that with gpg-agent ?
 
-    :param keyid:  GPG Key ID to sign with :: str
-    :param rpms:  RPM file path list :: [str]
+    :param keyid: GPG Key ID to sign with :: str
+    :param rpms: RPM file path list :: [str]
+    :param ask: Ask key ID if both ``keyid`` and this are None
     """
-    return U.compile_template("sign_rpms", dict(keyid=keyid, rpms=rpms))
+    if keyid is None and ask:
+        keyid = raw_input("Input GPG Key ID to sign RPMs > ").strip()
+
+    return fmt % (keyid, ' '.join(rpms))
 
 
-def gen_release_file(repo, workdir):
-    """Generate release file (repo file) and return its path.
+def gen_repo_file(repo, workdir, tpaths):
+    """
+    Generate repo file and return its path.
+
+    :param repo:  Repo object
+    :param tpaths: Template path list :: [str]
     """
     reldir = os.path.join(workdir, "etc", "yum.repos.d")
     os.makedirs(reldir)
 
-    relpath = os.path.join(reldir, repo.name + ".repo")
+    path = os.path.join(reldir, "%(name).repo" % repo)
+    open(path, 'w').write(gen_repo_file_content(repo, tpaths))
 
-    open(relpath, 'w').write(gen_release_file_content(repo))
-    return relpath
+    return path
 
 
-def mock_cfg_gen_g(repo, workdir):
-    """Generate mock.cfg file and yield its path.
+def mock_cfg_paths_and_contents_g(repo, workdir, tpaths):
     """
-    mockcfgdir = os.path.join(workdir, "etc", "mock")
-    os.makedirs(mockcfgdir)
+    Return (yield) list of pair of mock.cfg file paths and its content.
 
-    for dist in repo.dists:
-        mc = gen_mock_cfg_content(repo, dist)
-        mcpath = os.path.join(
-            mockcfgdir, "%s-%s.cfg" % (repo.name, dist.label)
-        )
-        open(mcpath, "w").write(mc)
+    :param repo:  Repo object
+    :param workdir: The top dir to generate mock.cfg files
+    :param tpaths: Template path list :: [str]
 
-        yield mcpath
-
-
-def mock_cfg_gen(repo, workdir):
-    """Generate mock.cfg files and return these paths.
+    :return: [(path_of_mock.cfg, content_of_mock.cfg)]
     """
-    return [p for p in mock_cfg_gen_g(repo, workdir)]
+    for dist in repo["dists"]:
+        content = gen_mock_cfg_content(repo, dist, tpaths)
+        path = os.path.join(workdir, dist.get_mockcfg_path()[1:])
+
+        yield (path, content)
 
 
-def rpm_build_cmd(repo, workdir, listfile, pname):
-    logopt = logging.getLogger().level < logging.INFO and "--verbose" or ""
+def rpm_build_cmd(ctx, workdir, pname, listfile, tpaths):
+    """
 
-    ctx = repo.as_dict()
+    :param ctx: Application context object
+    :param workdir: Working dir to build RPMs
+    :param pname: RPM package name to build
+    :param listfile: List of files to package
+    :param tpaths: Template path list :: [str]
+    """
+    lopt = "--verbose" if logging.getLogger().level < INFO else ""
 
-    ctx["workdir"] = workdir
-    ctx["logopt"] = logopt
-    ctx["listfile"] = listfile
     ctx["pkgname"] = pname
+    ctx["workdir"] = workdir
+    ctx["logopt"] = lopt
+    ctx["listfile"] = listfile
 
-    return U.compile_template("rpmbuild", ctx)
-
-
-def build(repo, srpm):
-    tasks = [SH.Task(d.build_cmd(srpm), timeout=repo.timeout) for d in
-             dists_by_srpm(repo, srpm)]
-    return SH.prun(tasks)
+    return U.compile_template("rpmbuild", ctx, tpaths)
 
 
-def build_mock_cfg_srpm(repo, workdir):
-    """Generate mock.cfg files and corresponding RPMs.
+# FIXME: The following functions are not tested and unittest cases
+# should be written.
+
+def build_mock_cfg_srpm(ctx, workdir, tpaths):
     """
-    mcfiles = mock_cfg_gen(repo, workdir)
-    c = "\n".join(
-        mc + ",rpmattr=%config(noreplace)" for mc in mcfiles
-    ) + "\n"
+    Generate mock.cfg files and corresponding RPMs.
+    """
+    repo = ctx["repo"]
+    cs = []
+
+    for path, content in mock_cfg_paths_and_contents_g(repo, workdir, tpaths):
+        open(path, "w").write(content)
+        cs.append("%s,rpmattr=%%config(noreplace)" % path)
+
+    c = '\n'.join(cs) + '\n'
 
     listfile = os.path.join(workdir, "mockcfg.files.list")
     open(listfile, "w").write(c)
 
     pname = "mock-data-" + repo.name
 
-    rc = SH.run(rpm_build_cmd(repo, workdir, listfile, pname),
-                repo.user, timeout=G.BUILD_TIMEOUT)
-    if rc != 0:
-        raise RuntimeError("Failed to create mock.cfg rpm")
+    rc = SH.run(rpm_build_cmd(ctx, repo, workdir, pname, listfile),
+                timeout=ctx["timeout"], stop_on_error=True)
 
-    pattern = "%(wdir)s/mock-data-%(repo)s-%(dver)s/mock-data-*.src.rpm" % \
-        {"wdir": workdir, "repo": repo.name, "dver": repo.distversion}
-    srpms = glob.glob(pattern)
+    fmt = "%(wdir)s/mock-data-%(repo)s-%(dver)s/mock-data-*.src.rpm"
+    pat = fmt % dict(wdir=workdir, repo=repo["name"], dver=repo["distversion"])
+    srpms = glob.glob(pat)
 
     if not srpms:
-        raise RuntimeError("Failed to build src.rpm. pattern=" + pattern)
+        raise RuntimeError("Could not find built src rpms. pattern=" + pat)
 
     return srpms[0]
 
@@ -146,7 +177,7 @@ def build_release_srpm(repo, workdir):
     :param repo: Repository object
     :param workdir: Working directory in which build rpms
     """
-    relpath = gen_release_file(repo, workdir)
+    relpath = gen_repo_file(repo, workdir)
     c = relpath + ",rpmattr=%config\n"
 
     if repo.signkey:
