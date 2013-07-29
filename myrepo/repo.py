@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.distribution as D
 import myrepo.globals as G
@@ -37,7 +37,8 @@ def _format(fmt_or_val, ctx={}):
 
 
 class Repo(object):
-    """Yum repository.
+    """
+    Yum repository class.
     """
     name = G.REPO_DEFAULT["name"]
     subdir = G.REPO_DEFAULT["subdir"]
@@ -51,20 +52,17 @@ class Repo(object):
     conn_timeout = G.REPO_DEFAULT["conn_timeout"]
     metadata_expire = G.REPO_DEFAULT["metadata_expire"]
 
-    def __init__(self, server, user, email, fullname, dname, dver, archs,
+    def __init__(self, server, user, dname, dver, archs=None,
                  name=None, subdir=None, topdir=None, baseurl=None,
-                 signkey=None, bdist=None, metadata_expire=None, timeout=None,
-                 genconf=False, trace=False, *args, **kwargs):
+                 signkey=None, bdist=None, timeout=None, **kwargs):
         """
         :param server: Server's hostname to provide this yum repo
         :param user: Username on the server
-        :param email: Email address or its format string
-        :param fullname: User's full name, e.g. "John Doe".
-        :param name: Repository name or its format string,
-            e.g. "rpmfusion-free", "%(distname)s-%(hostname)s-%(user)s"
         :param dname: Distribution name, e.g. "fedora", "rhel"
         :param dver: Distribution version, e.g. "16", "6"
         :param archs: Architecture list, e.g. ["i386", "x86_64"]
+        :param name: Repository name or its format string,
+            e.g. "rpmfusion-free", "%(distname)s-%(hostname)s-%(user)s"
         :param subdir: Sub directory for this repository
         :param topdir: Topdir or its format string for this repository,
             e.g. "/var/www/html/%(subdir)s".
@@ -73,13 +71,10 @@ class Repo(object):
         :param signkey: GPG key ID to sign, or None indicates will never sign
         :param bdist: Distribution label to build srpms,
             e.g. "fedora-custom-addons-14-x86_64"
-        :param metadata_expire: Metadata expiration period, e.g. "2h", "1d"
         :param timeout: Command execution timeout in seconds or None
-        :param trace: Trace mode
         """
         self.server = server
         self.user = user
-        self.fullname = fullname
         self.archs = archs
 
         self.hostname = server.split('.')[0]
@@ -87,7 +82,6 @@ class Repo(object):
         self.primary_arch = "x86_64" if self.multiarch else self.archs[0]
 
         self.bdist = bdist
-        self.genconf = genconf
 
         self.distname = dname
         self.distversion = dver
@@ -98,7 +92,6 @@ class Repo(object):
         ]
         self.distdir = "%s/%s" % (dname, dver)
         self.subdir = self.subdir if subdir is None else subdir
-        self.email = self._format(email)
 
         if name is None:
             name = Repo.name
@@ -124,11 +117,7 @@ class Repo(object):
             self.keyfile = os.path.join(self.keydir,
                                         os.path.basename(self.keyurl))
 
-        if metadata_expire is not None:
-            self.metadata_expire = metadata_expire
-
         self.timeout = timeout
-        self.trace = trace
 
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())

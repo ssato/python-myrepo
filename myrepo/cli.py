@@ -22,8 +22,8 @@ import myrepo.config as C
 import myrepo.globals as G
 import myrepo.parser as P
 import myrepo.repo as R
-import rpmkit.Bunch as B
 
+import bunch as B
 import itertools
 import logging
 import multiprocessing
@@ -73,15 +73,15 @@ def _degenerate_dists_g(dists):
         yield (dname, dver, archs, bdist)
 
 
-def create_repos_from_dists_option_g(config, degenerate=False):
+def mk_repos(ctx, degenerate=False):
     """
-    :param config:  Configuration parameters :: B.Bunch
+    :param ctx: Configuration parameters :: B.Bunch
     :param degenerate:  Is the dists to be degenerated?
 
     see also: myrepo.parser.parse_dists_option
     """
-    dists_s = config.dists
-    logging.debug("config.dists=" + dists_s)
+    dists_s = ctx.dists
+    logging.debug("ctx.dists=" + dists_s)
 
     # dists :: [(dist_name, dist_ver, dist_arch, bdist)]
     dists = P.parse_dists_option(dists_s)
@@ -97,11 +97,10 @@ def create_repos_from_dists_option_g(config, degenerate=False):
 
         logging.debug("Creating repo: dname=%s, dver=%s, archs=%s, "
                       "bdist=%s" % (dname, dver, archs, bdist))
-        yield R.Repo(config.server, config.user, config.email,
-                     config.fullname, dname, dver, archs, config.name,
-                     config.subdir, config.topdir, config.baseurl,
-                     config.signkey, bdist, config.metadata_expire,
-                     config.timeout, config.genconf, config.trace)
+
+        yield R.Repo(ctx.server, ctx.user, dname, dver, archs, ctx.name,
+                     ctx.subdir, ctx.topdir, ctx.baseurl, ctx.signkey,
+                     bdist, ctx.timeout)
 
 
 def opt_parser():
@@ -137,15 +136,18 @@ Examples:
     p.add_option("-C", "--config", help="Configuration file")
     p.add_option("-P", "--profile",
                  help="Specify configuration profile [%default]")
-    p.add_option("-T", "--timeout", type="int",
+    p.add_option("-T", "--tpaths", action="append", default=[],
+                 help="Specify additional template path one "
+                      "by one. These paths will have higher "
+                      "priority than default paths."),
+    p.add_option("", "--timeout", type="int",
                  help="Timeout [sec] for each operations [%default]")
 
-    p.add_option("-s", "--server", help="Server to provide your yum repos.")
-    p.add_option("-u", "--user", help="Your username on the server [%default]")
-    p.add_option("-m", "--email",
-                 help="Your email address or its format string [%default]")
-    p.add_option("-F", "--fullname", help="Your full name [%default]")
-
+    p.add_option("-s", "--server",
+                 help="HTTP/FTP Server to provide your yum repos. "
+                      "Localhost will be used by default if not specified.")
+    p.add_option("-u", "--user",
+                 help="Your username on that yum repo server [%default]")
     p.add_option("", "--dists",
                  help="Comma separated distribution labels including arch "
                       "(optionally w/ build (mock) distribution label). "
@@ -157,7 +159,6 @@ Examples:
     p.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     p.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
     p.add_option("", "--debug", action="store_true", help="Debug mode")
-    p.add_option("", "--trace", action="store_true", help="Trace mode")
 
     iog = optparse.OptionGroup(p, "Options for 'init' command")
     iog.add_option('', "--name",
@@ -168,6 +169,9 @@ Examples:
                    help="Repository top dir or its format string [%default]")
     iog.add_option('', "--baseurl",
                    help="Repository base URL or its format string [%default]")
+    iog.add_option("-m", "--email",
+                   help="Your email address or its format string [%default]")
+    iog.add_option("-F", "--fullname", help="Your full name [%default]")
     iog.add_option('', "--signkey",
                    help="GPG key ID if signing RPMs to deploy")
     iog.add_option('', "--no-genconf", action="store_false", dest="genconf",
@@ -213,14 +217,14 @@ def do_command_org(cmd, repos_g, srpm=None):
             proc.terminate()
 
 
-def do_command(cmd, repos_g, srpm=None, timeout=G.BUILD_TIMEOUT):
+def do_command(cmd, ctx, repos_g, timeout=G.BUILD_TIMEOUT):
     """
     :param cmd: sub command name :: str
     :param repos_g: Repository objects (generator)
-    :param srpm: path to the target src.rpm :: str
     """
     for repo in repos_g:
-        getattr(CMD, cmd)(repo, srpm)
+        ctx.repo = repo
+        getattr(CMD, cmd)(ctx)
 
 
 def main(argv=sys.argv):
@@ -288,17 +292,20 @@ def main(argv=sys.argv):
         # re-parse to overwrite configurations with given options.
         (options, args) = p.parse_args()
 
-    config = B.Bunch(options.__dict__.copy())
+    ctx = B.Bunch(options.__dict__.copy())
+    ctx.srpms = args[1:]  # List of srpm paths or []
 
-    if args[1:]:
-        srpm = args[1]
-        repos_g = create_repos_from_dists_option_g(config, R.is_noarch(srpm))
-        do_command(cmd, repos_g, srpm)
+    if ctx.srpms:
+        if len(ctx.srpms) > 1:
+            sys.stdout.write("Sorry, myrepo does not support build and/or "
+                             "deploy multiple SRPMs yet.")
+            sys.exit(0)
+
+        repos_g = mk_repos(ctx, CMD.is_noarch(ctx.srpms[0]))
     else:
-        repos_g = create_repos_from_dists_option_g(config, True)
-        do_command(cmd, repos_g)
+        repos_g = mk_repos(ctx, True)
 
-    sys.exit()
+    sys.exit(do_command(cmd, ctx, repos_g))
 
 
 if __name__ == '__main__':
