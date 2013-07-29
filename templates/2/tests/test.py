@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import myrepo.distribution as D
 import myrepo.utils as U
 
 import difflib
@@ -71,9 +72,7 @@ class Test_2(unittest.TestCase):
 
     def test_01_mock_cfg(self):
         ctx = dict(base_mock_cfg_path="/etc/mock/fedora-19-x86_64.cfg",
-                   repo=dict(name="custom"),
-                   dist=dict(label="fedora-19-x86_64",
-                             name="fedora"),
+                   dist=D.Distribution("fedora", "19", "x86_64"),
                    repo_file_content="HERE_IS_REPO_FILE_CONTENT")
 
         (s, ref) = result_and_expected("mock.cfg", ctx, True)
