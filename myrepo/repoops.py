@@ -18,7 +18,6 @@
 import myrepo.globals as G
 import myrepo.utils as U
 import rpmkit.memoize as M
-import rpmkit.rpmutils as RU
 import rpmkit.shell as SH
 
 import glob
@@ -28,26 +27,14 @@ import os.path
 
 
 @M.memoize
-def is_noarch(srpm):
-    return RU.is_noarch(srpm)
-
-
-def dists_by_srpm(repo, srpm):
-    _is_noarch = is_noarch(srpm)
-    logging.info("srpm=%s, noarch=%s" % (srpm, _is_noarch))
-
-    return repo.dists[:1] if _is_noarch else repo.dists
-
-
-@M.memoize
-def release_file_content(repo):
+def gen_release_file_content(repo):
     return U.compile_template("release_file", repo.as_dict())
 
 
-def mock_cfg_content(repo, dist):
+def gen_mock_cfg_content(repo, dist):
     """
-    Updated mock.cfg with addingg repository definitions in
-    given content and returns it.
+    Update mock.cfg with addingg repository definitions in
+    given content and return it.
 
     :param repo:  Repo object
     :param dist:  Distribution object
@@ -56,7 +43,7 @@ def mock_cfg_content(repo, dist):
 
     cfg_opts["root"] = "%s-%s" % (repo.name, dist.label)
     cfg_opts["myrepo_distname"] = dist.name
-    cfg_opts["yum.conf"] += "\n" + release_file_content(repo)
+    cfg_opts["yum.conf"] += "\n" + gen_release_file_content(repo)
 
     return U.compile_template("mock.cfg", dict(cfg=cfg_opts))
 
@@ -72,27 +59,15 @@ def sign_rpms_cmd(keyid, rpms):
     return U.compile_template("sign_rpms", dict(keyid=keyid, rpms=rpms))
 
 
-def copy_cmd(repo, src, dst):
-    if U.is_local(repo.server):
-        if "~" in dst:
-            dst = os.path.expanduser(dst)
-
-        cmd = "cp -a %s %s" % (src, dst)
-    else:
-        cmd = "scp -p %s %s@%s:%s" % (src, repo.user, repo.server, dst)
-
-    return cmd
-
-
-def release_file_gen(repo, workdir):
-    """Generate release file (repo file) and returns its path.
+def gen_release_file(repo, workdir):
+    """Generate release file (repo file) and return its path.
     """
     reldir = os.path.join(workdir, "etc", "yum.repos.d")
     os.makedirs(reldir)
 
     relpath = os.path.join(reldir, repo.name + ".repo")
 
-    open(relpath, 'w').write(release_file_content(repo))
+    open(relpath, 'w').write(gen_release_file_content(repo))
     return relpath
 
 
@@ -103,7 +78,7 @@ def mock_cfg_gen_g(repo, workdir):
     os.makedirs(mockcfgdir)
 
     for dist in repo.dists:
-        mc = mock_cfg_content(repo, dist)
+        mc = gen_mock_cfg_content(repo, dist)
         mcpath = os.path.join(
             mockcfgdir, "%s-%s.cfg" % (repo.name, dist.label)
         )
@@ -113,7 +88,7 @@ def mock_cfg_gen_g(repo, workdir):
 
 
 def mock_cfg_gen(repo, workdir):
-    """Generate mock.cfg files and returns these paths.
+    """Generate mock.cfg files and return these paths.
     """
     return [p for p in mock_cfg_gen_g(repo, workdir)]
 
@@ -134,28 +109,6 @@ def rpm_build_cmd(repo, workdir, listfile, pname):
 def build(repo, srpm):
     tasks = [SH.Task(d.build_cmd(srpm), timeout=repo.timeout) for d in
              dists_by_srpm(repo, srpm)]
-    return SH.prun(tasks)
-
-
-def update_metadata(repo):
-    """
-    'createrepo --update ...', etc.
-    """
-    destdir = repo.destdir()
-
-    # hack: degenerate noarch rpms
-    if repo.multiarch:
-        c = "for d in %s; do (cd $d && ln -sf ../%s/*.noarch.rpm ./); done"
-        c = c % (" ".join(repo.archs[1:]), repo.primary_arch)
-
-        SH.run(c, repo.user, repo.server, repo.destdir(), repo.timeout, True)
-
-    c = "test -d repodata"
-    c += " && createrepo --update --deltas --oldpackagedirs . --database ."
-    c += " || createrepo --deltas --oldpackagedirs . --database ."
-
-    tasks = [SH.Task(c, repo.user, repo.server, d, timeout=repo.timeout)
-             for d in repo.rpmdirs()]
     return SH.prun(tasks)
 
 
@@ -193,7 +146,7 @@ def build_release_srpm(repo, workdir):
     :param repo: Repository object
     :param workdir: Working directory in which build rpms
     """
-    relpath = release_file_gen(repo, workdir)
+    relpath = gen_release_file(repo, workdir)
     c = relpath + ",rpmattr=%config\n"
 
     if repo.signkey:
