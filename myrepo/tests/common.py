@@ -15,8 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import rpmkit.environ as E
+
 import logging
 import os.path
+import random
 import tempfile
 
 
@@ -45,6 +48,28 @@ def cleanup_workdir(workdir):
     """
     assert os.path.abspath(workdir) != "/"
     os.system("rm -rf " + workdir)
+
+
+def sample_dist():
+    return random.choice(E.list_dists())
+
+
+def is_base_dist(dist):
+    """
+    Fixme: Ugly
+
+    >>> is_base_dist("fedora-16-i386")
+    True
+    >>> is_base_dist("rhel-6-x86_64")
+    True
+    >>> is_base_dist("fedora-xyz-extras-fedora-16-x86_64")
+    False
+    """
+    return len(dist.split("-")) == 3
+
+
+def sample_base_dist():
+    return random.choice([d for d in E.list_dists() if is_base_dist(d)])
 
 
 # vim:sw=4:ts=4:et:
