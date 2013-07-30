@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Yum .repo files for {{ repo.dist }}
 Group:          System Environment/Base
 License:        MIT
-URL:            {{ repo.url }}
+URL:            {{ repo.baseurl }}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
@@ -15,7 +15,7 @@ Source1:        {{ repo.dist }}.cfg
 %description
 Yum repo and related config files of {{ repo.dist }}.
 
-This package contains .repo file.
+This package contains release (.repo) file.
 
 
 %package -n     mock-data-{{ repo.dist }}
@@ -24,7 +24,7 @@ Group:          Development/Tools
 Requires:       mock
 
 
-%description
+%description -n mock-data-{{ repo.dist }}
 Yum repo and related config files of {{ repo.dist }}.
 
 This package contains mock.cfg file.
@@ -65,3 +65,4 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * {{ datestamp }} {{ fullname }} <{{ email }}> - {{ version }}-1
 - Initial packaging.
+
