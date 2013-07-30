@@ -34,6 +34,7 @@ _REPO_0 = dict(name="fedora-custom-19-x86_64",
                server="yumrepo.example.com",
                user="jdoe",
                baseurl="http://yumrepo.example.com/yum/fedora/19/",
+               dist="fedora-custom-19",
                dists=[_DIST_0, _DIST_1],
                distversion=19)
 
@@ -64,7 +65,19 @@ class Test_00(unittest.TestCase):
 
         self.assertEquals(s, ref, diff(s, ref))
 
-    def test_30_sign_rpms_cmd(self):
+    def test_30_gen_rpmspec_content(self):
+        datestamp = TT.datestamp()
+        ref = readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
+                                                             datestamp)
+
+        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=datestamp,
+                   fullname="John Doe", email="jdoe@example.com")
+
+        s = TT.gen_rpmspec_content(ctx, _TPATHS)
+
+        self.assertEquals(s, ref, diff(s, ref))
+
+    def test_40_sign_rpms_cmd(self):
         """TODO: test cases for sign_rpm_cmd()"""
         return
 
@@ -75,14 +88,14 @@ class Test_00(unittest.TestCase):
 
         self.assertEquals(s, ref, diff(s, ref))
 
-    def test_40_mock_cfg_paths_and_contents_g(self):
+    def test_50_mock_cfg_paths_and_contents_g(self):
         mcs = list(TT.mock_cfg_paths_and_contents_g(_REPO_0, "/tmp", _TPATHS))
         self.assertEquals(mcs[0][0],
                           "/tmp/etc/mock/fedora-custom-19-x86_64.cfg")
         self.assertEquals(mcs[1][0],
                           "/tmp/etc/mock/fedora-custom-19-i386.cfg")
 
-    def test_50_rpm_build_cmd(self):
+    def test_60_rpm_build_cmd(self):
         ref = readfile("result.rpmbuild.0")
 
         ctx = dict(repo=_REPO_0, workdir="/tmp/w", fullname="John Doe",

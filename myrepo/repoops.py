@@ -22,13 +22,20 @@ import myrepo.utils as U
 import rpmkit.memoize as M
 import rpmkit.shell as SH
 
+import datetime
 import glob
+import locale
 import logging
 import os
 import os.path
 
 
 _SIGN = "rpm --resign --define '_signature gpg' --define '_gpg_name %s' %s"
+
+
+def datestamp(d=datetime.datetime.now()):
+    locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+    return datetime.datetime.strftime(d, "%a %b %e")
 
 
 @M.memoize
@@ -65,6 +72,19 @@ def gen_mock_cfg_content(repo, dist, tpaths):
     return U.compile_template("mock.cfg", ctx, tpaths)
 
 
+def gen_rpmspec_content(ctx, tpaths):
+    """
+    Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
+    files for given repo (ctx["repo"]).
+
+    :param ctx: Application context object
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of RPM SPEC file :: str
+    """
+    return U.compile_template("yum-repodata.spec", ctx, tpaths)
+
+
 def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
     """
     Make up the command string to sign RPMs.
@@ -97,6 +117,23 @@ def gen_repo_file(repo, workdir, tpaths):
 
     path = os.path.join(reldir, "%(name).repo" % repo)
     open(path, 'w').write(gen_repo_file_content(repo, tpaths))
+
+    return path
+
+
+def gen_rpmspec(ctx, workdir, tpaths):
+    """
+    Generate repo file and return its path.
+
+    :param ctx: Application context object
+    :param workdir: The top dir to generate output files
+    :param tpaths: Template path list :: [str]
+    """
+    reldir = os.path.join(workdir, "rpm")
+    os.makedirs(reldir)
+
+    path = os.path.join(reldir, "yum-repodata.spec")
+    open(path, 'w').write(gen_rpmspec_content(ctx, tpaths))
 
     return path
 

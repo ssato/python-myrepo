@@ -57,11 +57,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/yum.repos.d/*.repo
 
 
-%files   -n     mock-data-%{repo.name}
+%files   -n     mock-data-fedora-custom-19
 %defattr(-,root,root,-)
 %{_sysconfdir}/mock/*.cfg
 
 
 %changelog
-* @DATESTAMP@ John Doe <jdoe@example.com> - 0.0.1-1
+* DATESTAMP John Doe <jdoe@example.com> - 0.0.1-1
 - Initial packaging.
