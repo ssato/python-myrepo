@@ -8,12 +8,12 @@ URL:            {{ repo.url }}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
-Source0:        repofile.basename
-Source1:        mockcfg.basename
+Source0:        {{ repo.dist }}.repo
+Source1:        {{ repo.dist }}.cfg
 
 
 %description
-Yum repo and related config files of {{ repo.name }}.
+Yum repo and related config files of {{ repo.dist }}.
 
 This package contains .repo file.
 
@@ -22,6 +22,12 @@ This package contains .repo file.
 Summary:        Mock related config files for {{ repo.dist }}
 Group:          Development/Tools
 Requires:       mock
+
+
+%description
+Yum repo and related config files of {{ repo.dist }}.
+
+This package contains mock.cfg file.
 
 
 %prep
@@ -38,8 +44,8 @@ rm -rf $RPM_BUILD_ROOT
 
 mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
 mkdir -p $RPM_BUILD_ROOT/etc/mock
-install -m 644 {{ repofile.basename }} $RPM_BUILD_ROOT/etc/yum.repos.d
-install -m 644 {{ mockcfg.basename }} $RPM_BUILD_ROOT/etc/mock
+install -m 644 {{ repo.dist }}.repo $RPM_BUILD_ROOT/etc/yum.repos.d
+install -m 644 {{ repo.dist }}.cfg $RPM_BUILD_ROOT/etc/mock
 
 
 %clean
@@ -51,11 +57,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_sysconfdir}/yum.repos.d/*.repo
 
 
-%files   -n     mock-data-%{repo.name}
+%files   -n     mock-data-{{ repo.dist }}
 %defattr(-,root,root,-)
 %{_sysconfdir}/mock/*.cfg
 
 
 %changelog
-* {{ datestamp }} Satoru SATOH <ssato@redhat.com> - {{ version }}-1
+* {{ datestamp }} {{ fullname }} <{{ email }}> - {{ version }}-1
 - Initial packaging.
