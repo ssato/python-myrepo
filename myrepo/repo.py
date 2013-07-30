@@ -72,7 +72,7 @@ class Repo(object):
         :param signkey: GPG key ID to sign, or None indicates will never sign
         :param bdist: Distribution label to build srpms,
             e.g. "fedora-custom-addons-14-x86_64"
-        :param timeout: Command execution timeout in seconds or None
+        :param timeout: Connection timeout in seconds or None (wait forever)
         """
         self.server = server
         self.user = user
@@ -127,17 +127,14 @@ class Repo(object):
             self.keyfile = os.path.join(self.keydir,
                                         os.path.basename(self.keyurl))
 
+        self.destdir = os.path.join(self.topdir, self.distdir)
+        self.rpmdirs = [os.path.join(self.destdir, d) for d in
+                        ["sources"] + self.archs]
+
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
 
     def as_dict(self):
         return self.__dict__.copy()
-
-    def destdir(self):
-        return os.path.join(self.topdir, self.distdir)
-
-    def rpmdirs(self):
-        return [os.path.join(self.destdir(), d) for d in
-                ["sources"] + self.archs]
 
 # vim:sw=4:ts=4:et:
