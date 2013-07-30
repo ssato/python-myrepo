@@ -32,6 +32,12 @@ import os.path
 
 _SIGN = "rpm --resign --define '_signature gpg' --define '_gpg_name %s' %s"
 
+_RPMBUILD = """rpmbuild \
+--define '_srcrpmdir %(workdir)s' \
+--define '_sourcedir %(workdir)s' \
+--define '_buildroot %(workdir)s' \
+-bs %(rpmspec)s"""
+
 
 def datestamp(d=datetime.datetime.now()):
     locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
@@ -129,10 +135,7 @@ def gen_rpmspec(ctx, workdir, tpaths):
     :param workdir: The top dir to generate output files
     :param tpaths: Template path list :: [str]
     """
-    reldir = os.path.join(workdir, "rpm")
-    os.makedirs(reldir)
-
-    path = os.path.join(reldir, "yum-repodata.spec")
+    path = os.path.join(workdir, "yum-repodata.spec")
     open(path, 'w').write(gen_rpmspec_content(ctx, tpaths))
 
     return path
@@ -172,6 +175,36 @@ def rpm_build_cmd(ctx, workdir, pname, listfile, tpaths):
     ctx["listfile"] = listfile
 
     return U.compile_template("rpmbuild", ctx, tpaths)
+
+
+def build_repodata_srpms(ctx, workdir, tpaths, cmd=_RPMBUILD):
+    """
+    Generate mock.cfg files and corresponding RPMs.
+
+    :param ctx: Application context object
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+    """
+    repo = ctx["repo"]
+
+    for d in repo["dists"]:  # d :: Distribution, dist :: str
+        rpmdir = os.path.join(workdir, d.blabel)
+
+        repofile = os.path.join(rpmdir, "%s.repo" % repo["dist"])
+        open(repofile, 'w').write(gen_repo_file_content(repo, tpaths))
+
+        mockcfg = os.path.join(rpmdir, "%s.cfg" % d.blabel)
+        open(mockcfg, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
+
+        rpmspec = gen_rpmspec(ctx, rpmdir, tpaths)
+
+        rc = SH.run(cmd % dict(workdir=rpmdir, rpmspec=rpmspec),
+                    stop_on_error=True)
+
+        if rc:
+            yield (d.blabel, rpmdir)
+        else:
+            logging.warn("Failed to build yum repodata RPM from " + rpmspec)
 
 
 # FIXME: The following functions are not tested and unittest cases
