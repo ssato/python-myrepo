@@ -135,7 +135,7 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, timeout=_RUN_TO,
         raised if stop_on_error is True
     """
     job = run_async(cmd, user, host, workdir, timeout, conn_timeout)
-    timer = gevent.Timeout.start_new(timeout)
+    #timer = gevent.Timeout.start_new(timeout)
 
     try:
         #job.join(timeout=timer)
