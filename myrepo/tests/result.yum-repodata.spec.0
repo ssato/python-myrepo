@@ -1,0 +1,67 @@
+Name:           fedora-custom-19-release
+Version:        0.0.1
+Release:        1%{?dist}
+Summary:        Yum .repo files for fedora-custom-19
+Group:          System Environment/Base
+License:        MIT
+URL:            http://yumrepo.example.com/yum/fedora/19/
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+Requires:       yum
+Source0:        fedora-custom-19.repo
+Source1:        fedora-custom-19.cfg
+
+
+%description
+Yum repo and related config files of fedora-custom-19.
+
+This package contains release (.repo) file.
+
+
+%package -n     mock-data-fedora-custom-19
+Summary:        Mock related config files for fedora-custom-19
+Group:          Development/Tools
+Requires:       mock
+
+
+%description -n mock-data-fedora-custom-19
+Yum repo and related config files of fedora-custom-19.
+
+This package contains mock.cfg file.
+
+
+%prep
+%setup -q -n %{name}-%{version}
+cp %{SOURCE0} ./
+cp %{SOURCE1} ./
+
+
+%build
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+
+mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
+mkdir -p $RPM_BUILD_ROOT/etc/mock
+install -m 644 fedora-custom-19.repo $RPM_BUILD_ROOT/etc/yum.repos.d
+install -m 644 fedora-custom-19.cfg $RPM_BUILD_ROOT/etc/mock
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+%{_sysconfdir}/yum.repos.d/*.repo
+
+
+%files   -n     mock-data-%{repo.name}
+%defattr(-,root,root,-)
+%{_sysconfdir}/mock/*.cfg
+
+
+%changelog
+* @DATESTAMP@ John Doe <jdoe@example.com> - 0.0.1-1
+- Initial packaging.
