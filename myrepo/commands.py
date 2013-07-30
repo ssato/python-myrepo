@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from myrepo.hooks import hook
+
 import myrepo.repoops as RO
+import myrepo.shell2 as SH  # Use local copy instead of rpmkit.shell2
 import myrepo.utils as U
 import rpmkit.rpmutils as RU
-import rpmkit.shell2 as SH   # make use of gevent-powered version.
-
-from myrepo.hooks import hook
 
 import glob
 import logging
@@ -46,11 +46,11 @@ def init(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    repo = ctx.repo
-    rc = SH.run("mkdir -p " + " ".join(repo.rpmdirs()), repo.user, repo.server,
-                timeout=repo.timeout)
+    repo = ctx["repo"]
+    rc = SH.run("mkdir -p " + " ".join(repo.rpmdirs), repo.user, repo.server,
+                timeout=None, conn_timeout=repo.timeout)
 
-    if rc and ctx.genconf:
+    if rc and ctx["genconf"]:
         rc = genconf(ctx)
 
     return rc
@@ -66,7 +66,7 @@ def genconf(ctx):
     """
     workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
 
-    repo = ctx.repo
+    repo = ctx["repo"]
     srpms = [RO.build_release_srpm(repo, workdir),
              RO.build_mock_cfg_srpm(repo, workdir)]
 
@@ -87,23 +87,22 @@ def update(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    repo = ctx.repo
-    destdir = repo.destdir()
+    repo = ctx["repo"]
 
     # hack: degenerate noarch rpms
     if repo.multiarch:
         c = "for d in %s; do (cd $d && ln -sf ../%s/*.noarch.rpm ./); done"
         c = c % (" ".join(repo.archs[1:]), repo.primary_arch)
 
-        SH.run(c, repo.user, repo.server, repo.destdir(), repo.timeout,
-               stop_on_error=True)  # RuntimeError will be thrown if failed.
+        SH.run(c, repo.user, repo.server, repo.destdir,
+               timeout=None, conn_timeout=repo.timeout, stop_on_error=True)
 
     c = "test -d repodata"
     c += " && createrepo --update --deltas --oldpackagedirs . --database ."
     c += " || createrepo --deltas --oldpackagedirs . --database ."
 
-    largs = [([c, repo.user, repo.server, d, repo.timeout],
-              dict(stop_on_error=True)) for d in repo.rpmdirs()]
+    largs = [([c, repo.user, repo.server, d, None, repo.timeout],
+              dict(stop_on_error=True)) for d in repo.rpmdirs]
     return SH.prun(largs)
 
 
