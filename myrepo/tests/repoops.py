@@ -67,12 +67,11 @@ class Test_00(unittest.TestCase):
 
     def test_30_gen_rpmspec_content(self):
         datestamp = TT.datestamp()
-        ref = readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
-                                                             datestamp)
-
         ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=datestamp,
                    fullname="John Doe", email="jdoe@example.com")
 
+        ref = readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
+                                                             datestamp)
         s = TT.gen_rpmspec_content(ctx, _TPATHS)
 
         self.assertEquals(s, ref, diff(s, ref))
@@ -122,6 +121,22 @@ class Test_10(unittest.TestCase):
         self.assertTrue(os.path.isfile(path))
 
         ref = readfile("result.repo.0")
+        s = open(path).read()
+
+        self.assertEquals(s, ref, diff(s, ref))
+
+    def test_20_gen_rpmspec(self):
+        datestamp = TT.datestamp()
+        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=datestamp,
+                   fullname="John Doe", email="jdoe@example.com")
+
+        path = TT.gen_rpmspec(ctx, self.workdir, _TPATHS)
+
+        self.assertTrue(os.path.exists(path))
+        self.assertTrue(os.path.isfile(path))
+
+        ref = readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
+                                                             datestamp)
         s = open(path).read()
 
         self.assertEquals(s, ref, diff(s, ref))
