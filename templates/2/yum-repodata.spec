@@ -1,7 +1,7 @@
-Name:           {{ repo.name }}-release
+Name:           {{ repo.dist }}-release
 Version:        {{ version }}
 Release:        1%{?dist}
-Summary:        Yum .repo files for {{ repo.name }}
+Summary:        Yum .repo files for {{ repo.dist }}
 Group:          System Environment/Base
 License:        MIT
 URL:            {{ repo.url }}
@@ -18,8 +18,8 @@ Yum repo and related config files of {{ repo.name }}.
 This package contains .repo file.
 
 
-%package -n     mock-data-%{repo.name}
-Summary:        Mock related config files for {{ repo.name }}
+%package -n     mock-data-{{ repo.dist }}
+Summary:        Mock related config files for {{ repo.dist }}
 Group:          Development/Tools
 Requires:       mock
 
