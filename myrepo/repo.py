@@ -37,6 +37,14 @@ def _format(fmt_or_val, ctx={}):
     return fmt_or_val % ctx if "%" in fmt_or_val else fmt_or_val
 
 
+def _foreach_member_of(obj):
+    for k, v in obj.__dict__.iteritems():
+        if k.startswith('_') or callable(k):
+            continue
+
+        yield (k, v)
+
+
 class RepoServer(object):
     """
     >>> s = RepoServer("localhost", "jdoe",
@@ -55,7 +63,7 @@ class RepoServer(object):
     'http://yumrepos.example.com/~jdoe/yum'
     """
 
-    def __init__(self, name, user, altname=None, topdir=G._TOPDIR,
+    def __init__(self, name, user, altname=None, topdir=G._SERVER_TOPDIR,
                  baseurl=G._SERVER_BASEURL, timeout=G._CONN_TIMEOUT):
         """
         :param name: FQDN or hostname of the server provides yum repos
@@ -68,7 +76,7 @@ class RepoServer(object):
         self.name = name
         self.user = user
         self.altname = name if altname is None else altname
-        self.timeout = timeout
+        self.timeout = timeout  # It will be ignored if this host is localhost.
 
         sep = '.'
         self.shortname = name.split(sep)[0] if sep in name else name
@@ -84,40 +92,62 @@ class RepoServer(object):
 class Repo(object):
     """
     Yum repository class.
+
+    >>> server = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+    >>> repo = Repo("%(base_name)s-%(server_shortname)s-%(server_user)s",
+    ...             19, ["x86_64", "i386"], "fedora", server)
+    >>> repo.version, repo.archs, repo.base_name
+    ('19', ['x86_64', 'i386'], 'fedora')
+    >>> repo.server_name, repo.server_altname, repo.server_shortname
+    ('yumrepos.local', 'yumrepos.example.com', 'yumrepos')
+    >>> repo.server_baseurl
+    'http://yumrepos.example.com/~jdoe/yum'
+    >>> repo.multiarch, repo.primary_arch
+    (True, 'x86_64')
+    >>> repo.base_dist, repo.base_label
+    ('fedora-19', 'fedora-19-x86_64')
+    >>> repo.distdir, repo.destdir
+    ('fedora/19', '~jdoe/public_html/yum/fedora/19')
+    >>> repo.baseurl
+    'http://yumrepos.example.com/~jdoe/yum/fedora/19'
+    >>> repo.rpmdirs  # doctest: +NORMALIZE_WHITESPACE
+    ['~jdoe/public_html/yum/fedora/19/sources',
+     '~jdoe/public_html/yum/fedora/19/x86_64',
+     '~jdoe/public_html/yum/fedora/19/i386']
+    >>> repo.name, repo.label
+    ('fedora-yumrepos-jdoe', 'fedora-yumrepos-jdoe-19-x86_64')
+    >>> repo.repofile
+    'fedora-yumrepos-jdoe.repo'
     """
-    name = G.REPO_DEFAULT["name"]
-    topdir = G.REPO_DEFAULT["topdir"]
-    baseurl = G.REPO_DEFAULT["baseurl"]
 
-    signkey = G.REPO_DEFAULT["signkey"]
-    keydir = G.REPO_DEFAULT["keydir"]
-    keyurl = G.REPO_DEFAULT["keyurl"]
-
-    metadata_expire = G.REPO_DEFAULT["metadata_expire"]
-
-    def __init__(self, server, user, dname, dver, archs=None,
-                 name=None, topdir=None, baseurl=None,
-                 signkey=None, bdist=None):
+    def __init__(self, name, version, archs, base_name, server,
+                 subdir=G._SUBDIR, signkey=G._SIGNKEY, keydir=G._KEYDIR,
+                 keyurl=G._KEYURL, **kwargs):
         """
-        :param server: Server's hostname to provide this yum repo
-        :param user: Username on the server
-        :param dname: Distribution name, e.g. "fedora", "rhel"
-        :param dver: Distribution version, e.g. "16", "6"
-        :param archs: Architecture list, e.g. ["i386", "x86_64"]
         :param name: Repository name or its format string,
-            e.g. "rpmfusion-free", "%(distname)s-%(hostname)s-%(user)s"
-        :param topdir: Topdir or its format string for this repository,
-        :param baseurl: Base url or its format string, e.g.
-            "file://%(topdir)s".
-        :param signkey: GPG key ID to sign, or None indicates will never sign
-        :param bdist: Distribution label to build srpms,
-            e.g. "fedora-custom-addons-14-x86_64"
-        """
-        self.server = server
-        self.user = user
-        self.archs = archs
+            e.g. "rpmfusion-free", "rhel-custom" and
+            "%(base_name)s-%(server_shortname)s-%(server_user)s".
+        :param version: Version string or number :: int
+        :param archs: List of architectures, e.g. ["x86_64", "i386"]
 
-        self.hostname = server.split('.')[0]
+        :param base_name: Base (parent) distribution name
+        :param server: RepoServer object :: myrepo.repo.RepoServer
+
+        :param dir: Dir or its format string to save RPMs of this repo,
+            relative to the server's topdir.
+        :param signkey: GPG key ID to sign, or None indicates will never sign
+        ...
+        """
+        self.version = str(version)
+        self.archs = archs
+        self.base_name = base_name
+        self.server = server
+        self.keydir = keydir
+
+        # TODO: Dirty hack.
+        for k, v in _foreach_member_of(server):
+            setattr(self, "server_" + k, v)
+
         self.multiarch = "i386" in self.archs and "x86_64" in self.archs
         self.primary_arch = "x86_64" if self.multiarch else self.archs[0]
 
@@ -125,53 +155,34 @@ class Repo(object):
             self.archs = [self.primary_arch] + \
                          [a for a in archs if a != self.primary_arch]
 
-        self.distname = dname
-        self.distversion = dver
-        self.dist = "%s-%s" % (dname, dver)
+        self.base_dist = "%s-%s" % (base_name, self.version)
+        self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
+        self.distdir = "%s/%s" % (base_name, self.version)
+        self.destdir = os.path.join(self.server_topdir, self.distdir)
+        self.baseurl = os.path.join(self.server_baseurl, self.distdir)
 
-        self.dists = [D.Distribution(dname, dver, a, bdist) for a in
-                      self.archs]
-        self.distdir = "%s/%s" % (dname, dver)
+        self.rpmdirs = [os.path.join(self.destdir, d) for d in
+                        ["sources"] + self.archs]
 
-        if name is None:
-            name = Repo.name
-
-        if topdir is None:
-            topdir = Repo.topdir
-
-        if baseurl is None:
-            baseurl = Repo.baseurl
-
-        if bdist is None:
-            bdist = "%s-%s-%s" % (name, self.distversion, self.primary_arch)
-
-        self.bdist = bdist
-
-        # expand parameters which are format strings:
         self.name = self._format(name)
-        self.topdir = self._format(topdir)
-        self.baseurl = self._format(baseurl)
+        self.label = "%s-%s-%s" % (self.name, self.version, self.primary_arch)
+        self.repofile = "%s.repo" % self.name
 
-        self.keydir = Repo.keydir
+        self.dists = [D.Dist(base_name, self.version, a, self.label)
+                      for a in self.archs]
 
         if signkey is None:
             self.signkey = self.keyurl = self.keyfile = ""
         else:
             self.signkey = signkey
-            self.keyurl = self._format(Repo.keyurl)
+            self.keyurl = self._format(keyurl)
             self.keyfile = os.path.join(self.keydir,
                                         os.path.basename(self.keyurl))
-
-        self.destdir = os.path.join(self.topdir, self.distdir)
-        self.rpmdirs = [os.path.join(self.destdir, d) for d in
-                        ["sources"] + self.archs]
-
-        self.repofile = "%s.repo" % self.name
 
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
 
     def as_dict(self):
-        return self.__dict__.copy()
+        return self.__dict__
 
 # vim:sw=4:ts=4:et:
