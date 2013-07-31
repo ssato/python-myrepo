@@ -30,7 +30,7 @@ _SERVER_BASEURL = "http://%(altname)s/~%(user)s/yum"  # Base URL of yum repos.
 # Repo defaults:
 _SUBDIR = "%(base_name)s/%(base_version)s"
 _BASEURL = "%(server_baseurl)s/%(dir)s"
-_SIGNKEY = ""
+_SIGNKEY = None
 _KEYDIR = "/etc/pki/rpm-gpg"
 _KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(version)s"
 
