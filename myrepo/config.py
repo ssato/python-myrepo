@@ -42,9 +42,23 @@ def get_timeout(config):
             return G.REMOTE_TIMEOUT
 
 
+def _is_supported(dist):
+    """
+    >>> _is_supported("fedora-19-x86_64")
+    True
+    >>> _is_supported("fedora-19-i386")
+    True
+    >>> _is_supported("fedora-19-armhfp")
+    False
+
+    :param dist: Distribution label, e.g. 'fedora-19-x86_64'
+    """
+    return "x86_64" in dist or "i386" in dist
+
+
 def _init_by_defaults():
     archs = E.list_archs()
-    distributions_full = E.list_dists()
+    distributions_full = [d for d in E.list_dists() if _is_supported(d)]
     dists = ["%s-%s" % E.get_distribution()]
     distributions = ["%s-%s" % da for da in IT.product(dists, archs)]
 
