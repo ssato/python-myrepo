@@ -8,9 +8,11 @@ URL:            {{ repo.baseurl }}
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
+# NOTE: .repo file does not depends on arch but mock.cfg does.
 Source0:        {{ repo.dist }}.repo
-Source1:        {{ repo.dist }}.cfg
-
+{% for arch in repo.archs -%}
+Source{{ loop.index }}:        {{ repo.dist }}-{{ arch }}.cfg
+{% endfor %}
 
 %description
 Yum repo and related config files of {{ repo.dist }}.
@@ -33,8 +35,9 @@ This package contains mock.cfg file.
 %prep
 %setup -q -n %{name}-%{version}
 cp %{SOURCE0} ./
-cp %{SOURCE1} ./
-
+{% for arch in repo.archs -%}
+cp %{SOURCE{{ loop.index }}} ./
+{% endfor %}
 
 %build
 
@@ -45,7 +48,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
 mkdir -p $RPM_BUILD_ROOT/etc/mock
 install -m 644 {{ repo.dist }}.repo $RPM_BUILD_ROOT/etc/yum.repos.d
-install -m 644 {{ repo.dist }}.cfg $RPM_BUILD_ROOT/etc/mock
+for f in {{ repo.dist }}-*.cfg; do install -m 644 $f $RPM_BUILD_ROOT/etc/mock; done
 
 
 %clean
