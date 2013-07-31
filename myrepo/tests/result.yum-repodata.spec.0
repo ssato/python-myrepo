@@ -8,6 +8,7 @@ URL:            http://yumrepo.example.com/yum/fedora/19/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
+# NOTE: .repo file does not depends on arch but mock.cfg does.
 Source0:        fedora-custom-19.repo
 Source1:        fedora-custom-19.cfg
 
@@ -45,7 +46,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
 mkdir -p $RPM_BUILD_ROOT/etc/mock
 install -m 644 fedora-custom-19.repo $RPM_BUILD_ROOT/etc/yum.repos.d
-install -m 644 fedora-custom-19.cfg $RPM_BUILD_ROOT/etc/mock
+for f in fedora-custom-19-*.cfg; do install -m 644 $f $RPM_BUILD_ROOT/etc/mock; done
 
 
 %clean
