@@ -131,6 +131,8 @@ class Repo(object):
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]
 
+        self.repofile = "%s.repo" % self.name
+
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
 
