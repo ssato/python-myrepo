@@ -25,15 +25,15 @@ import signal
 import subprocess
 
 
-def _is_local(fqdn_or_hostname):
+def is_local(fqdn_or_hostname):
     """
-    >>> _is_local("localhost")
+    >>> is_local("localhost")
     True
-    >>> _is_local("localhost.localdomain")
+    >>> is_local("localhost.localdomain")
     True
-    >>> _is_local("repo-server.example.com")
+    >>> is_local("repo-server.example.com")
     False
-    >>> _is_local("127.0.0.1")  # special case:
+    >>> is_local("127.0.0.1")  # special case:
     False
     """
     return fqdn_or_hostname.startswith("localhost")
@@ -96,7 +96,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     """
     _validate_timeouts(timeout, conn_timeout)
 
-    if _is_local(host):
+    if is_local(host):
         if "~" in workdir:
             workdir = os.path.expanduser(workdir)
     else:
