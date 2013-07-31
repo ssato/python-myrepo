@@ -37,12 +37,55 @@ def _format(fmt_or_val, ctx={}):
     return fmt_or_val % ctx if "%" in fmt_or_val else fmt_or_val
 
 
+class RepoServer(object):
+    """
+    >>> s = RepoServer("localhost", "jdoe",
+    ...                baseurl="file:///home/%(user)s/public_html/yum")
+    >>> s.name, s.user, s.altname, s.shortname
+    ('localhost', 'jdoe', 'localhost', 'localhost')
+    >>> s.topdir
+    '~jdoe/public_html/yum'
+    >>> s.baseurl
+    'file:///home/jdoe/public_html/yum'
+
+    >>> s = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+    >>> s.name, s.user, s.altname, s.shortname
+    ('yumrepos.local', 'jdoe', 'yumrepos.example.com', 'yumrepos')
+    >>> s.baseurl
+    'http://yumrepos.example.com/~jdoe/yum'
+    """
+
+    def __init__(self, name, user, altname=None, topdir=G._TOPDIR,
+                 baseurl=G._SERVER_BASEURL, timeout=G._CONN_TIMEOUT):
+        """
+        :param name: FQDN or hostname of the server provides yum repos
+        :param user: User name on the server to provide yum repos
+        :param altname: Alternative hostname (FQDN) for client access
+        :param topdir: Top dir or its format string of yum repos to serve RPMs.
+        :param baseurl: Base url or its format string of yum repos
+        :param timeout: SSH connection timeout to this server
+        """
+        self.name = name
+        self.user = user
+        self.altname = name if altname is None else altname
+        self.timeout = timeout
+
+        sep = '.'
+        self.shortname = name.split(sep)[0] if sep in name else name
+
+        ctx = dict(name=name, user=user, altname=self.altname, timeout=timeout,
+                   shortname=self.shortname)
+
+        # The followings may be format strings.
+        self.topdir = _format(topdir, ctx)
+        self.baseurl = _format(baseurl, ctx)
+
+
 class Repo(object):
     """
     Yum repository class.
     """
     name = G.REPO_DEFAULT["name"]
-    subdir = G.REPO_DEFAULT["subdir"]
     topdir = G.REPO_DEFAULT["topdir"]
     baseurl = G.REPO_DEFAULT["baseurl"]
 
@@ -50,12 +93,11 @@ class Repo(object):
     keydir = G.REPO_DEFAULT["keydir"]
     keyurl = G.REPO_DEFAULT["keyurl"]
 
-    timeout = G.REPO_DEFAULT["conn_timeout"]
     metadata_expire = G.REPO_DEFAULT["metadata_expire"]
 
     def __init__(self, server, user, dname, dver, archs=None,
-                 name=None, subdir=None, topdir=None, baseurl=None,
-                 signkey=None, bdist=None, timeout=None, **kwargs):
+                 name=None, topdir=None, baseurl=None,
+                 signkey=None, bdist=None):
         """
         :param server: Server's hostname to provide this yum repo
         :param user: Username on the server
@@ -64,15 +106,12 @@ class Repo(object):
         :param archs: Architecture list, e.g. ["i386", "x86_64"]
         :param name: Repository name or its format string,
             e.g. "rpmfusion-free", "%(distname)s-%(hostname)s-%(user)s"
-        :param subdir: Sub directory for this repository
         :param topdir: Topdir or its format string for this repository,
-            e.g. "/var/www/html/%(subdir)s".
         :param baseurl: Base url or its format string, e.g.
             "file://%(topdir)s".
         :param signkey: GPG key ID to sign, or None indicates will never sign
         :param bdist: Distribution label to build srpms,
             e.g. "fedora-custom-addons-14-x86_64"
-        :param timeout: Connection timeout in seconds or None (wait forever)
         """
         self.server = server
         self.user = user
@@ -93,7 +132,6 @@ class Repo(object):
         self.dists = [D.Distribution(dname, dver, a, bdist) for a in
                       self.archs]
         self.distdir = "%s/%s" % (dname, dver)
-        self.subdir = self.subdir if subdir is None else subdir
 
         if name is None:
             name = Repo.name
@@ -108,9 +146,6 @@ class Repo(object):
             bdist = "%s-%s-%s" % (name, self.distversion, self.primary_arch)
 
         self.bdist = bdist
-
-        if timeout is not None:
-            self.timeout = timeout
 
         # expand parameters which are format strings:
         self.name = self._format(name)
