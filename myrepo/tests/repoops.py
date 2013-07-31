@@ -87,24 +87,6 @@ class Test_00(unittest.TestCase):
 
         self.assertEquals(s, ref, diff(s, ref))
 
-    def test_50_mock_cfg_paths_and_contents_g(self):
-        mcs = list(TT.mock_cfg_paths_and_contents_g(_REPO_0, "/tmp", _TPATHS))
-        self.assertEquals(mcs[0][0],
-                          "/tmp/etc/mock/fedora-custom-19-x86_64.cfg")
-        self.assertEquals(mcs[1][0],
-                          "/tmp/etc/mock/fedora-custom-19-i386.cfg")
-
-    def test_60_rpm_build_cmd(self):
-        ref = readfile("result.rpmbuild.0")
-
-        ctx = dict(repo=_REPO_0, workdir="/tmp/w", fullname="John Doe",
-                   email="jdoe@example.com", listfile="a b c", logopt="-v")
-
-        s = TT.rpm_build_cmd(ctx, "/tmp/w", "fedora-custom-19-release",
-                             "a b c", _TPATHS)
-
-        self.assertEquals(s, ref, diff(s, ref))
-
 
 class Test_10(unittest.TestCase):
 
