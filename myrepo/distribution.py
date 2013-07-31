@@ -64,6 +64,8 @@ class Distribution(object):
     'fedora-19-x86_64'
     >>> d.label == d.blabel
     True
+    >>> d.is_parent()
+    True
     >>> d.base_mockcfg
     'fedora-19-x86_64.cfg'
     >>> d.base_mockcfg == d.mockcfg
@@ -111,5 +113,7 @@ class Distribution(object):
     def build_cmd(self, srpm):
         return _build_cmd(self.blabel, srpm)
 
+    def is_parent(self):
+        return self.dist == self.bdist
 
 # vim:sw=4:ts=4:et:
