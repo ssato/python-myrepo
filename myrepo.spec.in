@@ -18,7 +18,6 @@ BuildRequires:  python
 Requires:       rpm-python
 Requires:       createrepo
 Requires:       mock
-Requires:       packagemaker >= 0.4.1-1
 Requires:       rpmkit >= 0.2.10-1
 Obsoletes:      rpmkit < 0.2.10-1
 Requires:       python-bunch
@@ -67,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 - Migrated to gevent based job handling code
 - Cleanup old tenjin-based templates not used any more
 - Added missing runtime dependency to mock
+- Removed dependency to packagemaker
 
 * Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12-1
 - Fixed a bug that myrepo refers rpmkit.tenjinwrapper which removed in the
