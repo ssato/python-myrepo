@@ -31,13 +31,13 @@ class Test_00(unittest.TestCase):
         self.assertNotEquals(c, "")
 
 
-class Test_10_Distribution(unittest.TestCase):
+class Test_10_Dist(unittest.TestCase):
 
     def test_00__init__w_min_args(self):
         (n, v, a) = C.sample_base_dist().split("-")
-        d = D.Distribution(n, v, a)
+        d = D.Dist(n, v, a)
 
-        self.assertTrue(isinstance(d, D.Distribution))
+        self.assertTrue(isinstance(d, D.Dist))
 
         self.assertEquals(d.name, n)
         self.assertEquals(d.version, v)
@@ -57,8 +57,8 @@ class Test_10_Distribution(unittest.TestCase):
         (n, v, a) = C.sample_base_dist().split("-")
         bdist = "%s-custom-%s-%s" % (n, v, a)
 
-        d = D.Distribution(n, v, a, bdist)
-        self.assertTrue(isinstance(d, D.Distribution))
+        d = D.Dist(n, v, a, bdist)
+        self.assertTrue(isinstance(d, D.Dist))
 
         self.assertEquals(d.name, n)
         self.assertEquals(d.version, v)

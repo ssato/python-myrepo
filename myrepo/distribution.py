@@ -51,13 +51,13 @@ def _build_cmd(blabel, srpm):
     return c
 
 
-class Distribution(object):
+class Dist(object):
     """
-    >>> d = Distribution("rhel", 6, "x86_64")
+    >>> d = Dist("rhel", 6, "x86_64")
     >>> d.name, d.version, d.arch, d.bdist
     ('rhel', '6', 'x86_64', 'rhel-6')
 
-    >>> d = Distribution("fedora", "19", "x86_64")
+    >>> d = Dist("fedora", "19", "x86_64")
     >>> d.name, d.version, d.arch, d.bdist
     ('fedora', '19', 'x86_64', 'fedora-19')
     >>> d.label
@@ -71,7 +71,7 @@ class Distribution(object):
     >>> d.base_mockcfg == d.mockcfg
     True
 
-    >>> d = Distribution("fedora", "19", "x86_64", "fedora-custom-19")
+    >>> d = Dist("fedora", "19", "x86_64", "fedora-custom-19")
     >>> d.name, d.version, d.arch, d.bdist
     ('fedora', '19', 'x86_64', 'fedora-custom-19')
     >>> d.blabel
@@ -86,8 +86,8 @@ class Distribution(object):
 
     def __init__(self, name, version, arch, bdist=None):
         """
-        :param name: Distribution name, e.g. "fedora", "rhel"
-        :param version: Distribution version, e.g. "19" | 19, "6" | 6
+        :param name: Dist name, e.g. "fedora", "rhel"
+        :param version: Dist version, e.g. "19" | 19, "6" | 6
         :param arch: Architecture, e.g. "i386", "x86_64"
         :param bdist: Build target distribution or None,
             e.g. "fedora-19", "fedora-custom-19".
