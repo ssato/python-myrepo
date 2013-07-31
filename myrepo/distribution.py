@@ -34,30 +34,64 @@ def _build_cmd(blabel, srpm):
     >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
     'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm -v'
 
-    :param blabel: Build distribution label, e.g. fedora-19-x86_64
+    :param blabel: Label of build target distribution,
+        e.g. fedora-19-x86_64, fedora-custom-19-x86_64
     :return: A command string to build given ``srpm``
     """
-    # suppress log messages from mock in accordance with log level:
-    if logging.getLogger().level >= logging.WARN:
-        logc = "> /dev/null 2> /dev/null"
-    else:
-        logc = "-v" if logging.getLogger().level < logging.INFO else ""
+    lvl = logging.getLogger().level
+    c = "mock -r %s %s" % (blabel, srpm)
 
-    return ' '.join(("mock -r", blabel, srpm, logc)).strip()
+    # suppress log messages from mock by log level:
+    if lvl >= logging.WARN:
+        c += " > /dev/null 2> /dev/null"
+    else:
+        if lvl < logging.INFO:
+            c += " -v"
+
+    return c
 
 
 class Distribution(object):
+    """
+    >>> d = Distribution("rhel", 6, "x86_64")
+    >>> d.name, d.version, d.arch, d.bdist
+    ('rhel', '6', 'x86_64', 'rhel-6')
+
+    >>> d = Distribution("fedora", "19", "x86_64")
+    >>> d.name, d.version, d.arch, d.bdist
+    ('fedora', '19', 'x86_64', 'fedora-19')
+    >>> d.label
+    'fedora-19-x86_64'
+    >>> d.label == d.blabel
+    True
+    >>> d.base_mockcfg
+    'fedora-19-x86_64.cfg'
+    >>> d.base_mockcfg == d.mockcfg
+    True
+
+    >>> d = Distribution("fedora", "19", "x86_64", "fedora-custom-19")
+    >>> d.name, d.version, d.arch, d.bdist
+    ('fedora', '19', 'x86_64', 'fedora-custom-19')
+    >>> d.blabel
+    'fedora-custom-19-x86_64'
+    >>> d.label == d.blabel
+    False
+    >>> d.base_mockcfg
+    'fedora-19-x86_64.cfg'
+    >>> d.mockcfg
+    'fedora-custom-19-x86_64.cfg'
+    """
 
     def __init__(self, name, version, arch, bdist=None):
         """
-        :param name:  Distribution name, e.g. "fedora", "rhel"
-        :param version:   Distribution version, e.g. "19", "6"
-        :param arch:   Architecture, e.g. "i386", "x86_64"
-        :param bdist:  Build target distribution or None,
+        :param name: Distribution name, e.g. "fedora", "rhel"
+        :param version: Distribution version, e.g. "19" | 19, "6" | 6
+        :param arch: Architecture, e.g. "i386", "x86_64"
+        :param bdist: Build target distribution or None,
             e.g. "fedora-19", "fedora-custom-19".
         """
         self.name = name
-        self.version = version
+        self.version = str(version)
         self.arch = arch
 
         self.dist = "%s-%s" % (name, version)
@@ -66,14 +100,8 @@ class Distribution(object):
         self.bdist = self.dist if bdist is None else bdist
         self.blabel = "%s-%s" % (self.bdist, arch)
 
-        self.base_mockcfg_path = "/etc/mock/%s.cfg" % self.label
-        self.mockcfg_path = "/etc/mock/%s.cfg" % self.blabel
-
-    def get_base_mockcfg_path(self):
-        return self.base_mockcfg_path
-
-    def get_mockcfg_path(self):
-        return self.mockcfg_path
+        self.base_mockcfg = "%s.cfg" % self.label
+        self.mockcfg = "%s.cfg" % self.blabel
 
     def rpmdir(self):
         """Dir to save built RPMs.

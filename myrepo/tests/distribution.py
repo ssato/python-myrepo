@@ -49,9 +49,8 @@ class Test_10_Distribution(unittest.TestCase):
         blabel = "%s-%s-%s" % (n, v, a)
         self.assertEquals(d.blabel, blabel)
 
-        self.assertEquals(d.get_base_mockcfg_path(),
-                          "/etc/mock/%s.cfg" % blabel)
-        self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
+        self.assertEquals(d.base_mockcfg, "%s.cfg" % blabel)
+        self.assertEquals(d.mockcfg, "%s.cfg" % blabel)
         self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
 
     def test_05__init__w_bdist(self):
@@ -71,9 +70,8 @@ class Test_10_Distribution(unittest.TestCase):
         blabel = "%s-%s" % (bdist, a)
         self.assertEquals(d.blabel, blabel)
 
-        self.assertEquals(d.get_base_mockcfg_path(),
-                          "/etc/mock/%s-%s-%s.cfg" % (n, v, a))
-        self.assertEquals(d.get_mockcfg_path(), "/etc/mock/%s.cfg" % blabel)
+        self.assertEquals(d.base_mockcfg, "%s.cfg" % d.label)
+        self.assertEquals(d.mockcfg, "%s.cfg" % blabel)
         self.assertEquals(d.rpmdir(), "/var/lib/mock/%s/result" % blabel)
 
 # vim:sw=4:ts=4:et:
