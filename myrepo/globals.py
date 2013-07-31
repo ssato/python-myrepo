@@ -33,5 +33,13 @@ REPO_DEFAULT = \
          metadata_expire="1d",
          conn_timeout=20)
 
+# RepoServer defaults:
+_CONN_TIMEOUT = 10  # Timeout in seconds to connect to remote hosts w/ ssh.
+_TOPDIR = "~%(user)s/public_html/yum"  # Top dir of yum repos.
+_SERVER_BASEURL = "http://%(altname)s/~%(user)s/yum"  # Base URL of yum repos.
+
+# GPG public key defaults:
+_KEYDIR = "/etc/pki/rpm-gpg"
+_KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s"
 
 # vim:sw=4:ts=4:et:
