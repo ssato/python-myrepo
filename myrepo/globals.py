@@ -22,24 +22,16 @@ MYREPO_TEMPLATE_PATH = "/usr/share/myrepo/templates"
     60 * 10, 60 * 10, 60 * 5, 5
 )
 
-REPO_DEFAULT = \
-    dict(name="%(distname)s-%(hostname)s-%(user)s",
-         subdir="yum",
-         topdir="~%(user)s/public_html/%(subdir)s",
-         baseurl="http://%(server)s/%(user)s/%(subdir)s/%(distdir)s",
-         signkey="",
-         keydir="/etc/pki/rpm-gpg",
-         keyurl="file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s",
-         metadata_expire="1d",
-         conn_timeout=20)
-
 # RepoServer defaults:
-_CONN_TIMEOUT = 10  # Timeout in seconds to connect to remote hosts w/ ssh.
-_TOPDIR = "~%(user)s/public_html/yum"  # Top dir of yum repos.
+_CONN_TIMEOUT = 10  # Timeout in seconds to connect to hosts w/ ssh.
+_SERVER_TOPDIR = "~%(user)s/public_html/yum"  # Top dir of yum repos.
 _SERVER_BASEURL = "http://%(altname)s/~%(user)s/yum"  # Base URL of yum repos.
 
-# GPG public key defaults:
+# Repo defaults:
+_SUBDIR = "%(base_name)s/%(base_version)s"
+_BASEURL = "%(server_baseurl)s/%(dir)s"
+_SIGNKEY = ""
 _KEYDIR = "/etc/pki/rpm-gpg"
-_KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(distversion)s"
+_KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(version)s"
 
 # vim:sw=4:ts=4:et:
