@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Yum .repo files for {{ repo.dist }}
 Group:          System Environment/Base
 License:        MIT
-URL:            {{ repo.baseurl }}
+URL:            {{ repo.baseurl }}/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
