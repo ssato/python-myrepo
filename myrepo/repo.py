@@ -168,8 +168,9 @@ class Repo(object):
         self.label = "%s-%s-%s" % (self.name, self.version, self.primary_arch)
         self.repofile = "%s.repo" % self.name
 
-        self.dists = [D.Dist(base_name, self.version, a, self.label)
-                      for a in self.archs]
+        bdist = "%s-%s" % (self.name, self.version)
+        self.dists = [D.Dist(base_name, self.version, a, bdist) for a in
+                      self.archs]
 
         if signkey is None:
             self.signkey = self.keyurl = self.keyfile = ""
