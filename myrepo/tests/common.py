@@ -17,6 +17,7 @@
 #
 import rpmkit.environ as E
 
+import difflib
 import logging
 import os.path
 import random
@@ -72,6 +73,10 @@ def is_base_dist(dist):
 
 def sample_base_dist():
     return random.choice([d for d in E.list_dists() if is_base_dist(d)])
+
+
+def readfile(f):
+    return open(os.path.join(selfdir(), f)).read()
 
 
 def diff(s, ref):
