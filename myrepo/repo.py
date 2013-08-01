@@ -109,7 +109,7 @@ class Repo(object):
     >>> repo.distdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
-    'http://yumrepos.example.com/~jdoe/yum/fedora/19/'
+    'http://yumrepos.example.com/~jdoe/yum/fedora/19'
     >>> repo.rpmdirs  # doctest: +NORMALIZE_WHITESPACE
     ['~jdoe/public_html/yum/fedora/19/sources',
      '~jdoe/public_html/yum/fedora/19/x86_64',
@@ -160,7 +160,7 @@ class Repo(object):
         self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
         self.distdir = "%s/%s" % (base_name, self.version)
         self.destdir = os.path.join(self.server_topdir, self.distdir)
-        self.baseurl = os.path.join(self.server_baseurl, self.distdir, '')
+        self.baseurl = os.path.join(self.server_baseurl, self.distdir)
 
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]

@@ -47,7 +47,7 @@ class Test_00(unittest.TestCase):
         self.assertEquals(repo.distdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,
-                          "http://yumrepos.example.com/~jdoe/yum/fedora/19/")
+                          "http://yumrepos.example.com/~jdoe/yum/fedora/19")
         self.assertEquals(repo.rpmdirs,
                           ["~jdoe/public_html/yum/fedora/19/sources",
                            "~jdoe/public_html/yum/fedora/19/x86_64",
@@ -81,7 +81,7 @@ class Test_00(unittest.TestCase):
         self.assertEquals(repo.distdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,
-                          "http://yumrepos.example.com/~jdoe/yum/fedora/19/")
+                          "http://yumrepos.example.com/~jdoe/yum/fedora/19")
         self.assertEquals(repo.rpmdirs,
                           ["~jdoe/public_html/yum/fedora/19/sources",
                            "~jdoe/public_html/yum/fedora/19/x86_64",
