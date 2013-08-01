@@ -18,6 +18,7 @@
 import myrepo.commands as TT
 import myrepo.repo as R
 import myrepo.tests.common as C
+import rpmkit.environ as E
 
 import datetime
 import os.path
@@ -27,8 +28,13 @@ import unittest
 
 # see result.repo.0 also.
 _SERVER_0 = R.RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+_SERVER_1 = R.RepoServer("localhost", E.get_username())
+
 _REPO_0 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
                  _SERVER_0)
+
+_REPO_1 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
+                 _SERVER_1)
 
 
 class Test_00(unittest.TestCase):
@@ -68,44 +74,44 @@ class Test_00(unittest.TestCase):
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
-"""
+    def test_40_sign_rpms_cmd(self):
+        ref = C.readfile("result.sign_rpms.0")
+        s = TT.sign_rpms_cmd("XYZ01234", ["aaa-0.1-1.noarch.rpm",
+                                          "aaa-bbb-0.1-1.noarch.rpm",
+                                          "aaa-ccc-0.1-1.noarch.rpm"])
+
+        self.assertEquals(s.strip(), ref.strip(), C.diff(s, ref))
+
+
 class Test_10(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
-
-        (s, u) = ("localhost", "jdoe")
-        (dn, dv, _) = C.sample_base_dist().split("-")
-        n = "%s-custom" % dn
-        bdist = "%s-%s-%s" % (n, dv, "x86_64")
-        archs = ["x86_64", "i386"]
-
-        self.repo = R.Repo(s, u, dn, dv, archs, n,
-                           subdir="yum", topdir=self.workdir,
-                           baseurl="file://%(topdir)s", bdist=bdist)
+        self.repo = _REPO_1
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_00_init__no_genconf(self):
         ctx = dict(repo=self.repo)
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
-        time.sleep(3)  # FIXME: Why this is needed?
 
         for d in self.repo.rpmdirs:
+            if '~' in d:
+                d = os.path.expanduser(d)
+
             self.assertTrue(os.path.exists(d), d)
 
     def test_30_init_and_update(self):
+        return
+
         ctx = dict(repo=self.repo)
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
-        time.sleep(3)  # FIXME: Why this is needed?
-
         self.assertTrue(TT.update(ctx))
-"""
-
 
 # vim:sw=4:ts=4:et:
