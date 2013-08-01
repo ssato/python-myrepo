@@ -4,13 +4,14 @@ Release:        1%{?dist}
 Summary:        Yum .repo files for fedora-custom-19
 Group:          System Environment/Base
 License:        MIT
-URL:            http://yumrepo.example.com/yum/fedora/19/
+URL:            http://yumrepos.example.com/~jdoe/yum/fedora/19/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
 # NOTE: .repo file does not depends on arch but mock.cfg does.
 Source0:        fedora-custom-19.repo
-Source1:        fedora-custom-19.cfg
+Source1:        fedora-custom-19-x86_64.cfg
+Source2:        fedora-custom-19-i386.cfg
 
 
 %description
@@ -35,6 +36,7 @@ This package contains mock.cfg file.
 %setup -q -n %{name}-%{version}
 cp %{SOURCE0} ./
 cp %{SOURCE1} ./
+cp %{SOURCE2} ./
 
 
 %build
