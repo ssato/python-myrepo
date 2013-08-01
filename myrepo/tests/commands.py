@@ -57,6 +57,16 @@ class Test_00(unittest.TestCase):
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
+    def test_30_gen_rpmspec_content(self):
+        dstamp = TT._datestamp()
+        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=dstamp,
+                   fullname="John Doe", email="jdoe@example.com")
+
+        ref = C.readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
+                                                               dstamp)
+        s = TT.gen_rpmspec_content(ctx, C.template_paths())
+
+        self.assertEquals(s, ref, C.diff(s, ref))
 
 """
 class Test_10(unittest.TestCase):
