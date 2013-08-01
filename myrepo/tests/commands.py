@@ -64,6 +64,16 @@ class Test_00_functions(unittest.TestCase):
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
+    def test_25_gen_mock_cfg_content(self):
+        repo = _REPO_2
+
+        c = C.readfile("result.repo.2").replace("USER", E.get_username())
+        ref = C.readfile("result.mock.cfg.0").replace("REPO_FILE_CONTENT", c)
+
+        s = TT.gen_mock_cfg_content(repo, repo.dists[0], C.template_paths())
+
+        self.assertEquals(s, ref, C.diff(s, ref))
+
     def test_30_gen_rpmspec_content(self):
         dstamp = TT._datestamp()
         ctx = dict(repo=_REPO_0, datestamp=dstamp, fullname="John Doe",
@@ -154,6 +164,24 @@ class Test_20_effectful_functions(unittest.TestCase):
 
         self.assertTrue(dists)
         self.assertEquals(dists[0], repo.dists[0])
+
+
+class Test_25_effectful_functions(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def test_30__build(self):
+        repo = _REPO_2
+        dstamp = TT._datestamp()
+
+        ctx = dict(repo=repo, datestamp=dstamp, fullname="John Doe",
+                   email="jdoe@example.com")
+
+        srpm = TT.build_repodata_srpm(ctx, self.workdir,
+                                      C.template_paths())
+
+        self.assertTrue(TT._build(repo, srpm))
 
 
 class Test_30_commands(unittest.TestCase):
