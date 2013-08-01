@@ -1,5 +1,5 @@
-Name:           fedora-custom-19-release
-Version:        0.0.1
+Name:           fedora-custom-release
+Version:        19
 Release:        1%{?dist}
 Summary:        Yum .repo files for fedora-custom-19
 Group:          System Environment/Base
@@ -20,20 +20,20 @@ Yum repo and related config files of fedora-custom-19.
 This package contains release (.repo) file.
 
 
-%package -n     mock-data-fedora-custom-19
+%package -n     mock-data-fedora-custom
 Summary:        Mock related config files for fedora-custom-19
 Group:          Development/Tools
 Requires:       mock
 
 
-%description -n mock-data-fedora-custom-19
+%description -n mock-data-fedora-custom
 Yum repo and related config files of fedora-custom-19.
 
 This package contains mock.cfg file.
 
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -T -c %{name}-%{version}
 cp %{SOURCE0} ./
 cp %{SOURCE1} ./
 cp %{SOURCE2} ./
@@ -57,14 +57,14 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%{_sysconfdir}/yum.repos.d/*.repo
+%config %{_sysconfdir}/yum.repos.d/*.repo
 
 
-%files   -n     mock-data-fedora-custom-19
+%files   -n     mock-data-fedora-custom
 %defattr(-,root,root,-)
-%{_sysconfdir}/mock/*.cfg
+%config %{_sysconfdir}/mock/*.cfg
 
 
 %changelog
-* DATESTAMP John Doe <jdoe@example.com> - 0.0.1-1
+* DATESTAMP John Doe <jdoe@example.com> - 19-1
 - Initial packaging.

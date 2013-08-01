@@ -1,5 +1,5 @@
-Name:           {{ repo.dist }}-release
-Version:        {{ version }}
+Name:           {{ repo.name }}-release
+Version:        {{ repo.version }}
 Release:        1%{?dist}
 Summary:        Yum .repo files for {{ repo.dist }}
 Group:          System Environment/Base
@@ -20,20 +20,20 @@ Yum repo and related config files of {{ repo.dist }}.
 This package contains release (.repo) file.
 
 
-%package -n     mock-data-{{ repo.dist }}
+%package -n     mock-data-{{ repo.name }}
 Summary:        Mock related config files for {{ repo.dist }}
 Group:          Development/Tools
 Requires:       mock
 
 
-%description -n mock-data-{{ repo.dist }}
+%description -n mock-data-{{ repo.name }}
 Yum repo and related config files of {{ repo.dist }}.
 
 This package contains mock.cfg file.
 
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -T -c %{name}-%{version}
 cp %{SOURCE0} ./
 {% for arch in repo.archs -%}
 cp %{SOURCE{{ loop.index }}} ./
@@ -57,15 +57,15 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%{_sysconfdir}/yum.repos.d/*.repo
+%config %{_sysconfdir}/yum.repos.d/*.repo
 
 
-%files   -n     mock-data-{{ repo.dist }}
+%files   -n     mock-data-{{ repo.name }}
 %defattr(-,root,root,-)
-%{_sysconfdir}/mock/*.cfg
+%config %{_sysconfdir}/mock/*.cfg
 
 
 %changelog
-* {{ datestamp }} {{ fullname }} <{{ email }}> - {{ version }}-1
+* {{ datestamp }} {{ fullname }} <{{ email }}> - {{ repo.version }}-1
 - Initial packaging.
 
