@@ -41,7 +41,7 @@ class Test_00_functions(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
         d = datetime.datetime(2013, 7, 31)
-        self.assertEquals(TT._datestamp(d), 'Wed Jul 31')
+        self.assertEquals(TT._datestamp(d), 'Wed Jul 31 2013')
 
     def test_10_gen_repo_file_content(self):
         repo = _REPO_0
@@ -63,8 +63,8 @@ class Test_00_functions(unittest.TestCase):
 
     def test_30_gen_rpmspec_content(self):
         dstamp = TT._datestamp()
-        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=dstamp,
-                   fullname="John Doe", email="jdoe@example.com")
+        ctx = dict(repo=_REPO_0, datestamp=dstamp, fullname="John Doe",
+                   email="jdoe@example.com")
 
         ref = C.readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
                                                                dstamp)
@@ -104,7 +104,7 @@ class Test_10_effectful_functions(unittest.TestCase):
 
     def test_20_gen_rpmspec(self):
         dstamp = TT._datestamp()
-        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=dstamp,
+        ctx = dict(repo=_REPO_0, datestamp=dstamp,
                    fullname="John Doe", email="jdoe@example.com")
 
         fref = os.path.join(self.workdir, "yum-repodata.spec")
@@ -118,7 +118,27 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.assertEquals(s, ref, C.diff(s, ref))
 
 
-class Test_20_commands(unittest.TestCase):
+class Test_20_effectful_functions(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def tearDown(self):
+        C.cleanup_workdir(self.workdir)
+
+    def test_10_build_repodata_srpm(self):
+        dstamp = TT._datestamp()
+        ctx = dict(repo=_REPO_0, datestamp=dstamp, fullname="John Doe",
+                   email="jdoe@example.com")
+
+        srpm = TT.build_repodata_srpm(ctx, self.workdir,
+                                      C.template_paths())
+
+        self.assertFalse(srpm is None)
+        self.assertTrue(os.path.isfile(srpm))
+
+
+class Test_30_commands(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
