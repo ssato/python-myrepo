@@ -54,6 +54,7 @@ class Test_00(unittest.TestCase):
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.name, "fedora-yumrepos-jdoe")
         self.assertEquals(repo.dist, "fedora-yumrepos-jdoe-19")
+        self.assertEquals(repo.bdist, "fedora-yumrepos-jdoe-19")
         self.assertEquals(repo.label, "fedora-yumrepos-jdoe-19-x86_64")
         self.assertEquals(repo.repofile, "fedora-yumrepos-jdoe-19.repo")
 
@@ -62,7 +63,7 @@ class Test_00(unittest.TestCase):
                                "yumrepos.example.com")
 
         repo = TT.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
-                       server)
+                       server, "%(base_name)s-%(version)s")
 
         self.assertTrue(isinstance(repo, TT.Repo))
 
@@ -88,6 +89,7 @@ class Test_00(unittest.TestCase):
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.name, "fedora-custom")
         self.assertEquals(repo.dist, "fedora-custom-19")
+        self.assertEquals(repo.bdist, "fedora-19")
         self.assertEquals(repo.label, "fedora-custom-19-x86_64")
         self.assertEquals(repo.repofile, "fedora-custom-19.repo")
 

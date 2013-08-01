@@ -122,8 +122,9 @@ class Repo(object):
     """
 
     def __init__(self, name, version, archs, base_name, server,
-                 subdir=G._SUBDIR, signkey=G._SIGNKEY, keydir=G._KEYDIR,
-                 keyurl=G._KEYURL, **kwargs):
+                 bdist=None, subdir=G._SUBDIR,
+                 signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
+                 **kwargs):
         """
         :param name: Repository name or its format string,
             e.g. "rpmfusion-free", "rhel-custom" and
@@ -134,7 +135,7 @@ class Repo(object):
         :param base_name: Base (parent) distribution name
         :param server: RepoServer object :: myrepo.repo.RepoServer
 
-        :param dir: Dir or its format string to save RPMs of this repo,
+        :param subdir: Dir or its format string to save RPMs of this repo,
             relative to the server's topdir.
         :param signkey: GPG key ID to sign, or None indicates will never sign
         ...
@@ -158,7 +159,12 @@ class Repo(object):
 
         self.base_dist = "%s-%s" % (base_name, self.version)
         self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
-        self.distdir = "%s/%s" % (base_name, self.version)
+
+        if subdir is None:
+            self.distdir = "%s/%s" % (base_name, self.version)
+        else:
+            self.distdir = self._format(subdir)
+
         self.destdir = os.path.join(self.server_topdir, self.distdir)
         self.baseurl = os.path.join(self.server_baseurl, self.distdir)
 
@@ -166,11 +172,18 @@ class Repo(object):
                         ["sources"] + self.archs]
 
         self.name = self._format(name)
+
         self.dist = "%s-%s" % (self.name, self.version)
+
+        if bdist is None:
+            self.bdist = self.dist
+        else:
+            self.bdist = self._format(bdist)
+
         self.label = "%s-%s" % (self.dist, self.primary_arch)
         self.repofile = "%s.repo" % self.dist
 
-        self.dists = [D.Dist(base_name, self.version, a, self.dist)
+        self.dists = [D.Dist(base_name, self.version, a, self.bdist)
                       for a in self.archs]
 
         if signkey is None:
