@@ -25,6 +25,12 @@ import time
 import unittest
 
 
+# see result.repo.0 also.
+_SERVER_0 = R.RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+_REPO_0 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
+                 _SERVER_0)
+
+
 class Test_00(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
@@ -32,13 +38,22 @@ class Test_00(unittest.TestCase):
         self.assertEquals(TT._datestamp(d), 'Wed Jul 31')
 
     def test_10_gen_repo_file_content(self):
-        # see result.repo.0 also.
-        server = R.RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
-        repo = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
-                      server)
+        server = _SERVER_0
+        repo = _REPO_0
 
         ref = C.readfile("result.repo.0")
         s = TT.gen_repo_file_content(repo, C.template_paths())
+
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+    def test_20_gen_mock_cfg_content(self):
+        server = _SERVER_0
+        repo = _REPO_0
+
+        c = C.readfile("result.repo.0")
+        ref = C.readfile("result.mock.cfg.0").replace("REPO_FILE_CONTENT", c)
+
+        s = TT.gen_mock_cfg_content(repo, repo.dists[0], C.template_paths())
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
