@@ -16,6 +16,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 BuildRequires:  python
 Requires:       rpm-python
+Requires:       rpm-build
 Requires:       createrepo
 Requires:       mock
 Requires:       rpmkit >= 0.2.10-1
@@ -66,7 +67,7 @@ rm -rf $RPM_BUILD_ROOT
 - Migrated to gevent based job handling code
 - Cleanup old tenjin-based templates not used any more
 - Added missing runtime dependency to mock
-- Removed dependency to packagemaker
+- Removed dependency to packagemaker and added dependency to rpm-build instead
 
 * Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12-1
 - Fixed a bug that myrepo refers rpmkit.tenjinwrapper which removed in the
