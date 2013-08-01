@@ -47,14 +47,15 @@ class Test_00(unittest.TestCase):
         self.assertEquals(repo.distdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,
-                          "http://yumrepos.example.com/~jdoe/yum/fedora/19")
+                          "http://yumrepos.example.com/~jdoe/yum/fedora/19/")
         self.assertEquals(repo.rpmdirs,
                           ["~jdoe/public_html/yum/fedora/19/sources",
                            "~jdoe/public_html/yum/fedora/19/x86_64",
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.name, "fedora-yumrepos-jdoe")
+        self.assertEquals(repo.dist, "fedora-yumrepos-jdoe-19")
         self.assertEquals(repo.label, "fedora-yumrepos-jdoe-19-x86_64")
-        self.assertEquals(repo.repofile, "fedora-yumrepos-jdoe.repo")
+        self.assertEquals(repo.repofile, "fedora-yumrepos-jdoe-19.repo")
 
     def test_10__init__w_min_args(self):
         server = TT.RepoServer("yumrepos.local", "jdoe",
@@ -80,13 +81,14 @@ class Test_00(unittest.TestCase):
         self.assertEquals(repo.distdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,
-                          "http://yumrepos.example.com/~jdoe/yum/fedora/19")
+                          "http://yumrepos.example.com/~jdoe/yum/fedora/19/")
         self.assertEquals(repo.rpmdirs,
                           ["~jdoe/public_html/yum/fedora/19/sources",
                            "~jdoe/public_html/yum/fedora/19/x86_64",
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.name, "fedora-custom")
+        self.assertEquals(repo.dist, "fedora-custom-19")
         self.assertEquals(repo.label, "fedora-custom-19-x86_64")
-        self.assertEquals(repo.repofile, "fedora-custom.repo")
+        self.assertEquals(repo.repofile, "fedora-custom-19.repo")
 
 # vim:sw=4:ts=4:et:
