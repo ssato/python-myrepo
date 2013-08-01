@@ -37,14 +37,13 @@ _REPO_1 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
                  _SERVER_1)
 
 
-class Test_00(unittest.TestCase):
+class Test_00_functions(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
         d = datetime.datetime(2013, 7, 31)
         self.assertEquals(TT._datestamp(d), 'Wed Jul 31')
 
     def test_10_gen_repo_file_content(self):
-        server = _SERVER_0
         repo = _REPO_0
 
         ref = C.readfile("result.repo.0")
@@ -53,7 +52,6 @@ class Test_00(unittest.TestCase):
         self.assertEquals(s, ref, C.diff(s, ref))
 
     def test_20_gen_mock_cfg_content(self):
-        server = _SERVER_0
         repo = _REPO_0
 
         c = C.readfile("result.repo.0")
@@ -83,15 +81,51 @@ class Test_00(unittest.TestCase):
         self.assertEquals(s.strip(), ref.strip(), C.diff(s, ref))
 
 
-class Test_10(unittest.TestCase):
+class Test_10_effectful_functions(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def tearDown(self):
+        C.cleanup_workdir(self.workdir)
+
+    def test_10_gen_repo_file(self):
+        repo = _REPO_0
+
+        ref = C.readfile("result.repo.0")
+        fref = os.path.join(self.workdir, "%s.repo" % repo.dist)
+
+        f = TT.gen_repo_file(repo, self.workdir, C.template_paths())
+        s = open(f).read()
+
+        self.assertTrue(os.path.isfile(f))
+        self.assertEquals(f, fref)
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+    def test_20_gen_rpmspec(self):
+        dstamp = TT._datestamp()
+        ctx = dict(repo=_REPO_0, version="0.0.1", datestamp=dstamp,
+                   fullname="John Doe", email="jdoe@example.com")
+
+        fref = os.path.join(self.workdir, "yum-repodata.spec")
+        ref = C.readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
+                                                               dstamp)
+        f = TT.gen_rpmspec(ctx, self.workdir, C.template_paths())
+        s = open(f).read()
+
+        self.assertTrue(os.path.isfile(f))
+        self.assertEquals(f, fref)
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+
+class Test_20_commands(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
         self.repo = _REPO_1
 
     def tearDown(self):
-        #C.cleanup_workdir(self.workdir)
-        pass
+        C.cleanup_workdir(self.workdir)
 
     def test_00_init__no_genconf(self):
         ctx = dict(repo=self.repo)
