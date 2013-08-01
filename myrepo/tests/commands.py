@@ -93,6 +93,18 @@ class Test_00_functions(unittest.TestCase):
 
         self.assertEquals(s.strip(), ref.strip(), C.diff(s, ref))
 
+    def test_50__deploy_cmd__remote(self):
+        repo = _REPO_0
+        s = TT._deploy_cmd(repo, "/a", "/b")
+
+        self.assertEquals(s, "scp -p /a jdoe@yumrepos.local:/b")
+
+    def test_55__deploy_cmd__local(self):
+        repo = _REPO_2
+        s = TT._deploy_cmd(repo, "/a", "/b")
+
+        self.assertEquals(s, "cp -a /a /b")
+
 
 class Test_10_effectful_functions(unittest.TestCase):
 
@@ -172,6 +184,8 @@ class Test_25_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def test_30__build(self):
+        return
+
         repo = _REPO_2
         dstamp = TT._datestamp()
 
