@@ -36,6 +36,9 @@ _REPO_0 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
 _REPO_1 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
                  _SERVER_1)
 
+_REPO_2 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
+                 _SERVER_1, "%(base_name)s-%(version)s")
+
 
 class Test_00_functions(unittest.TestCase):
 
@@ -136,6 +139,21 @@ class Test_20_effectful_functions(unittest.TestCase):
 
         self.assertFalse(srpm is None)
         self.assertTrue(os.path.isfile(srpm))
+
+    def test_20__dists_by_srpm(self):
+        repo = _REPO_0
+        dstamp = TT._datestamp()
+
+        ctx = dict(repo=repo, datestamp=dstamp, fullname="John Doe",
+                   email="jdoe@example.com")
+
+        srpm = TT.build_repodata_srpm(ctx, self.workdir,
+                                      C.template_paths())
+
+        dists = TT._dists_by_srpm(repo, srpm)
+
+        self.assertTrue(dists)
+        self.assertEquals(dists[0], repo.dists[0])
 
 
 class Test_30_commands(unittest.TestCase):
