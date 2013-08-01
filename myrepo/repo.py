@@ -19,6 +19,7 @@ from operator import attrgetter
 
 import myrepo.distribution as D
 import myrepo.globals as G
+import myrepo.shell2 as SH
 
 import os.path
 
@@ -61,6 +62,9 @@ class RepoServer(object):
     ('yumrepos.local', 'jdoe', 'yumrepos.example.com', 'yumrepos')
     >>> s.baseurl
     'http://yumrepos.example.com/~jdoe/yum'
+
+    >>> s.is_local
+    False
     """
 
     def __init__(self, name, user, altname=None, topdir=G._SERVER_TOPDIR,
@@ -87,6 +91,8 @@ class RepoServer(object):
         # The followings may be format strings.
         self.topdir = _format(topdir, ctx)
         self.baseurl = _format(baseurl, ctx)
+
+        self.is_local = SH.is_local(self.name)
 
 
 class Repo(object):
