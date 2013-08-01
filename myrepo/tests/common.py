@@ -27,16 +27,18 @@ def selfdir():
     return os.path.dirname(__file__)
 
 
+def template_paths():
+    return [os.path.join(selfdir(), "../../templates/2"), ]
+
+
 def setup_workdir():
     return tempfile.mkdtemp(dir="/tmp", prefix="myrepo-tests")
 
 
 def log_called(f):
     def run_f(*args, **kwargs):
-        logging.info(
-            "called: %s, args=%s, kwargs=%s" % \
-                (f.func_name, str(args), str(kwargs))
-        )
+        logging.info("called: %s, args=%s, kwargs=%s" % \
+                     (f.func_name, str(args), str(kwargs)))
         return f(*args, **kwargs)
 
     return run_f
@@ -71,5 +73,10 @@ def is_base_dist(dist):
 def sample_base_dist():
     return random.choice([d for d in E.list_dists() if is_base_dist(d)])
 
+
+def diff(s, ref):
+    return "\n'" + "\n".join(difflib.unified_diff(s.splitlines(),
+                                                  ref.splitlines(),
+                                                  'Result', 'Expected')) + "'"
 
 # vim:sw=4:ts=4:et:
