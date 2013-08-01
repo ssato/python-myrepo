@@ -19,12 +19,32 @@ import myrepo.commands as TT
 import myrepo.repo as R
 import myrepo.tests.common as C
 
+import datetime
 import os.path
 import time
 import unittest
 
 
 class Test_00(unittest.TestCase):
+
+    def test_00__datestamp_w_arg(self):
+        d = datetime.datetime(2013, 7, 31)
+        self.assertEquals(TT._datestamp(d), 'Wed Jul 31')
+
+    def test_10_gen_repo_file_content(self):
+        # see result.repo.0 also.
+        server = R.RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+        repo = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
+                      server)
+
+        ref = C.readfile("result.repo.0")
+        s = TT.gen_repo_file_content(repo, C.template_paths())
+
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+
+"""
+class Test_10(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
@@ -60,6 +80,7 @@ class Test_00(unittest.TestCase):
         time.sleep(3)  # FIXME: Why this is needed?
 
         self.assertTrue(TT.update(ctx))
+"""
 
 
 # vim:sw=4:ts=4:et:
