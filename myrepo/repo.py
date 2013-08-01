@@ -109,15 +109,16 @@ class Repo(object):
     >>> repo.distdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
-    'http://yumrepos.example.com/~jdoe/yum/fedora/19'
+    'http://yumrepos.example.com/~jdoe/yum/fedora/19/'
     >>> repo.rpmdirs  # doctest: +NORMALIZE_WHITESPACE
     ['~jdoe/public_html/yum/fedora/19/sources',
      '~jdoe/public_html/yum/fedora/19/x86_64',
      '~jdoe/public_html/yum/fedora/19/i386']
-    >>> repo.name, repo.label
-    ('fedora-yumrepos-jdoe', 'fedora-yumrepos-jdoe-19-x86_64')
+    >>> repo.name, repo.dist, repo.label  # doctest: +NORMALIZE_WHITESPACE
+    ('fedora-yumrepos-jdoe', 'fedora-yumrepos-jdoe-19',
+     'fedora-yumrepos-jdoe-19-x86_64')
     >>> repo.repofile
-    'fedora-yumrepos-jdoe.repo'
+    'fedora-yumrepos-jdoe-19.repo'
     """
 
     def __init__(self, name, version, archs, base_name, server,
@@ -159,18 +160,18 @@ class Repo(object):
         self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
         self.distdir = "%s/%s" % (base_name, self.version)
         self.destdir = os.path.join(self.server_topdir, self.distdir)
-        self.baseurl = os.path.join(self.server_baseurl, self.distdir)
+        self.baseurl = os.path.join(self.server_baseurl, self.distdir, '')
 
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]
 
         self.name = self._format(name)
-        self.label = "%s-%s-%s" % (self.name, self.version, self.primary_arch)
-        self.repofile = "%s.repo" % self.name
+        self.dist = "%s-%s" % (self.name, self.version)
+        self.label = "%s-%s" % (self.dist, self.primary_arch)
+        self.repofile = "%s.repo" % self.dist
 
-        bdist = "%s-%s" % (self.name, self.version)
-        self.dists = [D.Dist(base_name, self.version, a, bdist) for a in
-                      self.archs]
+        self.dists = [D.Dist(base_name, self.version, a, self.dist)
+                      for a in self.archs]
 
         if signkey is None:
             self.signkey = self.keyurl = self.keyfile = ""
