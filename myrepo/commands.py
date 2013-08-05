@@ -176,15 +176,13 @@ def build_repodata_srpm(ctx, workdir, tpaths):
         mpath = os.path.join(workdir, "%s-%s.cfg" % (repo.dist, d.arch))
         open(mpath, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
 
-    cmd = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
-          "--define '_buildroot .' -bs %s"
+    logf = os.path.join(workdir, "build_repodata_srpm.log")
+    vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
 
-    if logging.getLogger().level < logging.INFO:
-        cmd += " --verbose"
-    else:
-        cmd += " 2>/dev/null >/dev/null"
+    c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
+        "--define '_buildroot .' -bs %s%s" % (os.path.basename(rpmspec), vopt)
 
-    if SH.run(cmd % os.path.basename(rpmspec), workdir=workdir):
+    if SH.run(c, workdir=workdir, logfile=logf):
         srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
         assert srpms, "No src.rpm found in " + workdir
 
@@ -221,7 +219,7 @@ def _build(repo, srpm):
         c = d.build_cmd(srpm)
         logging.info("Build srpm: " + srpm)
 
-        if not SH.run(c, timeout=None):
+        if not SH.run(c, timeout=None, logfile=True):
             rc = False
 
     return rc
@@ -300,7 +298,7 @@ def _deploy(repo, *args, **kwargs):
     :return: True if success else False
     """
     repo = ctx["repo"]
-    largs = [(_deploy_cmd(repo, rpm, dest), dict(timeout=None))
+    largs = [(_deploy_cmd(repo, rpm, dest), dict(timeout=None, logfile=True))
              for rpm, dest in ctx.get("rpms_to_deploy", [])]
 
     rcs = SH.prun(largs)
@@ -374,6 +372,7 @@ def update(ctx):
         c = cf % (" ".join(repo.archs[1:]), repo.primary_arch)
 
         SH.run(c, repo.server_user, repo.server_name, repo.destdir,
+               logfile=os.path.join(os.curdir, "update.0.log"),
                timeout=None, conn_timeout=repo.server_timeout,
                stop_on_error=True)
 
@@ -381,9 +380,10 @@ def update(ctx):
     c += " && createrepo --update --deltas --oldpackagedirs . --database ."
     c += " || createrepo --deltas --oldpackagedirs . --database ."
 
-    largs = [([c, repo.server_user, repo.server_name, d, None,
-               repo.server_timeout], dict(stop_on_error=True)) for d in
-             repo.rpmdirs]
+    largs = [([c, repo.server_user, repo.server_name, d],
+              dict(logfile="update.1.log", timeout=None,
+                   conn_timeout=repo.server_timeout, stop_on_error=True))
+             for d in repo.rpmdirs]
 
     return SH.prun(largs)
 
