@@ -17,7 +17,7 @@
 #
 import rpmkit.environ as E
 
-import gevent
+import multiprocessing
 import logging
 import os
 import os.path
@@ -67,21 +67,65 @@ def _validate_timeouts(*timeouts):
         _validate_timeout(to)
 
 
+def _killpg(pgid, sig=signal.SIGKILL):
+    return os.killpg(pgid, sig)
+
+
+def _run(cmd, workdir, rc_expected=0, **kwargs):
+    """
+    subprocess.Popen wrapper to run command ``cmd``. It will be blocked.
+
+    An exception subprocess.CalledProcessError will be raised if
+    the rc does not equal to the expected rc.
+
+    :param cmd: Command string
+    :param workdir: Working dir
+    :param rc_expected: Expected return code of the command run
+    :param kwargs: Extra keyword arguments for subprocess.Popen
+    """
+    assert os.path.exists(workdir), "Working dir %s does not exist!" % workdir
+    assert os.path.isdir(workdir), "Working dir %s is not a dir!" % workdir
+
+    rc = None
+    try:
+        rc = subprocess.check_call(cmd, cwd=workdir, shell=True, **kwargs)
+        return
+
+    except subprocess.CalledProcessError as e:
+        if rc and rc == rc_expected:
+            return  # Not an error.
+
+        raise  # Raise it again.
+
+
+def _spawn(cmd, workdir, rc_expected=0, **kwargs):
+    """
+    :param cmd: Command string
+    :param workdir: Working dir
+    :param rc_expected: Expected return code of the command run
+    :param kwargs: Extra keyword arguments for subprocess.Popen
+    """
+    return multiprocessing.Process(target=_run,
+                                   args=(cmd, workdir, rc_expected),
+                                   kwargs=kwargs)
+
+
 # Connection timeout and Timeout to wait completion of runnign command in
 # seconds. None or -1 means that it will wait forever.
 _RUN_TO = None
 _CONN_TO = 10
 
 
-# FIXME: A class wrapping gevent.Greenlet to join/kill/timeout subprocess
-# processes, must be implemented.
-class CommandRunner(gevent.Greenlet):
+def init(loglevel=logging.INFO):
+    multiprocessing.log_to_stderr()
+    multiprocessing.get_logger().setLevel(loglevel)
+    results = multiprocessing.Queue()
 
-    pass
+    return results
 
 
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
-              timeout=_RUN_TO, conn_timeout=_CONN_TO, **kwargs):
+              rc_expected=0, conn_timeout=_CONN_TO, **kwargs):
     """
     Run command ``cmd`` asyncronously.
 
@@ -89,12 +133,12 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     :param user: Run command as this user
     :param host: Host on which command runs
     :param workdir: Working directory in which command runs
-    :param timeout: Command execution timeout in seconds or None
+    :param rc_expected: Expected return code of the command run
     :param conn_timeout: Connection timeout in seconds or None
 
-    :return: greenlet instance
+    :return: multiprocessing.Process instance
     """
-    _validate_timeouts(timeout, conn_timeout)
+    _validate_timeout(conn_timeout)
 
     if is_local(host):
         if "~" in workdir:
@@ -113,21 +157,77 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
 
         workdir = os.curdir
 
-    gevent.signal(signal.SIGQUIT, gevent.shutdown)
-
     logging.debug("Run: cmd=%s, cwd=%s" % (cmd, workdir))
-    return gevent.spawn(subprocess.Popen, cmd, cwd=workdir, shell=True)
+    proc = _spawn(cmd, workdir, rc_expected, **kwargs)
+    proc.start()
+
+    # Hack:
+    setattr(proc, "command", cmd)
+
+    return proc
 
 
-def run(cmd, user=None, host="localhost", workdir=os.curdir, timeout=_RUN_TO,
-        conn_timeout=_CONN_TO, stop_on_error=False, **kwargs):
+def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
+    """
+    Stop the given process ``proc`` spawned from the above function.
+
+    :param proc: An instance of multiprocessing.Process
+    :param timeout: Command execution timeout in seconds or None
+    :param stop_on_error: Stop and raise exception if any error occurs
+
+    :return: True if job was sucessful else False or RuntimeError exception
+        raised if stop_on_error is True
+    """
+    _validate_timeout(timeout)
+
+    try:
+        proc.join(timeout)
+
+        if proc.is_alive():
+            reason = "timeout"
+            proc.terminate()
+
+            if proc.is_alive():
+                reason = "timeout-and-could-not-terminate"
+                os.kill(proc.pid, signal.SIGKILL)
+        else:
+            if proc.exitcode == 0:
+                return True
+            else:
+                reason = "other"
+
+    except KeyboardInterrupt as e:
+        reason = "interrupted"
+        proc.terminate()
+
+    m = "Failed (%s): %s" % (reason, proc.command)
+
+    if stop_on_error:
+        raise RuntimeError(m)
+
+    logging.warn(m)
+    return False
+
+
+def run(cmd, user=None, host="localhost", workdir=os.curdir,
+        rc_expected=0, timeout=_RUN_TO, conn_timeout=_CONN_TO,
+        stop_on_error=False, **kwargs):
     """
     Run command ``cmd``.
+
+    >>> run("true")
+    True
+    >>> run("false")
+    False
+
+    >>> run("sleep 10", timeout=1)
+    False
 
     :param cmd: Command string
     :param user: User to run command
     :param host: Host to run command
     :param workdir: Working directory in which command runs
+    :param rc_expected: Expected return code of the command run
     :param timeout: Command execution timeout in seconds or None
     :param conn_timeout: Connection timeout in seconds or None
     :param stop_on_error: Stop and raise exception if any error occurs
@@ -135,34 +235,9 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, timeout=_RUN_TO,
     :return: True if job was sucessful else False or RuntimeError exception
         raised if stop_on_error is True
     """
-    job = run_async(cmd, user, host, workdir, timeout, conn_timeout)
-    #timer = gevent.Timeout.start_new(timeout)
-
-    try:
-        #job.join(timeout=timer)
-        job.join()  # It will block!
-
-        if job.successful():
-            return True
-
-        reason = "unknown"
-
-        if stop_on_error:
-            gevent.shutdown()
-            raise RuntimeError(m)
-
-    # FIXME: This does not work and Timeout exception never be raised for
-    # subprocess's process actually.
-    except gevent.Timeout:
-        reason = "timeout"
-
-    except KeyboardInterrupt as e:
-        reason = "interrupted"
-        job.kill()
-
-    gevent.shutdown()
-    logging.warn("Failed (%s): %s" % (reason, cmd))
-    return False
+    proc = run_async(cmd, user, host, workdir, rc_expected, conn_timeout,
+                     **kwargs)
+    return stop_async_run(proc, timeout, stop_on_error)
 
 
 def prun_async(list_of_args):
