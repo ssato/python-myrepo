@@ -18,7 +18,7 @@
 from myrepo.hooks import hook
 
 import myrepo.repoops as RO
-import myrepo.shell2 as SH  # Use local copy instead of rpmkit.shell2
+import myrepo.shell as SH  # Use local copy instead of rpmkit.shell2
 import myrepo.utils as U
 import rpmkit.memoize as M
 import rpmkit.rpmutils as RU
@@ -31,6 +31,7 @@ import os
 import os.path
 import subprocess
 import tempfile
+import time
 
 
 _SIGN = "rpm --resign --define '_signature gpg' --define '_gpg_name %s' %s"
@@ -84,7 +85,7 @@ def gen_mock_cfg_content(repo, dist, tpaths):
     :return: String represents the content of mock.cfg file for given repo will
         be put in /etc/mock/ :: str
     """
-    ctx = dict(dist=dist,
+    ctx = dict(repo=repo, dist=dist,
                repo_file_content=gen_repo_file_content(repo, tpaths))
 
     return U.compile_template("mock.cfg", ctx, tpaths)
@@ -172,7 +173,7 @@ def build_repodata_srpm(ctx, workdir, tpaths):
     rpmspec = gen_rpmspec(ctx, workdir, tpaths)
 
     for d in repo.dists:  # d :: myrepo.distributed.Dist
-        mpath = os.path.join(workdir, d.mockcfg)
+        mpath = os.path.join(workdir, "%s-%s.cfg" % (repo.dist, d.arch))
         open(mpath, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
 
     cmd = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
@@ -183,16 +184,12 @@ def build_repodata_srpm(ctx, workdir, tpaths):
     else:
         cmd += " 2>/dev/null >/dev/null"
 
-    try:
-        # TODO: Fix issues in myrepo.shell2.run and make use of it.
-        SH.subprocess.check_call(cmd % os.path.basename(rpmspec),
-                                 cwd=workdir, shell=True)
-
+    if SH.run(cmd % os.path.basename(rpmspec), workdir=workdir):
         srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
         assert srpms, "No src.rpm found in " + workdir
-        return srpms[0] if srpms else None
 
-    except:
+        return srpms[0] if srpms else None
+    else:
         logging.warn("Failed to build yum repodata RPM from " + rpmspec)
         return None
 
@@ -211,15 +208,66 @@ def _build(repo, srpm):
     """
     Build given SRPM file.
 
+    TODO: Set build timeout.
+
     :param repo: myrepo.repo.Repo object
     :param srpm: Path to src.rpm to build
 
     :return: True if success else False
     """
-    largs = [([d.build_cmd(srpm), ], dict(timeout=repo.timeout)) for d in
-             _dists_by_srpm(repo, srpm)]
+    rc = True
 
-    return SH.prun(largs)
+    for d in _dists_by_srpm(repo, srpm):
+        c = d.build_cmd(srpm)
+        logging.info("Build srpm: " + srpm)
+
+        if not SH.run(c, timeout=None):
+            rc = False
+
+    return rc
+
+
+def _build_srpm(ctx, srpm):
+    """
+    Build src.rpm and make up a list of RPMs to deploy and sign.
+
+    FIXME: Ugly code around signkey check and setting RPMs to deploy.
+
+    :param ctx: Application context object :: dict
+    :param srpm: Path to src.rpm to build
+    """
+    repo = ctx["repo"]
+    assert _build(repo, srpm), "Failed to build: " + srpm
+
+    destdir = repo.destdir
+    rpms_to_deploy = []  # :: [(rpm_path, destdir)]
+    rpms_to_sign = []
+
+    for d in _dists_by_srpm(repo, srpm):
+        rpmdir = d.rpmdir()
+
+        srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
+        assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
+        #assert len(srpms_to_copy) > 1, "Found multiple src.rpm in " + rpmdir
+
+        srpm_to_copy = srpms_to_copy[0]
+        rpms_to_deploy.append((srpm_to_copy, os.path.join(destdir, "sources")))
+
+        brpms = [f for f in glob.glob(os.path.join(rpmdir + "*.rpm"))
+                 if not f.endswith(".src.rpm")]
+        logging.debug("Found rpms: " + \
+                      str([os.path.basename(f) for f in brpms]))
+
+        for p in brpms:
+            rpms_to_deploy.append((p, os.path.join(destdir, d.arch)))
+
+        rpms_to_sign += brpms
+
+    # Save these to deploy later.
+    ctx["rpms_to_deploy"] = rpms_to_deploy
+    ctx["rpms_to_sign"] = rpms_to_sign
+
+    return True
 
 
 def _deploy_cmd(repo, src, dst):
@@ -230,30 +278,36 @@ def _deploy_cmd(repo, src, dst):
     :param repo: myrepo.repo.Repo object
     :return: Deploying command string :: str
     """
-    if U.is_local(repo.server):
+    if repo.server.is_local:
         if "~" in dst:
             dst = os.path.expanduser(dst)
 
         return "cp -a %s %s" % (src, dst)
     else:
-        return "scp -p %s %s@%s:%s" % (src, repo.user, repo.server, dst)
+        return "scp -p %s %s@%s:%s" % (src, repo.server_user,
+                                       repo.server_name, dst)
 
 
 def _deploy(repo, *args, **kwargs):
     """
     Deploy built RPMs.
 
+    SEE ALSO: :function:``build_srpm``
+
+    TODO: Set build timeout.
+
     :param repo: myrepo.repo.Repo object
     :return: True if success else False
     """
-    largs = [(_deploy_cmd(repo, rpm, dest), dict(timeout=repo.timeout))
-             for rpm, dest in repo.rpms_to_deploy]
+    repo = ctx["repo"]
+    largs = [(_deploy_cmd(repo, rpm, dest), dict(timeout=None))
+             for rpm, dest in ctx.get("rpms_to_deploy", [])]
 
     rcs = SH.prun(largs)
-    assert all(rcs), "results=" + str(rcs)
+    assert all(rcs), "Failed to deply: " + str(rcs)
 
     rcs = update(repo)
-    assert all(rcs), "results=" + str(rcs)
+    assert all(rcs), "Failed to update: " + str(rcs)
 
     return True
 
@@ -268,7 +322,7 @@ def init(ctx):
     :return: True if success else False
     """
     repo = ctx["repo"]
-    rc = SH.run("mkdir -p " + " ".join(repo.rpmdirs), repo.server_user,
+    rc = SH.run("mkdir -p " + ' '.join(repo.rpmdirs), repo.server_user,
                 repo.server_name, timeout=None,
                 conn_timeout=repo.server_timeout)
 
@@ -310,11 +364,14 @@ def update(ctx):
     :return: True if success else False
     """
     repo = ctx["repo"]
+    cf = "for d in %s; " + \
+         "do (cd $d && (for f in ../%s/*.noarch.rpm; " + \
+         "do test -f $f && ln -sf $f ./ || :; done)); done"
+
 
     # hack: degenerate noarch rpms
     if repo.multiarch:
-        c = "for d in %s; do (cd $d && ln -sf ../%s/*.noarch.rpm ./); done"
-        c = c % (" ".join(repo.archs[1:]), repo.primary_arch)
+        c = cf % (" ".join(repo.archs[1:]), repo.primary_arch)
 
         SH.run(c, repo.server_user, repo.server_name, repo.destdir,
                timeout=None, conn_timeout=repo.server_timeout,
@@ -329,47 +386,6 @@ def update(ctx):
              repo.rpmdirs]
 
     return SH.prun(largs)
-
-
-@hook
-def build_srpm(repo, srpm):
-    """
-    Build src.rpm and make up a list of RPMs to deploy and sign.
-
-    FIXME: ugly code around signkey check.
-
-    :param repo: myrepo.repo.Repo object
-    :param srpm: Path to src.rpm to build
-    """
-    assert all(_build(repo, srpm))
-
-    destdir = repo.destdir()
-    rpms_to_deploy = []  # :: [(rpm_path, destdir)]
-    rpms_to_sign = []
-
-    for d in __dists_by_srpm(repo, srpm):
-        rpmdir = d.rpmdir()
-
-        srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
-        assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
-
-        srpm_to_copy = srpms_to_copy[0]
-        rpms_to_deploy.append((srpm_to_copy, os.path.join(destdir, "sources")))
-
-        brpms = [f for f in glob.glob(rpmdir + "/*.rpm")
-                 if not f.endswith(".src.rpm")]
-        logging.debug("rpms=" + str([os.path.basename(f) for f in brpms]))
-
-        for p in brpms:
-            rpms_to_deploy.append((p, os.path.join(destdir, d.arch)))
-
-        rpms_to_sign += brpms
-
-    # Dirty hack:
-    setattr(repo, "rpms_to_deploy", rpms_to_deploy)
-    setattr(repo, "rpms_to_sign", rpms_to_sign)
-
-    return True
 
 
 @hook

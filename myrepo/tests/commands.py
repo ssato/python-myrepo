@@ -188,7 +188,7 @@ class Test_20_effectful_functions(unittest.TestCase):
         self.assertEquals(dists[0], repo.dists[0])
 
 
-class Test_25_effectful_functions(unittest.TestCase):
+class Test_25_rpm_building_functions(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
@@ -204,14 +204,14 @@ class Test_25_effectful_functions(unittest.TestCase):
                    email="jdoe@example.com")
 
         logging.getLogger().setLevel(logging.WARN)
-        srpm = TT.build_repodata_srpm(ctx, self.workdir,
-                                      C.template_paths())
+        srpm = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
 
+        logging.getLogger().setLevel(logging.INFO)
         self.assertTrue(os.path.exists(srpm))
         self.assertTrue(TT._build(repo, srpm))
 
-"""
-    def test_30__build_srpm(self):
+    def test_40__build_srpm(self):
+        return
         repo = _REPO_2
         dstamp = TT._datestamp()
 
@@ -225,8 +225,7 @@ class Test_25_effectful_functions(unittest.TestCase):
         assert os.path.exists(srpm), "SRPM does not exist: " + str(srpm)
         self.assertTrue(TT._build_srpm(ctx, srpm))
         self.assertTrue(ctx.get("rpms_to_deploy", False))
-        #self.assertTrue(ctx.get("rpms_to_sign", False))
-"""
+        self.assertTrue(ctx.get("rpms_to_sign", False))
 
 
 class Test_30_commands(unittest.TestCase):
@@ -241,17 +240,13 @@ class Test_30_commands(unittest.TestCase):
         self.repo = repo
 
     def tearDown(self):
-        #C.cleanup_workdir(self.workdir)
-        pass
+        C.cleanup_workdir(self.workdir)
 
     def test_00_init__no_genconf(self):
         ctx = dict(repo=self.repo)
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
-
-        # FIXME: It seems that we have to wait for the dir created.
-        time.sleep(2)
 
         for d in self.repo.rpmdirs:
             if '~' in d:
@@ -264,9 +259,6 @@ class Test_30_commands(unittest.TestCase):
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
-
-        # FIXME: See the above note.
-        time.sleep(2)
 
         #logging.getLogger().setLevel(logging.DEBUG)
         self.assertTrue(TT.update(ctx))
