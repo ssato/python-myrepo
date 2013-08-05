@@ -21,6 +21,7 @@ import myrepo.tests.common as C
 import rpmkit.environ as E
 
 import datetime
+import logging
 import os.path
 import time
 import unittest
@@ -38,6 +39,15 @@ _REPO_1 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
 
 _REPO_2 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
                  _SERVER_1, "%(base_name)s-%(version)s")
+
+
+def _gen_repo(server, name="fedora-custom", version=19,
+              archs=["x86_64", "i386"], base_name="fedora", **kwargs):
+    """
+    Generate R.Repo object.
+    """
+    assert isinstance(server, R.RepoServer)
+    return R.Repo(name, version, archs, base_name, server, **kwargs)
 
 
 class Test_00_functions(unittest.TestCase):
@@ -183,35 +193,65 @@ class Test_25_effectful_functions(unittest.TestCase):
     def setUp(self):
         self.workdir = C.setup_workdir()
 
-    def test_30__build(self):
-        return
+    def tearDown(self):
+        C.cleanup_workdir(self.workdir)
 
+    def test_30__build(self):
         repo = _REPO_2
         dstamp = TT._datestamp()
 
         ctx = dict(repo=repo, datestamp=dstamp, fullname="John Doe",
                    email="jdoe@example.com")
 
+        logging.getLogger().setLevel(logging.WARN)
         srpm = TT.build_repodata_srpm(ctx, self.workdir,
                                       C.template_paths())
 
+        self.assertTrue(os.path.exists(srpm))
         self.assertTrue(TT._build(repo, srpm))
+
+"""
+    def test_30__build_srpm(self):
+        repo = _REPO_2
+        dstamp = TT._datestamp()
+
+        ctx = dict(repo=repo, datestamp=dstamp, fullname="John Doe",
+                   email="jdoe@example.com")
+
+        logging.getLogger().setLevel(logging.WARN)
+        srpm = TT.build_repodata_srpm(ctx, self.workdir,
+                                      C.template_paths())
+
+        assert os.path.exists(srpm), "SRPM does not exist: " + str(srpm)
+        self.assertTrue(TT._build_srpm(ctx, srpm))
+        self.assertTrue(ctx.get("rpms_to_deploy", False))
+        #self.assertTrue(ctx.get("rpms_to_sign", False))
+"""
 
 
 class Test_30_commands(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
-        self.repo = _REPO_1
+
+        s = R.RepoServer("localhost", E.get_username(), topdir=self.workdir,
+                         baseurl="file://" + self.workdir)
+        repo = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora", s)
+
+        self.repo = repo
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_00_init__no_genconf(self):
         ctx = dict(repo=self.repo)
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
+
+        # FIXME: It seems that we have to wait for the dir created.
+        time.sleep(2)
 
         for d in self.repo.rpmdirs:
             if '~' in d:
@@ -220,12 +260,15 @@ class Test_30_commands(unittest.TestCase):
             self.assertTrue(os.path.exists(d), d)
 
     def test_30_init_and_update(self):
-        return
-
         ctx = dict(repo=self.repo)
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
+
+        # FIXME: See the above note.
+        time.sleep(2)
+
+        #logging.getLogger().setLevel(logging.DEBUG)
         self.assertTrue(TT.update(ctx))
 
 # vim:sw=4:ts=4:et:
