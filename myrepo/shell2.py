@@ -115,6 +115,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
 
     gevent.signal(signal.SIGQUIT, gevent.shutdown)
 
+    logging.debug("Run: cmd=%s, cwd=%s" % (cmd, workdir))
     return gevent.spawn(subprocess.Popen, cmd, cwd=workdir, shell=True)
 
 
