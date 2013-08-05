@@ -93,4 +93,35 @@ class Test_00(unittest.TestCase):
         self.assertEquals(repo.label, "fedora-custom-19-x86_64")
         self.assertEquals(repo.repofile, "fedora-custom-19.repo")
 
+    def test_20__init__localhost(self):
+        server = TT.RepoServer("localhost", "jdoe", topdir="yum",
+                               baseurl="file:///tmp/yum")
+        repo = TT.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
+                       server, "%(base_name)s-%(version)s")
+
+        self.assertTrue(isinstance(repo, TT.Repo))
+
+        self.assertEquals(repo.version, "19")
+        self.assertEquals(repo.archs, ["x86_64", "i386"])
+        self.assertEquals(repo.base_name, "fedora")
+        self.assertEquals(repo.server_name, "localhost")
+        self.assertEquals(repo.server_altname, "localhost")
+        self.assertEquals(repo.server_shortname, "localhost")
+        self.assertEquals(repo.server_baseurl, 'file:///tmp/yum')
+        self.assertTrue(repo.multiarch)
+        self.assertEquals(repo.primary_arch, "x86_64")
+        self.assertEquals(repo.base_dist, "fedora-19")
+        self.assertEquals(repo.base_label, "fedora-19-x86_64")
+        self.assertEquals(repo.distdir, "fedora/19")
+        self.assertEquals(repo.destdir, "yum/fedora/19")
+        self.assertEquals(repo.baseurl, "file:///tmp/yum/fedora/19")
+        self.assertEquals(repo.rpmdirs, ["yum/fedora/19/sources",
+                                         "yum/fedora/19/x86_64",
+                                         "yum/fedora/19/i386"])
+        self.assertEquals(repo.name, "fedora-custom")
+        self.assertEquals(repo.dist, "fedora-custom-19")
+        self.assertEquals(repo.bdist, "fedora-19")
+        self.assertEquals(repo.label, "fedora-custom-19-x86_64")
+        self.assertEquals(repo.repofile, "fedora-custom-19.repo")
+
 # vim:sw=4:ts=4:et:
