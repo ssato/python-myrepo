@@ -15,11 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.shell as TT
+import myrepo.tests.common as C
 
 import logging
 import os
 import os.path
-import subprocess
+import signal
 import sys
 import unittest
 
@@ -33,37 +34,61 @@ import StringIO
 StringIO.StringIO.fileno = fileno_monkeypatch
 
 
+def delayed_interrupt(pid, wait=10):
+    os.sleep(wait)
+
+    p = TT.multiprocessing.Process(target=os.kill,
+                                   args=(pid, signal.SIGINT))
+    p.start()
+    p.join()
+
+    if p.is_alive():
+        p.terminate()
+
+
 class Test_10_run(unittest.TestCase):
 
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def tearDown(self):
+        C.cleanup_workdir(self.workdir)
+
     def test_00_run_async__simplest_case(self):
-        proc = TT.run_async("true")
+        proc = TT.run_async("true", workdir=self.workdir, logfile=True)
+
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertTrue(TT.stop_async_run(proc))
 
     def test_01_run_async__simplest_case(self):
-        proc = TT.run_async("false")
+        proc = TT.run_async("false", workdir=self.workdir, logfile=True)
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertFalse(TT.stop_async_run(proc))
 
     def test_10_run__simplest_case(self):
-        self.assertTrue(TT.run("true"))
-        self.assertFalse(TT.run("false"))
+        self.assertTrue(TT.run("true", workdir=self.workdir, logfile=True))
+        self.assertFalse(TT.run("false", workdir=self.workdir, logfile=True))
 
     def test_20_run__if_timeout(self):
         self.assertRaises(RuntimeError, TT.run,
-                          "sleep 100", timeout=1, stop_on_error=True)
+                          "sleep 100", workdir=self.workdir, logfile=True,
+                          timeout=1, stop_on_error=True)
 
     def test_30_run__if_interrupted(self):
-        """FIXME: How to test KeyboardInterrupt ?"""
-        return
+        proc = TT.run_async("sleep 20", workdir=self.workdir, logfile=True)
+        interrupter = TT.run_async("sleep 3 && kill -s INT %d" % proc.pid,
+                                   logfile=False)
 
-        proc = TT.run_async("sleep 5")
-        raise KeyboardInterrupt("Fake Ctrl-C !")
-
-        self.assertFalse(stop_async_run(proc))
+        self.assertFalse(TT.stop_async_run(proc))
 
 
 class Test_20_prun(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def tearDown(self):
+        C.cleanup_workdir(self.workdir)
 
     def test_00_prun_async__simplest_case(self):
         pass
@@ -72,7 +97,7 @@ class Test_20_prun(unittest.TestCase):
         pass
 
     def test_10_run__simplest_case(self):
-        rcs = TT.prun([(["true"], {})])
+        rcs = TT.prun([(["true"], dict(workdir=self.workdir))])
         for rc in rcs:
             self.assertTrue(rc)
 

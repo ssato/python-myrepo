@@ -71,7 +71,7 @@ def _killpg(pgid, sig=signal.SIGKILL):
     return os.killpg(pgid, sig)
 
 
-def _run(cmd, workdir, rc_expected=0, **kwargs):
+def _run(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
     """
     subprocess.Popen wrapper to run command ``cmd``. It will be blocked.
 
@@ -81,15 +81,36 @@ def _run(cmd, workdir, rc_expected=0, **kwargs):
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
+    :param logfile: Dump log file if True
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     assert os.path.exists(workdir), "Working dir %s does not exist!" % workdir
     assert os.path.isdir(workdir), "Working dir %s is not a dir!" % workdir
 
+    ng_keys = ("cwd", "shell", "stdout", "stderr", "close_fds")
+    kwargs = dict(((k, v) for k, v in kwargs.iteritems() if k not in ng_keys))
+
     rc = None
     try:
-        rc = subprocess.check_call(cmd, cwd=workdir, shell=True, **kwargs)
-        return
+        proc = subprocess.Popen(cmd, cwd=workdir, shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                close_fds=True,
+                                **kwargs)
+
+        if logfile:
+            logfile = os.path.join(workdir, "%d.log" % proc.pid)
+
+            if not os.path.exists(logfile):
+                with open(logfile, 'w') as f:
+                    for line in iter(proc.stdout.readline, b''):
+                        f.write(line)
+
+        if proc.wait() == rc_expected:
+            return
+
+        m = "Failed to run command: %s [%s]" % (cmd, workdir)
+        raise RuntimeError(m)
 
     except subprocess.CalledProcessError as e:
         if rc and rc == rc_expected:
@@ -98,15 +119,16 @@ def _run(cmd, workdir, rc_expected=0, **kwargs):
         raise  # Raise it again.
 
 
-def _spawn(cmd, workdir, rc_expected=0, **kwargs):
+def _spawn(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
     """
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
+    :param logfile: Dump log file if True
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     return multiprocessing.Process(target=_run,
-                                   args=(cmd, workdir, rc_expected),
+                                   args=(cmd, workdir, rc_expected, logfile),
                                    kwargs=kwargs)
 
 
@@ -125,7 +147,8 @@ def init(loglevel=logging.INFO):
 
 
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
-              rc_expected=0, conn_timeout=_CONN_TO, **kwargs):
+              rc_expected=0, logfile=False, conn_timeout=_CONN_TO,
+              **kwargs):
     """
     Run command ``cmd`` asyncronously.
 
@@ -134,6 +157,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     :param host: Host on which command runs
     :param workdir: Working directory in which command runs
     :param rc_expected: Expected return code of the command run
+    :param logfile: Dump log file if True
     :param conn_timeout: Connection timeout in seconds or None
 
     :return: multiprocessing.Process instance
@@ -158,7 +182,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
         workdir = os.curdir
 
     logging.debug("Run: cmd=%s, cwd=%s" % (cmd, workdir))
-    proc = _spawn(cmd, workdir, rc_expected, **kwargs)
+    proc = _spawn(cmd, workdir, rc_expected, logfile, **kwargs)
     proc.start()
 
     # Hack:
@@ -209,8 +233,8 @@ def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
     return False
 
 
-def run(cmd, user=None, host="localhost", workdir=os.curdir,
-        rc_expected=0, timeout=_RUN_TO, conn_timeout=_CONN_TO,
+def run(cmd, user=None, host="localhost", workdir=os.curdir, rc_expected=0,
+        logfile=False, timeout=_RUN_TO, conn_timeout=_CONN_TO,
         stop_on_error=False, **kwargs):
     """
     Run command ``cmd``.
@@ -228,6 +252,7 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir,
     :param host: Host to run command
     :param workdir: Working directory in which command runs
     :param rc_expected: Expected return code of the command run
+    :param logfile: Dump log file if True
     :param timeout: Command execution timeout in seconds or None
     :param conn_timeout: Connection timeout in seconds or None
     :param stop_on_error: Stop and raise exception if any error occurs
@@ -235,8 +260,8 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir,
     :return: True if job was sucessful else False or RuntimeError exception
         raised if stop_on_error is True
     """
-    proc = run_async(cmd, user, host, workdir, rc_expected, conn_timeout,
-                     **kwargs)
+    proc = run_async(cmd, user, host, workdir, rc_expected, logfile,
+                     conn_timeout, **kwargs)
     return stop_async_run(proc, timeout, stop_on_error)
 
 
