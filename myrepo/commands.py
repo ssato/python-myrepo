@@ -235,7 +235,9 @@ def _build_srpm(ctx, srpm):
     :param srpm: Path to src.rpm to build
     """
     repo = ctx["repo"]
-    assert _build(repo, srpm), "Failed to build: " + srpm
+
+    if not _build(repo, srpm):
+        raise RuntimeError("Failed to build: " + srpm)
 
     destdir = repo.destdir
     rpms_to_deploy = []  # :: [(rpm_path, destdir)]
@@ -246,12 +248,11 @@ def _build_srpm(ctx, srpm):
 
         srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
         assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
-        #assert len(srpms_to_copy) > 1, "Found multiple src.rpm in " + rpmdir
 
         srpm_to_copy = srpms_to_copy[0]
         rpms_to_deploy.append((srpm_to_copy, os.path.join(destdir, "sources")))
 
-        brpms = [f for f in glob.glob(os.path.join(rpmdir + "*.rpm"))
+        brpms = [f for f in glob.glob(os.path.join(rpmdir, "*.rpm"))
                  if not f.endswith(".src.rpm")]
         logging.debug("Found rpms: " + \
                       str([os.path.basename(f) for f in brpms]))
@@ -286,7 +287,7 @@ def _deploy_cmd(repo, src, dst):
                                        repo.server_name, dst)
 
 
-def _deploy(repo, *args, **kwargs):
+def _deploy(ctx, *args, **kwargs):
     """
     Deploy built RPMs.
 
@@ -338,7 +339,7 @@ def genconf(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    workdir = __setup_workdir("myrepo_" + repo.name + "-release-")
+    workdir = __setup_workdir("myrepo_" + ctx["repo"].name + "-release-")
 
     repo = ctx["repo"]
     srpm = build_repodata_srpm(ctx, workdir, ctx["tpaths"])
@@ -397,9 +398,9 @@ def build(ctx):
 
     :param ctx: Application context object holding parameters
     """
-    assert ctx.srpms, "'build' command requires arguments of srpm paths"
+    assert "srpms" in ctx, "'build' command requires arguments of srpm paths"
 
-    return all(build_srpm(ctx.repo, srpm) for srpm in ctx.srpms)
+    return all(_build_srpm(ctx, srpm) for srpm in ctx["srpms"])
 
 
 @hook
@@ -410,7 +411,7 @@ def deploy(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    results = [(srpm, build_srpm(ctx.repo, srpm) and _deploy(ctx.repo)) for
+    results = [(srpm, _build_srpm(ctx, srpm) and _deploy(ctx)) for
                srpm in ctx.srpms]
 
     ret = True

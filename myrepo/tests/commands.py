@@ -50,6 +50,12 @@ def _gen_repo(server, name="fedora-custom", version=19,
     return R.Repo(name, version, archs, base_name, server, **kwargs)
 
 
+def _gen_local_fs_repo(workdir):
+    s = R.RepoServer("localhost", E.get_username(), topdir=workdir,
+                     baseurl="file://" + workdir)
+    return R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora", s)
+
+
 class Test_00_functions(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
@@ -153,7 +159,7 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.assertEquals(s, ref, C.diff(s, ref))
 
 
-class Test_20_effectful_functions(unittest.TestCase):
+class Test_20_build_functions(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
@@ -187,15 +193,6 @@ class Test_20_effectful_functions(unittest.TestCase):
         self.assertTrue(dists)
         self.assertEquals(dists[0], repo.dists[0])
 
-
-class Test_25_rpm_building_functions(unittest.TestCase):
-
-    def setUp(self):
-        self.workdir = C.setup_workdir()
-
-    def tearDown(self):
-        C.cleanup_workdir(self.workdir)
-
     def test_30__build(self):
         repo = _REPO_2
         dstamp = TT._datestamp()
@@ -211,7 +208,6 @@ class Test_25_rpm_building_functions(unittest.TestCase):
         self.assertTrue(TT._build(repo, srpm))
 
     def test_40__build_srpm(self):
-        return
         repo = _REPO_2
         dstamp = TT._datestamp()
 
@@ -219,13 +215,18 @@ class Test_25_rpm_building_functions(unittest.TestCase):
                    email="jdoe@example.com")
 
         logging.getLogger().setLevel(logging.WARN)
-        srpm = TT.build_repodata_srpm(ctx, self.workdir,
-                                      C.template_paths())
+        srpm = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
 
         assert os.path.exists(srpm), "SRPM does not exist: " + str(srpm)
         self.assertTrue(TT._build_srpm(ctx, srpm))
-        self.assertTrue(ctx.get("rpms_to_deploy", False))
-        self.assertTrue(ctx.get("rpms_to_sign", False))
+
+        to_deploy = ctx.get("rpms_to_deploy", False)
+        to_sign = ctx.get("rpms_to_sign", False)
+
+        s = "rpms: to_deploy=%s, to_sign=%s" % (str(to_deploy), str(to_sign))
+
+        self.assertTrue(ctx.get("rpms_to_deploy", False), s)
+        self.assertTrue(ctx.get("rpms_to_sign", False), s)
 
 
 class Test_30_commands(unittest.TestCase):
@@ -233,34 +234,47 @@ class Test_30_commands(unittest.TestCase):
     def setUp(self):
         self.workdir = C.setup_workdir()
 
-        s = R.RepoServer("localhost", E.get_username(), topdir=self.workdir,
-                         baseurl="file://" + self.workdir)
-        repo = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora", s)
-
-        self.repo = repo
-
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
     def test_00_init__no_genconf(self):
-        ctx = dict(repo=self.repo)
+        ctx = dict(repo=_gen_local_fs_repo(self.workdir))
         ctx["genconf"] = False
 
         self.assertTrue(TT.init(ctx))
 
-        for d in self.repo.rpmdirs:
+        for d in ctx["repo"].rpmdirs:
             if '~' in d:
                 d = os.path.expanduser(d)
 
             self.assertTrue(os.path.exists(d), d)
 
-    def test_30_init_and_update(self):
-        ctx = dict(repo=self.repo)
-        ctx["genconf"] = False
+    def test_10_init__w_genconf(self):
+        return
+
+        ctx = dict(repo=_gen_local_fs_repo(self.workdir))
+        ctx["genconf"] = True
+        ctx["tpaths"] = C.template_paths()
 
         self.assertTrue(TT.init(ctx))
 
-        #logging.getLogger().setLevel(logging.DEBUG)
+        self.assertTrue(ctx["rpms_to_deploy"])
+        self.assertTrue(ctx["rpms_to_sign"])
+
+        for d in ctx["repo"].rpmdirs:
+            if '~' in d:
+                d = os.path.expanduser(d)
+
+            self.assertTrue(os.path.exists(d), d)
+
+            rpms = glob.glob(os.path.join(d, "*.rpm"))
+            self.assertTrue(rpms)
+
+    def test_30_init_and_update(self):
+        ctx = dict(repo=_gen_local_fs_repo(self.workdir))
+        ctx["genconf"] = False
+
+        self.assertTrue(TT.init(ctx))
         self.assertTrue(TT.update(ctx))
 
 # vim:sw=4:ts=4:et:
