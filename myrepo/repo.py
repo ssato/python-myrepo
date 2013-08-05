@@ -65,6 +65,12 @@ class RepoServer(object):
 
     >>> s.is_local
     False
+
+    >>> s = RepoServer("localhost", "jdoe", baseurl="file:///tmp")
+    >>> s.baseurl
+    'file:///tmp'
+    >>> s.is_local
+    True
     """
 
     def __init__(self, name, user, altname=None, topdir=G._SERVER_TOPDIR,
@@ -99,9 +105,9 @@ class Repo(object):
     """
     Yum repository class.
 
-    >>> server = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
+    >>> s = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
     >>> repo = Repo("%(base_name)s-%(server_shortname)s-%(server_user)s",
-    ...             19, ["x86_64", "i386"], "fedora", server)
+    ...             19, ["x86_64", "i386"], "fedora", s)
     >>> repo.version, repo.archs, repo.base_name
     ('19', ['x86_64', 'i386'], 'fedora')
     >>> repo.server_name, repo.server_altname, repo.server_shortname
