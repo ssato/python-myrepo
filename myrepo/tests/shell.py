@@ -55,10 +55,12 @@ class Test_10_run(unittest.TestCase):
         C.cleanup_workdir(self.workdir)
 
     def test_00_run_async__simplest_case(self):
-        proc = TT.run_async("true", workdir=self.workdir, logfile=True)
+        logfile = os.path.join(self.workdir, "true.log")
+        proc = TT.run_async("true", workdir=self.workdir, logfile=logfile)
 
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertTrue(TT.stop_async_run(proc))
+        self.assertTrue(os.path.exists(logfile))
 
     def test_01_run_async__simplest_case(self):
         proc = TT.run_async("false", workdir=self.workdir, logfile=True)

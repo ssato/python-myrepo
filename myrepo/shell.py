@@ -81,7 +81,7 @@ def _run(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True
+    :param logfile: Dump log file if True or its log file path
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     assert os.path.exists(workdir), "Working dir %s does not exist!" % workdir
@@ -99,7 +99,8 @@ def _run(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
                                 **kwargs)
 
         if logfile:
-            logfile = os.path.join(workdir, "%d.log" % proc.pid)
+            if isinstance(logfile, bool):
+                logfile = os.path.join(workdir, "%d.log" % proc.pid)
 
             if not os.path.exists(logfile):
                 with open(logfile, 'w') as f:
@@ -124,7 +125,7 @@ def _spawn(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True
+    :param logfile: Dump log file if True or its log file path
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     return multiprocessing.Process(target=_run,
@@ -157,7 +158,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     :param host: Host on which command runs
     :param workdir: Working directory in which command runs
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True
+    :param logfile: Dump log file if True or its log file path
     :param conn_timeout: Connection timeout in seconds or None
 
     :return: multiprocessing.Process instance
@@ -252,7 +253,7 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, rc_expected=0,
     :param host: Host to run command
     :param workdir: Working directory in which command runs
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True
+    :param logfile: Dump log file if True or its log file path
     :param timeout: Command execution timeout in seconds or None
     :param conn_timeout: Connection timeout in seconds or None
     :param stop_on_error: Stop and raise exception if any error occurs
