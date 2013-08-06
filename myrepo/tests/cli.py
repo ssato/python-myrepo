@@ -21,8 +21,27 @@ import myrepo.tests.common as C
 import unittest
 
 
-class Test_00(unittest.TestCase):
-    pass
+class Test_00_functions(unittest.TestCase):
+
+    def test_10_mk_repos(self):
+        """TODO: Implement test cases for mk_repos"""
+        pass
+
+    def test_20__assert_no_arg(self):
+        TT._assert_no_arg([], None)  # Exp not raised.
+        self.assertRaises(AssertionError, TT._assert_no_arg,
+                          ["extra_arg_0"], "cmd")
+
+    def test_30__assert_arg(self):
+        TT._assert_arg(["arg1"], None)
+        self.assertRaises(AssertionError, TT._assert_arg, [], "cmd")
+
+    def test_40__to_cmd(self):
+        self.assertEquals(TT._to_cmd(['i']), "init")
+        self.assertEquals(TT._to_cmd(["genc"]), "genconf")
+        self.assertEquals(TT._to_cmd(['b', "dummy.src.rpm"]), "build")
+        self.assertEquals(TT._to_cmd(['d', "dummy.src.rpm"]), "deploy")
+        self.assertEquals(TT._to_cmd(['abc']), None)
 
 
 # vim:sw=4:ts=4:et:

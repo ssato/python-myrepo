@@ -107,12 +107,12 @@ def mk_repos(ctx, degenerate=False):
                      ctx["keyurl"])
 
 
-def _assert_no_arg(args, cmd):
-    assert len(args) < 2, "'%s' command requires no arguments" % cmd
+def _assert_no_arg(cargs, cmd):
+    assert not cargs, "'%s' command requires no arguments" % cmd
 
 
-def _assert_arg(args, cmd):
-    assert len(args) >= 2, \
+def _assert_arg(cargs, cmd):
+    assert len(cargs) > 0, \
         "'%s' command requires an argument to specify srpm[s]" % cmd
 
 
@@ -120,15 +120,13 @@ def _to_cmd(args, cmds=G._COMMANDS):
     """
     :param args: List of sub command and arguments for it.
     """
-    assert args and len(args) > 1, "Empty args list was given!"
-
     cmd = None
-    (c, cargs) = (args[0], args[1:])
+    (c, cargs) = (args[0], args[1:])  # cargs may be [].
 
     for abbrev, cmd_s, _desc, w_args in cmds:
         if c.startswith(abbrev):
-            (_assert_arg if w_args else _assert_no_arg)(cargs)
             cmd = cmd_s
+            (_assert_arg if w_args else _assert_no_arg)(cargs, cmd)
             break
 
     return cmd
