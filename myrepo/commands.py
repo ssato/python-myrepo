@@ -17,7 +17,6 @@
 #
 from myrepo.hooks import hook
 
-import myrepo.repoops as RO
 import myrepo.shell as SH  # Use local copy instead of rpmkit.shell2
 import myrepo.utils as U
 import rpmkit.memoize as M
