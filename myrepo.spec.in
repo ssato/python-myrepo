@@ -21,7 +21,6 @@ Requires:       createrepo
 Requires:       mock
 Requires:       rpmkit >= 0.2.10-1
 Obsoletes:      rpmkit < 0.2.10-1
-Requires:       python-bunch
 Requires:       python-jinja2
 
 
@@ -66,6 +65,7 @@ rm -rf $RPM_BUILD_ROOT
 - Migrated to multiprocessing based job handling code
 - Cleanup old tenjin-based templates not used any more
 - Added missing runtime dependency to mock
+- Removed extra runtime dependency to python-bunch not used any more
 - Removed dependency to packagemaker and added dependency to rpm-build instead
 - Added basic unit test cases for myrepo.* including command functions
 
