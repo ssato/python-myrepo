@@ -29,29 +29,34 @@ import os
 import os.path
 
 
-_USAGE = """\
-%prog COMMAND [OPTION ...] [SRPM]
+# _COMMANDS = [('i', "init", "Initialize yum repo"),
+_CMDS_S = '\n'.join("  %s[%s]\t%s" % (a, c.split(a, 1)[-1], d)
+                    for a, c, d, _r in G._COMMANDS)
 
-Commands: i[init], b[uild], d[eploy], u[pdate], genc[onf]
+_USAGE = """\
+%%prog COMMAND [OPTION ...] [SRPM]
+
+Commands:
+%s
 
 Examples:
   # initialize your yum repos:
-  %prog init -s yumserver.local -u foo -m foo@example.com -F "John Doe"
+  %%prog init -s yumserver.local -u foo -m foo@example.com -F "John Doe"
 
   # build SRPM:
-  %prog build packagemaker-0.1-1.src.rpm
+  %%prog build packagemaker-0.1-1.src.rpm
 
   # build SRPM and deploy RPMs and SRPMs into your yum repos:
-  %prog deploy packagemaker-0.1-1.src.rpm
-  %prog d --dists rhel-6-x86_64,fedora-19-x86_64 packagemaker-0.1-1.src.rpm
+  %%prog deploy packagemaker-0.1-1.src.rpm
+  %%prog d --dists rhel-6-x86_64,fedora-19-x86_64 packagemaker-0.1-1.src.rpm
 
   # build SRPM and deploy RPMs and SRPMs into your yum repo.
   #
   # Here, fedora-19-x86_64 is base distribution and my-fedora-19-x86_64 is
   # build target distribution:
   #
-  %prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm
-"""
+  %%prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm\
+""" % _CMDS_S
 
 
 def _get_timeout(config):
