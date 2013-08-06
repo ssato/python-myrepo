@@ -103,11 +103,12 @@ def _init_by_defaults():
     u = E.get_username()
     dists_full = ','.join(distributions_full)
     dists_s = ','.join(distributions)
+    (bname, bversion) = E.get_distribution()  # (basename, baseversion)
 
     cfg = dict(hostname=h, user=u, altname=h, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
                dists_full=dists_full, dists=dists_s, dist_choices=dists_full,
-               basename=None, subdir=G._SUBDIR,
+               basename=bname, subdir=G._SUBDIR,
                signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
                genconf=True, email=E.get_email(), fullname=E.get_fullname(),
                config=None, profile=None, tpaths=G._TEMPLATE_PATHS,
