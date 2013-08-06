@@ -3,7 +3,11 @@
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 # License: MIT
 #
-import myrepo.commands as C
+try:
+    import myrepo.commands as C
+except:
+    pass
+
 import subprocess
 
 
