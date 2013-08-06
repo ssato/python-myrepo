@@ -276,7 +276,7 @@ def _deploy_cmd(repo, src, dst):
     :param repo: myrepo.repo.Repo object
     :return: Deploying command string :: str
     """
-    if repo.server.is_local:
+    if repo.server_is_local:
         if "~" in dst:
             dst = os.path.expanduser(dst)
 
@@ -286,7 +286,7 @@ def _deploy_cmd(repo, src, dst):
                                        repo.server_name, dst)
 
 
-def _deploy(ctx, *args, **kwargs):
+def _deploy(ctx):
     """
     Deploy built RPMs.
 
@@ -294,18 +294,21 @@ def _deploy(ctx, *args, **kwargs):
 
     TODO: Set build timeout.
 
-    :param repo: myrepo.repo.Repo object
-    :return: True if success else False
+    :param ctx: Application context object holding parameters
+    :return: True if success else AssertionError will be raised.
     """
     repo = ctx["repo"]
-    largs = [(_deploy_cmd(repo, rpm, dest), dict(timeout=None, logfile=True))
+    largs = [([_deploy_cmd(repo, rpm, dest), ],
+              dict(timeout=None,
+                   logfile=("deploy_%s.log" % os.path.basename(rpm))))
              for rpm, dest in ctx.get("rpms_to_deploy", [])]
 
     rcs = SH.prun(largs)
-    assert all(rcs), "Failed to deply: " + str(rcs)
+    rpms = ', '.join(rpm for rpm, _dest in ctx.get("rpms_to_deploy", []))
+    assert all(rcs), "Failed to deply: rpms=%s" % rpms
 
-    rcs = update(repo)
-    assert all(rcs), "Failed to update: " + str(rcs)
+    rcs = update(ctx)
+    assert all(rcs), "Failed to update the repo metadata."
 
     return True
 
