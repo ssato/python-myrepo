@@ -26,7 +26,6 @@ import myrepo.globals as G
 import myrepo.parser as P
 import myrepo.repo as R
 
-import bunch as B
 import logging
 import multiprocessing
 import optparse
@@ -108,130 +107,6 @@ def mk_repos(ctx, degenerate=False):
                      ctx["keyurl"])
 
 
-def opt_parser():
-    defaults = Conf.init()
-    distribution_choices = defaults["distribution_choices"]
-
-    p = optparse.OptionParser("""%prog COMMAND [OPTION ...] [SRPM]
-
-Commands: i[init], b[uild], d[eploy], u[pdate], genc[onf]
-
-Examples:
-  # initialize your yum repos:
-  %prog init -s yumserver.local -u foo -m foo@example.com -F "John Doe"
-
-  # build SRPM:
-  %prog build packagemaker-0.1-1.src.rpm
-
-  # build SRPM and deploy RPMs and SRPMs into your yum repos:
-  %prog deploy packagemaker-0.1-1.src.rpm
-  %prog d --dists rhel-6-x86_64 packagemaker-0.1-1.src.rpm
-
-  # build SRPM and deploy RPMs and SRPMs into your yum repo; fedora-17-x86_64
-  # is base distribution and my-fedora-17-x86_64 is target distribution:
-  %prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm
-  """)
-
-    for k in ("verbose", "quiet", "debug"):
-        if not defaults.get(k, False):
-            defaults[k] = False
-
-    p.set_defaults(**defaults)
-
-    p.add_option("-C", "--config", help="Configuration file")
-    p.add_option("-P", "--profile",
-                 help="Specify configuration profile [%default]")
-    p.add_option("-T", "--tpaths", action="append", default=[],
-                 help="Specify additional template path one "
-                      "by one. These paths will have higher "
-                      "priority than default paths."),
-    p.add_option("", "--timeout", type="int",
-                 help="Timeout [sec] for each operations [%default]")
-
-    p.add_option("-s", "--server",
-                 help="HTTP/FTP Server to provide your yum repos. "
-                      "Localhost will be used by default if not specified.")
-    p.add_option("-u", "--user",
-                 help="Your username on that yum repo server [%default]")
-    p.add_option("", "--dists",
-                 help="Comma separated distribution labels including arch "
-                      "(optionally w/ build (mock) distribution label). "
-                      "Options are some of " + distribution_choices +
-                      " [%default] and these combinations: e.g. "
-                      "fedora-16-x86_64, "
-                      "rhel-6-i386:my-custom-addon-rhel-6-i386")
-
-    p.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
-    p.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
-    p.add_option("", "--debug", action="store_true", help="Debug mode")
-
-    iog = optparse.OptionGroup(p, "Options for 'init' command")
-    iog.add_option('', "--name",
-                   help="Name of your yum repo or its format string "
-                        "[%default].")
-    iog.add_option("", "--subdir", help="Repository sub dir name [%default]")
-    iog.add_option("", "--topdir",
-                   help="Repository top dir or its format string [%default]")
-    iog.add_option('', "--baseurl",
-                   help="Repository base URL or its format string [%default]")
-    iog.add_option("-m", "--email",
-                   help="Your email address or its format string [%default]")
-    iog.add_option("-F", "--fullname", help="Your full name [%default]")
-    iog.add_option('', "--signkey",
-                   help="GPG key ID if signing RPMs to deploy")
-    iog.add_option('', "--no-genconf", action="store_false", dest="genconf",
-                   help="Do not run genconf command after initialization "
-                        "finished")
-    p.add_option_group(iog)
-
-    return p
-
-
-def _action(func, args):
-    func(*args)
-
-
-def do_command_org(cmd, repos_g, srpm=None):
-    """
-    :param cmd: sub command name :: str
-    :param repos_g: Repository objects (generator)
-    :param srpm: path to the target src.rpm :: str
-    """
-    f = getattr(CMD, cmd)
-    jobs = []
-
-    for repo in repos_g:
-        rest_args = (repo, ) if srpm is None else (repo, srpm)
-
-        proc = multiprocessing.Process(target=_action, args=(f, rest_args))
-        proc.start()
-
-        jobs.append(proc)
-
-    time.sleep(G.MIN_TIMEOUT)
-
-    for proc in jobs:
-        # it will block.
-        proc.join(G.BUILD_TIMEOUT)
-
-        # Is there any possibility thread still live?
-        if proc.is_alive():
-            logging.info("Terminating the proc: " + str(proc.pid))
-
-            proc.join(G.BUILD_TIMEOUT)  # one more wait
-            proc.terminate()
-
-
-def do_command(cmd, ctx, repos_g, timeout=G.BUILD_TIMEOUT):
-    """
-    :param cmd: sub command name :: str
-    :param repos_g: Repository objects (generator)
-    """
-    for repo in repos_g:
-        ctx.repo = repo
-        getattr(CMD, cmd)(ctx)
-
-
 def main(argv=sys.argv):
     (CMD_INIT, CMD_UPDATE, CMD_BUILD, CMD_DEPLOY, CMD_GEN_CONF_RPMS) = \
         ("init", "update", "build", "deploy", "genconf")
@@ -241,7 +116,7 @@ def main(argv=sys.argv):
 
     logging.basicConfig(format=logformat, datefmt=logdatefmt)
 
-    p = opt_parser()
+    p = Conf.opt_parser()
     (options, args) = p.parse_args(argv[1:])
 
     if options.verbose:
@@ -297,20 +172,24 @@ def main(argv=sys.argv):
         # re-parse to overwrite configurations with given options.
         (options, args) = p.parse_args()
 
-    ctx = B.Bunch(options.__dict__.copy())
-    ctx.srpms = args[1:]  # List of srpm paths or []
+    # Hack:
+    ctx = options.__dict__.copy()
+    ctx["srpms"] = srpms = args[1:]  # List of srpm paths or []
 
-    if ctx.srpms:
-        if len(ctx.srpms) > 1:
+    if srpms:
+        if len(srpms) > 1:
             sys.stdout.write("Sorry, myrepo does not support build and/or "
                              "deploy multiple SRPMs yet.")
             sys.exit(0)
 
-        repos_g = mk_repos(ctx, CMD.is_noarch(ctx.srpms[0]))
+        repos = mk_repos(ctx, CMD.is_noarch(srpms[0]))
     else:
-        repos_g = mk_repos(ctx, True)
+        repos = mk_repos(ctx, True)
 
-    sys.exit(do_command(cmd, ctx, repos_g))
+    for repo in repos:
+        ctx["repo"] = repo
+        if not getattr(C, cmd)(ctx):
+            sys.exit(-1)
 
 
 if __name__ == '__main__':
