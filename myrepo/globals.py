@@ -25,6 +25,10 @@ MYREPO_TEMPLATE_PATH = "/usr/share/myrepo/templates"
 _TEMPLATE_PATHS = [os.path.join(MYREPO_TEMPLATE_PATH, "2"),
                    os.path.join(os.curdir, "templates", "2")]
 
+# Logging:
+_LOG_FMT = "%(asctime)s [%(levelname)-4s] myrepo: %(message)s"
+_LOG_DFMT = "%H:%M:%S"  # too much? "%a, %d %b %Y %H:%M:%S"
+
 # timeouts [sec]:
 _CONN_LOCAL_TIMEOUT = 3
 _CONN_REMOTE_TIMEOUT = 10
@@ -40,5 +44,15 @@ _BASEURL = "%(server_baseurl)s/%(dir)s"
 _SIGNKEY = None
 _KEYDIR = "/etc/pki/rpm-gpg"
 _KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(version)s"
+
+
+# Commands:  [(abbrev, command, description, require_args?)]
+_COMMANDS = [('i', "init", "Initialize yum repo", False),
+             ('genc', "genconf",
+              "Generate .repo and mock.cfg RPMs for yum repos", False),
+             ('u', "update", "Update the meta data of yum repos", False),
+             ('b', "build", "Build given SRPMs for the yum repos", True),
+             ('d', "deploy",
+              "Build and deploy given SRPMs for the yum repos", True)]
 
 # vim:sw=4:ts=4:et:
