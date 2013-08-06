@@ -132,7 +132,10 @@ def _to_cmd(args, cmds=G._COMMANDS):
     return cmd
 
 
-def main(argv=sys.argv):
+def modmain(argv):
+    """
+    :param argv: Argument list for the program
+    """
     logging.basicConfig(format=G._LOG_FMT, datefmt=G._LOG_DFMT)
 
     p = CF.opt_parser()
@@ -151,13 +154,13 @@ def main(argv=sys.argv):
 
     if not args:
         p.print_usage()
-        sys.exit(1)
+        return 1
 
     cmd = _to_cmd(args)
 
     if cmd is None:
         logging.error(" Unknown command '%s'" % args[0])
-        sys.exit(1)
+        return 1
 
     if options.config or options.profile:
         params = CF.init(options.config, options.profile)
@@ -174,7 +177,7 @@ def main(argv=sys.argv):
         if len(srpms) > 1:
             sys.stdout.write("Sorry, myrepo does not support build and/or "
                              "deploy multiple SRPMs yet.")
-            sys.exit(0)
+            return 1
 
         repos = mk_repos(ctx, CM.is_noarch(srpms[0]))
     else:
@@ -183,7 +186,13 @@ def main(argv=sys.argv):
     for repo in repos:
         ctx["repo"] = repo
         if not getattr(CM, cmd)(ctx):
-            sys.exit(-1)
+            return -1
+
+    return 0
+
+
+def main(argv=sys.argv):
+    sys.exit(modmain(argv))
 
 
 if __name__ == '__main__':
