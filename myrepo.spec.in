@@ -49,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc README
+%doc README.rst
 %doc tests
 %{_bindir}/*
 %{python_sitelib}/*
@@ -82,7 +82,7 @@ rm -rf $RPM_BUILD_ROOT
 * Mon Jul  9 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10.1-1
 - Cleaned up deps suggested by Masatake YAMATO <yamato@redhat.com>
 
-* Sun May 28 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10-1
+* Mon May 28 2012 Satoru SATOH <ssato@redhat.com> - 0.2.10-1
 - New package forked from rpmkit
 
 * Sun May 20 2012 Satoru SATOH <ssato@redhat.com> - 0.2.9-1
@@ -98,7 +98,7 @@ rm -rf $RPM_BUILD_ROOT
 * Sat Mar  3 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6.20120303-1
 - Switched to multiprocessing module to avoid deadlock in threads
 
-* Thu Feb 29 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6-2
+* Wed Feb 29 2012 Satoru SATOH <ssato@redhat.com> - 0.2.6-2
 - Fixed a myrepo bug that default template search path list is not set
 - Moved some common parts from rpmkit.myrepo.* to rpmkit.{globals,utils}
 
