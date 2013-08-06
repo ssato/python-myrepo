@@ -77,7 +77,7 @@ def _degenerate_dists_g(dists):
 
 def mk_repos(ctx, degenerate=False):
     """
-    :param ctx: Configuration parameters :: B.Bunch
+    :param ctx: Configuration parameters :: dict
     :param degenerate:  Is the dists to be degenerated?
 
     see also: myrepo.parser.parse_dists_option
