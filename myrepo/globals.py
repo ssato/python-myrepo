@@ -35,7 +35,7 @@ _SERVER_TOPDIR = "~%(user)s/public_html/yum"  # Top dir of yum repos.
 _SERVER_BASEURL = "http://%(altname)s/~%(user)s/yum"  # Base URL of yum repos.
 
 # Repo defaults:
-_SUBDIR = "%(base_name)s/%(version)s"
+_SUBDIR = "%(basename)s/%(version)s"
 _BASEURL = "%(server_baseurl)s/%(dir)s"
 _SIGNKEY = None
 _KEYDIR = "/etc/pki/rpm-gpg"

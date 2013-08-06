@@ -102,7 +102,7 @@ def mk_repos(ctx, degenerate=False):
 
         s = R.RepoServer(ctx["hostname"], ctx["user"], ctx["altname"],
                          ctx["topdir"], ctx["baseurl"], ctx["timeout"])
-        yield R.Repo(dname, dver, archs, ctx["base_name"], s, bdist,
+        yield R.Repo(dname, dver, archs, ctx["basename"], s, bdist,
                      ctx["subdir"], ctx["signkey"], ctx["keydir"],
                      ctx["keyurl"])
 

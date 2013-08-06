@@ -107,7 +107,7 @@ def _init_by_defaults():
     cfg = dict(hostname=h, user=u, altname=h, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
                dists_full=dists_full, dists=dists_s, dist_choices=dists_full,
-               base_name=None, subdir=G._SUBDIR,
+               basename=None, subdir=G._SUBDIR,
                signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
                genconf=True, email=E.get_email(), fullname=E.get_fullname(),
                config=None, profile=None, tpaths=G._TEMPLATE_PATHS,

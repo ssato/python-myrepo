@@ -28,7 +28,7 @@ _CONF_0 = """\
 # The followings are site-local convention and DO NOT EDIT:
 hostname: yumrepos.example.com
 email: %(user)s@example.com
-name: %(base_name)s-com-example-%(user)s
+name: %(basename)s-com-example-%(user)s
 subdir: yum
 
 # Customize the followings as needed:
@@ -45,7 +45,7 @@ class Test_00(unittest.TestCase):
         self.assertTrue(isinstance(cfg, dict))
 
         keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "base_name", "subdir",
+                "dists_full", "dists", "dist_choices", "basename", "subdir",
                 "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
                 "config", "profile", "tpaths", "verbose", "quiet", "debug")
 
@@ -78,7 +78,7 @@ class Test_10(unittest.TestCase):
         self.assertTrue(isinstance(cfg, dict))
 
         keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "base_name", "subdir",
+                "dists_full", "dists", "dist_choices", "basename", "subdir",
                 "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
                 "config", "profile", "tpaths", "verbose", "quiet", "debug")
 

@@ -106,9 +106,9 @@ class Repo(object):
     Yum repository class.
 
     >>> s = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
-    >>> repo = Repo("%(base_name)s-%(server_shortname)s-%(server_user)s",
+    >>> repo = Repo("%(basename)s-%(server_shortname)s-%(server_user)s",
     ...             19, ["x86_64", "i386"], "fedora", s)
-    >>> repo.version, repo.archs, repo.base_name
+    >>> repo.version, repo.archs, repo.basename
     ('19', ['x86_64', 'i386'], 'fedora')
     >>> repo.server_name, repo.server_altname, repo.server_shortname
     ('yumrepos.local', 'yumrepos.example.com', 'yumrepos')
@@ -133,18 +133,18 @@ class Repo(object):
     'fedora-yumrepos-jdoe-19.repo'
     """
 
-    def __init__(self, name, version, archs, base_name, server,
+    def __init__(self, name, version, archs, basename, server,
                  bdist=None, subdir=G._SUBDIR,
                  signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
                  **kwargs):
         """
         :param name: Repository name or its format string,
             e.g. "rpmfusion-free", "rhel-custom" and
-            "%(base_name)s-%(server_shortname)s-%(server_user)s".
+            "%(basename)s-%(server_shortname)s-%(server_user)s".
         :param version: Version string or number :: int
         :param archs: List of architectures, e.g. ["x86_64", "i386"]
 
-        :param base_name: Base (parent) distribution name
+        :param basename: Base (parent) distribution name
         :param server: RepoServer object :: myrepo.repo.RepoServer
 
         :param subdir: Dir or its format string to save RPMs of this repo,
@@ -154,7 +154,7 @@ class Repo(object):
         """
         self.version = str(version)
         self.archs = archs
-        self.base_name = base_name
+        self.basename = basename
         self.server = server
         self.keydir = keydir
 
@@ -169,11 +169,11 @@ class Repo(object):
             self.archs = [self.primary_arch] + \
                          [a for a in archs if a != self.primary_arch]
 
-        self.base_dist = "%s-%s" % (base_name, self.version)
+        self.base_dist = "%s-%s" % (basename, self.version)
         self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
 
         if subdir is None:
-            self.distdir = "%s/%s" % (base_name, self.version)
+            self.distdir = "%s/%s" % (basename, self.version)
         else:
             self.distdir = self._format(subdir)
 
@@ -195,7 +195,7 @@ class Repo(object):
         self.label = "%s-%s" % (self.dist, self.primary_arch)
         self.repofile = "%s.repo" % self.dist
 
-        self.dists = [D.Dist(base_name, self.version, a, self.bdist)
+        self.dists = [D.Dist(basename, self.version, a, self.bdist)
                       for a in self.archs]
 
         if signkey is None:

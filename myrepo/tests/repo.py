@@ -27,14 +27,14 @@ class Test_00(unittest.TestCase):
         server = TT.RepoServer("yumrepos.local", "jdoe",
                                "yumrepos.example.com")
 
-        repo = TT.Repo("%(base_name)s-%(server_shortname)s-%(server_user)s",
+        repo = TT.Repo("%(basename)s-%(server_shortname)s-%(server_user)s",
                        19, ["x86_64", "i386"], "fedora", server)
 
         self.assertTrue(isinstance(repo, TT.Repo))
 
         self.assertEquals(repo.version, "19")
         self.assertEquals(repo.archs, ["x86_64", "i386"])
-        self.assertEquals(repo.base_name, "fedora")
+        self.assertEquals(repo.basename, "fedora")
         self.assertEquals(repo.server_name, "yumrepos.local")
         self.assertEquals(repo.server_altname, "yumrepos.example.com")
         self.assertEquals(repo.server_shortname, "yumrepos")
@@ -63,13 +63,13 @@ class Test_00(unittest.TestCase):
                                "yumrepos.example.com")
 
         repo = TT.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
-                       server, "%(base_name)s-%(version)s")
+                       server, "%(basename)s-%(version)s")
 
         self.assertTrue(isinstance(repo, TT.Repo))
 
         self.assertEquals(repo.version, "19")
         self.assertEquals(repo.archs, ["x86_64", "i386"])
-        self.assertEquals(repo.base_name, "fedora")
+        self.assertEquals(repo.basename, "fedora")
         self.assertEquals(repo.server_name, "yumrepos.local")
         self.assertEquals(repo.server_altname, "yumrepos.example.com")
         self.assertEquals(repo.server_shortname, "yumrepos")
@@ -97,13 +97,13 @@ class Test_00(unittest.TestCase):
         server = TT.RepoServer("localhost", "jdoe", topdir="yum",
                                baseurl="file:///tmp/yum")
         repo = TT.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
-                       server, "%(base_name)s-%(version)s")
+                       server, "%(basename)s-%(version)s")
 
         self.assertTrue(isinstance(repo, TT.Repo))
 
         self.assertEquals(repo.version, "19")
         self.assertEquals(repo.archs, ["x86_64", "i386"])
-        self.assertEquals(repo.base_name, "fedora")
+        self.assertEquals(repo.basename, "fedora")
         self.assertEquals(repo.server_name, "localhost")
         self.assertEquals(repo.server_altname, "localhost")
         self.assertEquals(repo.server_shortname, "localhost")

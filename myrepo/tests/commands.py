@@ -39,16 +39,16 @@ _REPO_1 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
                  _SERVER_1)
 
 _REPO_2 = R.Repo("fedora-custom", 19, ["x86_64", "i386"], "fedora",
-                 _SERVER_1, "%(base_name)s-%(version)s")
+                 _SERVER_1, "%(basename)s-%(version)s")
 
 
 def _gen_repo(server, name="fedora-custom", version=19,
-              archs=["x86_64", "i386"], base_name="fedora", **kwargs):
+              archs=["x86_64", "i386"], basename="fedora", **kwargs):
     """
     Generate R.Repo object.
     """
     assert isinstance(server, R.RepoServer)
-    return R.Repo(name, version, archs, base_name, server, **kwargs)
+    return R.Repo(name, version, archs, basename, server, **kwargs)
 
 
 def _gen_local_fs_repo(workdir):
