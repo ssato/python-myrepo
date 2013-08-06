@@ -53,7 +53,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc tests
 %{_bindir}/*
 %{python_sitelib}/*
-%{_datadir}/myrepo/templates/1/*
+%ghost %{_datadir}/myrepo/templates/1
 %{_datadir}/myrepo/templates/2/*
 %{_datadir}/myrepo/templates/2/tests/*
 %{_sysconfdir}/myrepo.d/*
