@@ -2,7 +2,7 @@ include MANIFEST.in
 include README*
 include myrepo.spec.in
 include setup.py
-include tests/*
+include aux/*
 recursive-include myrepo *.py
 recursive-include templates *
 include src/*
