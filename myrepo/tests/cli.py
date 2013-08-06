@@ -16,34 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.cli as TT
-import myrepo.config as C
-import myrepo.repo as R
-import myrepo.utils as U
+import myrepo.tests.common as C
 
-import optparse
 import unittest
 
 
-# FIXME: These are very simple test cases such like type checking of given or
-# returned values.
 class Test_00(unittest.TestCase):
-
-    def test_00_create_repos_from_dists_option_g(self):
-        cfg = C.init()
-
-        for repo in TT.create_repos_from_dists_option_g(cfg):
-            U.typecheck(repo, R.Repo)
-
-    def test_10_opt_parser(self):
-        p = TT.opt_parser()
-        U.typecheck(p, optparse.OptionParser)
-
-        defaults = C.init()
-        (opts, _args) = p.parse_args("dummy_args ...".split())
-        cfg = opts.__dict__.copy()
-
-        for k, v in defaults.iteritems():
-            self.assertEquals(cfg.get(k, None), v)
+    pass
 
 
 # vim:sw=4:ts=4:et:

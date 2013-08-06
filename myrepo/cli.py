@@ -20,8 +20,8 @@
 from itertools import groupby
 from operator import itemgetter
 
-import myrepo.commands as CMD
-import myrepo.config as Conf
+import myrepo.commands as CM
+import myrepo.config as CF
 import myrepo.globals as G
 import myrepo.parser as P
 import myrepo.repo as R
@@ -107,16 +107,37 @@ def mk_repos(ctx, degenerate=False):
                      ctx["keyurl"])
 
 
+def _assert_no_arg(args, cmd):
+    assert len(args) < 2, "'%s' command requires no arguments" % cmd
+
+
+def _assert_arg(args, cmd):
+    assert len(args) >= 2, \
+        "'%s' command requires an argument to specify srpm[s]" % cmd
+
+
+def _to_cmd(args, cmds=G._COMMANDS):
+    """
+    :param args: List of sub command and arguments for it.
+    """
+    assert args and len(args) > 1, "Empty args list was given!"
+
+    cmd = None
+    (c, cargs) = (args[0], args[1:])
+
+    for abbrev, cmd_s, _desc, w_args in cmds:
+        if c.startswith(abbrev):
+            (_assert_arg if w_args else _assert_no_arg)(cargs)
+            cmd = cmd_s
+            break
+
+    return cmd
+
+
 def main(argv=sys.argv):
-    (CMD_INIT, CMD_UPDATE, CMD_BUILD, CMD_DEPLOY, CMD_GEN_CONF_RPMS) = \
-        ("init", "update", "build", "deploy", "genconf")
+    logging.basicConfig(format=G._LOG_FMT, datefmt=G._LOG_DFMT)
 
-    logformat = "%(asctime)s [%(levelname)-4s] myrepo: %(message)s"
-    logdatefmt = "%H:%M:%S"  # too much? "%a, %d %b %Y %H:%M:%S"
-
-    logging.basicConfig(format=logformat, datefmt=logdatefmt)
-
-    p = Conf.opt_parser()
+    p = CF.opt_parser()
     (options, args) = p.parse_args(argv[1:])
 
     if options.verbose:
@@ -134,39 +155,14 @@ def main(argv=sys.argv):
         p.print_usage()
         sys.exit(1)
 
-    def assert_no_arg(args):
-        assert len(args) < 2, "'%s' command requires no arguments" % cmd
+    cmd = _to_cmd(args)
 
-    def assert_arg(args):
-        assert len(args) >= 2, \
-            "'%s' command requires an argument to specify srpm[s]" % cmd
-
-    a0 = args[0]
-    if a0.startswith('i'):
-        cmd = CMD_INIT
-        assert_no_arg(args)
-
-    elif a0.startswith('u'):
-        cmd = CMD_UPDATE
-        assert_no_arg(args)
-
-    elif a0.startswith('b'):
-        cmd = CMD_BUILD
-        assert_arg
-
-    elif a0.startswith('d'):
-        cmd = CMD_DEPLOY
-        assert_arg
-
-    elif a0.startswith("genc"):
-        cmd = CMD_GEN_CONF_RPMS
-        assert_no_arg(args)
-    else:
-        logging.error(" Unknown command '%s'" % a0)
+    if cmd is None:
+        logging.error(" Unknown command '%s'" % args[0])
         sys.exit(1)
 
     if options.config or options.profile:
-        params = Conf.init(options.config, options.profile)
+        params = CF.init(options.config, options.profile)
         p.set_defaults(**params)
 
         # re-parse to overwrite configurations with given options.
@@ -182,13 +178,13 @@ def main(argv=sys.argv):
                              "deploy multiple SRPMs yet.")
             sys.exit(0)
 
-        repos = mk_repos(ctx, CMD.is_noarch(srpms[0]))
+        repos = mk_repos(ctx, CM.is_noarch(srpms[0]))
     else:
         repos = mk_repos(ctx, True)
 
     for repo in repos:
         ctx["repo"] = repo
-        if not getattr(C, cmd)(ctx):
+        if not getattr(CM, cmd)(ctx):
             sys.exit(-1)
 
 
