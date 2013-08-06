@@ -15,12 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+import os.path
+import os
+
+
 MYREPO_TEMPLATE_PATH = "/usr/share/myrepo/templates"
 
+# common:
+_TEMPLATE_PATHS = [os.path.join(MYREPO_TEMPLATE_PATH, "2"),
+                   os.path.join(os.curdir, "templates", "2")]
+
 # timeouts [sec]:
-(REMOTE_TIMEOUT, BUILD_TIMEOUT, LOCAL_TIMEOUT, MIN_TIMEOUT) = (
-    60 * 10, 60 * 10, 60 * 5, 5
-)
+_CONN_LOCAL_TIMEOUT = 3
+_CONN_REMOTE_TIMEOUT = 10
 
 # RepoServer defaults:
 _CONN_TIMEOUT = 10  # Timeout in seconds to connect to hosts w/ ssh.
