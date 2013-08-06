@@ -1,7 +1,7 @@
 #
-# cui module
+# CLI module
 #
-# Copyright (C) 2011, 2012 Red Hat, Inc.
+# Copyright (C) 2011 - 2013 Red Hat, Inc.
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,17 +17,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from itertools import groupby
+from operator import itemgetter
+
 import myrepo.commands as CMD
-import myrepo.config as C
+import myrepo.config as Conf
 import myrepo.globals as G
 import myrepo.parser as P
 import myrepo.repo as R
 
 import bunch as B
-import itertools
 import logging
 import multiprocessing
-import operator
 import optparse
 import sys
 import time
@@ -49,8 +50,10 @@ def _degenerate_dists_g(dists):
     >>> d0 = ('fedora', '16', 'x86_64', 'fedora-16')
     >>> d1 = ('fedora', '16', 'i386', 'fedora-16')
     >>> d2 = ('rhel', '6', 'x86_64', 'rhel-6')
+
     >>> list(_degenerate_dists_g([d0, d1]))
     [('fedora', '16', ['x86_64', 'i386'], 'fedora-16')]
+
     >>> ds2 = [
     ...    ('fedora', '16', ['x86_64', 'i386'], 'fedora-16'),
     ...    ('rhel', '6', ['x86_64'], 'rhel-6')
@@ -58,8 +61,8 @@ def _degenerate_dists_g(dists):
     >>> list(_degenerate_dists_g([d0, d1, d2])) == ds2
     True
     """
-    key_f = operator.itemgetter(3)  # to extract bdist from dist.
-    bds = [(bdist, list(ds)) for bdist, ds in itertools.groupby(dists, key_f)]
+    key_f = itemgetter(3)  # to extract bdist from dist.
+    bds = [(bdist, list(ds)) for bdist, ds in groupby(dists, key_f)]
 
     for bd in bds:
         bdist = bd[0]
@@ -80,8 +83,8 @@ def mk_repos(ctx, degenerate=False):
 
     see also: myrepo.parser.parse_dists_option
     """
-    dists_s = ctx.dists
-    logging.debug("ctx.dists=" + dists_s)
+    dists_s = ctx["dists"]
+    logging.debug("ctx['dists']=" + dists_s)
 
     # dists :: [(dist_name, dist_ver, dist_arch, bdist)]
     dists = P.parse_dists_option(dists_s)
@@ -98,13 +101,15 @@ def mk_repos(ctx, degenerate=False):
         logging.debug("Creating repo: dname=%s, dver=%s, archs=%s, "
                       "bdist=%s" % (dname, dver, archs, bdist))
 
-        yield R.Repo(ctx.server, ctx.user, dname, dver, archs, ctx.name,
-                     ctx.subdir, ctx.topdir, ctx.baseurl, ctx.signkey,
-                     bdist, ctx.timeout)
+        s = R.RepoServer(ctx["hostname"], ctx["user"], ctx["altname"],
+                         ctx["topdir"], ctx["baseurl"], ctx["timeout"])
+        yield R.Repo(dname, dver, archs, ctx["base_name"], s, bdist,
+                     ctx["subdir"], ctx["signkey"], ctx["keydir"],
+                     ctx["keyurl"])
 
 
 def opt_parser():
-    defaults = C.init()
+    defaults = Conf.init()
     distribution_choices = defaults["distribution_choices"]
 
     p = optparse.OptionParser("""%prog COMMAND [OPTION ...] [SRPM]
@@ -286,7 +291,7 @@ def main(argv=sys.argv):
         sys.exit(1)
 
     if options.config or options.profile:
-        params = C.init(options.config, options.profile)
+        params = Conf.init(options.config, options.profile)
         p.set_defaults(**params)
 
         # re-parse to overwrite configurations with given options.
