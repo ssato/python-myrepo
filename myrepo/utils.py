@@ -29,13 +29,7 @@ typecheck = U.typecheck
 is_local = U.is_local
 
 
-TEMPLATE_PATHS = [
-    os.path.join(G.MYREPO_TEMPLATE_PATH, "2"),
-    os.path.join(os.curdir, "templates", "2")
-]
-
-
-def compile_template(tmpl, context={}, tpaths=TEMPLATE_PATHS):
+def compile_template(tmpl, context={}, tpaths=G._TEMPLATE_PATHS):
     """
     :param tmpl: Template file name or (abs or rel) path
     :param context: Context parameters to instantiate the template :: dict
