@@ -20,6 +20,7 @@ import myrepo.repo as R
 import myrepo.tests.common as C
 import rpmkit.environ as E
 
+import glob
 import datetime
 import logging
 import os.path
@@ -282,12 +283,6 @@ class Test_30_commands(unittest.TestCase):
         self.assertTrue(TT.init(ctx))
         self.assertTrue(TT.deploy(ctx))
 
-
-class Test_30_commands(unittest.TestCase):
-
-    def setUp(self):
-        self.workdir = C.setup_workdir()
-
     def test_40_init__w_genconf(self):
         dstamp = TT._datestamp()
         ctx = dict(repo=_gen_local_fs_repo(self.workdir), datestamp=dstamp,
@@ -295,29 +290,7 @@ class Test_30_commands(unittest.TestCase):
                    tpaths=C.template_paths())
 
         self.assertTrue(TT.init(ctx))
-
-        self.assertTrue(ctx["rpms_to_deploy"])
-        self.assertTrue(ctx["rpms_to_sign"])
-
         self.assertTrue(TT.genconf(ctx))
-
-        for d in ctx["repo"].rpmdirs:
-            if '~' in d:
-                d = os.path.expanduser(d)
-
-            self.assertTrue(os.path.exists(d), d)
-
-            rpms = glob.glob(os.path.join(d, "*.rpm"))
-            self.assertTrue(rpms)
-
-    def test_50_init__w_genconf(self):
-        return
-
-        ctx = dict(repo=_gen_local_fs_repo(self.workdir))
-        ctx["genconf"] = True
-        ctx["tpaths"] = C.template_paths()
-
-        self.assertTrue(TT.init(ctx))
 
         self.assertTrue(ctx["rpms_to_deploy"])
         self.assertTrue(ctx["rpms_to_sign"])
