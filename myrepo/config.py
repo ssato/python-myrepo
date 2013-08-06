@@ -20,26 +20,60 @@ import myrepo.parser as P
 import rpmkit.utils as U
 import rpmkit.environ as E
 
-import ConfigParser as cp
+import ConfigParser as configparser
 import glob
-import itertools as IT
+import itertools
 import logging
+import optparse
 import os
 import os.path
 
 
-def get_timeout(config):
+_USAGE = """\
+%prog COMMAND [OPTION ...] [SRPM]
+
+Commands: i[init], b[uild], d[eploy], u[pdate], genc[onf]
+
+Examples:
+  # initialize your yum repos:
+  %prog init -s yumserver.local -u foo -m foo@example.com -F "John Doe"
+
+  # build SRPM:
+  %prog build packagemaker-0.1-1.src.rpm
+
+  # build SRPM and deploy RPMs and SRPMs into your yum repos:
+  %prog deploy packagemaker-0.1-1.src.rpm
+  %prog d --dists rhel-6-x86_64,fedora-19-x86_64 packagemaker-0.1-1.src.rpm
+
+  # build SRPM and deploy RPMs and SRPMs into your yum repo.
+  #
+  # Here, fedora-19-x86_64 is base distribution and my-fedora-19-x86_64 is
+  # build target distribution:
+  #
+  %prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm
+"""
+
+
+def _get_timeout(config):
     """
+    >>> _get_timeout(dict(timeout=10, ))
+    10
+    >>> G._CONN_LOCAL_TIMEOUT == _get_timeout(dict(hostname="localhost", ))
+    True
+    >>> c = dict(hostname="s.example.com", )
+    >>> G._CONN_REMOTE_TIMEOUT == _get_timeout(c)
+    True
+
     :param config: Configuration object :: dict
     """
     timeo = config.get("timeout", None)
     if timeo:
         return timeo
+
+    if U.is_local(config.get("hostname", False)):
+        return G._CONN_LOCAL_TIMEOUT
     else:
-        if U.is_local(config["server"]):
-            return G.LOCAL_TIMEOUT
-        else:
-            return G.REMOTE_TIMEOUT
+        return G._CONN_REMOTE_TIMEOUT
 
 
 def _is_supported(dist):
@@ -57,32 +91,37 @@ def _is_supported(dist):
 
 
 def _init_by_defaults():
+    """
+
+    """
     archs = E.list_archs()
     distributions_full = [d for d in E.list_dists() if _is_supported(d)]
     dists = ["%s-%s" % E.get_distribution()]
-    distributions = ["%s-%s" % da for da in IT.product(dists, archs)]
+    distributions = ["%s-%s" % da for da in itertools.product(dists, archs)]
 
-    defaults = G.REPO_DEFAULT
+    h = E.hostname()
+    u = E.get_username()
+    dists_full = ','.join(distributions_full)
+    dists_s = ','.join(distributions)
+
+    cfg = dict(hostname=h, user=u, altname=h, topdir=G._SERVER_TOPDIR,
+               baseurl=G._SERVER_BASEURL, timeout=None,
+               dists_full=dists_full, dists=dists_s, dist_choices=dists_full,
+               base_name=None, subdir=G._SUBDIR,
+               signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
+               genconf=True, email=E.get_email(), fullname=E.get_fullname(),
+               config=None, profile=None, tpaths=G._TEMPLATE_PATHS,
+               verbose=False, quiet=False, debug=False)
 
     # Overwrite some parameters:
-    defaults["server"] = E.hostname()
-    defaults["user"] = E.get_username()
-    defaults["email"] = E.get_email()
-    defaults["fullname"] = E.get_fullname()
-    defaults["dists_full"] = ",".join(distributions_full)
-    defaults["dists"] = ",".join(distributions)
-    defaults["genconf"] = True
-    defaults["config"] = defaults["profile"] = None
+    cfg["timeout"] = _get_timeout(cfg)
 
-    defaults["distribution_choices"] = defaults["dists_full"]  # save it.
-    defaults["timeout"] = get_timeout(defaults)
-
-    return defaults
+    return cfg
 
 
-def _init_by_config_file(config=None, profile=None):
+def _init_by_config(config=None, profile=None):
     """
-    Initialize default values for options by loading config files.
+    Initialize default values for options by config files loaded.
 
     :param config: Config file's path :: str
     :param profile: Custom profile as needed :: str
@@ -95,9 +134,9 @@ def _init_by_config_file(config=None, profile=None):
         confs += sorted(glob.glob("/etc/myrepo.d/*.conf"))
         confs += [os.environ.get("MYREPORC", os.path.join(home, ".myreporc"))]
     else:
-        confs = (config,)
+        confs = (config, )
 
-    cparser = cp.SafeConfigParser()
+    cparser = configparser.SafeConfigParser()
     loaded = False
 
     for c in confs:
@@ -120,10 +159,99 @@ def _init_by_config_file(config=None, profile=None):
 
 
 def init(config_path=None, profile=None):
+    """
+    Initialize config object.
+    """
     cfg = _init_by_defaults()
-    cfg.update(_init_by_config_file(config_path, profile))
+    cfg.update(_init_by_config(config_path, profile))
 
     return cfg
 
+
+def opt_parser(usage=_USAGE, conf=None):
+    """
+    Make up an option parser object.
+
+    >>> p = opt_parser()
+    >>> p is not None
+    True
+    """
+    defaults = init(conf)
+
+    dist_choices = defaults["dist_choices"]
+
+    p = optparse.OptionParser()
+    p.set_defaults(**defaults)
+
+    cog = optparse.OptionGroup(p, "Common options")
+    cog.add_option("", "--dists",
+                   help="Comma separated distribution labels including arch "
+                        "(optionally w/ build (mock) distribution label). "
+                        "Options are some of " + dist_choices +
+                        " [%default] and these combinations: e.g. "
+                        "fedora-19-x86_64, "
+                        "rhel-6-x86_64:my-custom-addon-rhel-6-x86_64")
+    cog.add_option("-T", "--tpaths", action="append", default=[],
+                   help="Specify additional template path one "
+                        "by one. These paths will have higher "
+                        "priority than default paths.")
+
+    cog.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
+    cog.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
+    cog.add_option("-D", "--debug", action="store_true", help="Debug mode")
+    p.add_option_group(cog)
+
+    cfog = optparse.OptionGroup(p, "Configuration options")
+    cfog.add_option("-C", "--config", help="Configuration file")
+    cfog.add_option("-P", "--profile",
+                    help="Specify configuration profile [none]")
+    p.add_option_group(cfog)
+
+    sog = optparse.OptionGroup(p, "(Repo) server Options")
+    sog.add_option("-H", "--hostname",
+                   help="Server to provide your yum repos. Please note that "
+                        "you need to specify another server name with "
+                        "--altname option if you server has alternative name "
+                        " for clients, Localhost will be used by default")
+    sog.add_option("", "--altname",
+                   help="Alternative hostname of the server to provide yum "
+                        "repos. Please note that this is different from "
+                        "the hostname specified with --hostname option. "
+                        "The former (--hostname) specifies the hostname of "
+                        "the server to connect from your workstation, and "
+                        "the later (--altname) specifies the hostname of "
+                        "the server yum clients access to. The hostname "
+                        "specified with --hostname will be used by default.")
+    sog.add_option("-u", "--user",
+                   help="Your username on the yum repo server [%default]")
+    sog.add_option("", "--topdir",
+                   help="Repo top dir or its format string [%default]")
+    sog.add_option("", "--baseurl",
+                   help="Repo base URL or its format string [%default]")
+    sog.add_option("", "--timeout", type="int",
+                   help="Timeout to connect to the server in seconds "
+                        "[%default]")
+    p.add_option_group(sog)
+
+    iog = optparse.OptionGroup(p, "Options for 'init' command")
+    iog.add_option("", "--no-genconf", action="store_false", dest="genconf",
+                   help="Do not generate yum repo metadata RPMs after "
+                        "initialization of yum repos.")
+    iog.add_option("", "--name",
+                   help="Name of your yum repo or its format string "
+                        "[%default].")
+    iog.add_option("", "--basename",
+                   help="Base distribution name or not set (None).")
+    iog.add_option("", "--subdir", help="Repository sub dir name [%default]")
+    iog.add_option("", "--email",
+                   help="Your email address or its format string [%default]")
+    iog.add_option("", "--fullname", help="Your full name [%default]")
+    iog.add_option("", "--signkey",
+                   help="GPG key ID if signing RPMs to deploy")
+    iog.add_option("", "--keydir", help="GPG key store directory [%default]")
+    iog.add_option("", "--keyurl", help="GPG key URL [%default]")
+    p.add_option_group(iog)
+
+    return p
 
 # vim:sw=4:ts=4:et:
