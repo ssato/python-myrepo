@@ -412,7 +412,7 @@ def deploy(ctx):
     :return: True if success else False
     """
     results = [(srpm, _build_srpm(ctx, srpm) and _deploy(ctx)) for
-               srpm in ctx.srpms]
+               srpm in ctx["srpms"]]
 
     ret = True
     for srpm, rc in results:
