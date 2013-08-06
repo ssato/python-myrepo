@@ -180,7 +180,7 @@ def opt_parser(usage=_USAGE, conf=None):
 
     dist_choices = defaults["dist_choices"]
 
-    p = optparse.OptionParser()
+    p = optparse.OptionParser(usage)
     p.set_defaults(**defaults)
 
     cog = optparse.OptionGroup(p, "Common options")
