@@ -19,7 +19,7 @@ from operator import attrgetter
 
 import myrepo.distribution as D
 import myrepo.globals as G
-import myrepo.shell2 as SH
+import myrepo.shell as SH
 
 import os.path
 
