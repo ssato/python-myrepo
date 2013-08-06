@@ -1,5 +1,5 @@
 include MANIFEST.in
-include README
+include README*
 include myrepo.spec.in
 include setup.py
 include tests/*
