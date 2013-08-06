@@ -3,13 +3,13 @@
 # Red Hat Author(s): Satoru SATOH <ssato@redhat.com>
 # License: MIT
 #
-import myrepo.repoops as RO
+import myrepo.commands as C
 import subprocess
 
 
-def post_build_rpms(repo, *args, **kwargs):
+def post_build_rpms(ctx, *args, **kwargs):
     if repo.signkey:
-        c = RO.sign_rpms_cmd(repo.signkey, repo.rpms_to_sign)
+        c = C.sign_rpms_cmd(ctx["repo"].signkey, ctx["rpms_to_sign"])
         subprocess.check_call(c, shell=True)
 
 
