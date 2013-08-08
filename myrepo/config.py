@@ -117,7 +117,7 @@ def _init_by_defaults():
                signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
                genconf=True, email=E.get_email(), fullname=E.get_fullname(),
                config=None, profile=None, tpaths=G._TEMPLATE_PATHS,
-               verbose=False, quiet=False, debug=False)
+               workdir=None, verbose=False, quiet=False, debug=False)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -201,6 +201,9 @@ def opt_parser(usage=_USAGE, conf=None):
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
                         "priority than default paths.")
+    cog.add_option("-w", "--workdir",
+                   help="Working directory to save results and log files. "
+                        "Dynamically generated dir will be used by default.")
 
     cog.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     cog.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
