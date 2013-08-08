@@ -261,8 +261,9 @@ def _build_srpm(ctx, srpm):
 
         brpms = [f for f in glob.glob(os.path.join(rpmdir, "*.rpm"))
                  if not f.endswith(".src.rpm")]
-        logging.debug("Found rpms: " + \
-                      str([os.path.basename(f) for f in brpms]))
+
+        m = "Found rpms: " + str([os.path.basename(f) for f in brpms])
+        logging.debug(m)
 
         for p in brpms:
             rpms_to_deploy.append((p, os.path.join(destdir, d.arch)))
@@ -376,7 +377,6 @@ def update(ctx):
     cf = "for d in %s; " + \
          "do (cd $d && (for f in ../%s/*.noarch.rpm; " + \
          "do test -f $f && ln -sf $f ./ || :; done)); done"
-
 
     # hack: degenerate noarch rpms
     if repo.multiarch:
