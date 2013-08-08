@@ -161,7 +161,7 @@ def gen_rpmspec(ctx, workdir, tpaths):
     return path
 
 
-def build_repodata_srpm(ctx, workdir, tpaths):
+def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
     """
     Generate .repo file, mock.cfg files and rpm spec for the repo
     (ctx["repo"]), build src.rpm contains them, and returns the path of
@@ -183,7 +183,9 @@ def build_repodata_srpm(ctx, workdir, tpaths):
         mpath = os.path.join(workdir, "%s-%s.cfg" % (repo.dist, d.arch))
         open(mpath, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
 
-    logfile = os.path.join(workdir, "build_repodata_srpm.log")
+    if logfile is None:
+        logfile = os.path.join(workdir, "build_repodata_srpm.log")
+
     vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
 
     c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
@@ -209,7 +211,7 @@ def _dists_by_srpm(repo, srpm):
     return repo.dists[:1] if is_noarch(srpm) else repo.dists
 
 
-def _build(repo, srpm):
+def _build(repo, srpm, logfile=False):
     """
     Build given SRPM file.
 
@@ -226,13 +228,13 @@ def _build(repo, srpm):
         c = d.build_cmd(srpm)
         logging.info("Build srpm: " + srpm)
 
-        if not SH.run(c, timeout=None, logfile=True):
+        if not SH.run(c, timeout=None, logfile=logfile):
             rc = False
 
     return rc
 
 
-def _build_srpm(ctx, srpm):
+def _build_srpm(ctx, srpm, logfile=False):
     """
     Build src.rpm and make up a list of RPMs to deploy and sign.
 
@@ -243,7 +245,7 @@ def _build_srpm(ctx, srpm):
     """
     repo = ctx["repo"]
 
-    if not _build(repo, srpm):
+    if not _build(repo, srpm, logfile):
         raise RuntimeError("Failed to build: " + srpm)
 
     destdir = repo.destdir
@@ -306,10 +308,17 @@ def _deploy(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else AssertionError will be raised.
     """
+    workdir = _init_workdir(ctx)
+    if workdir:
+        ctx["workdir"] = workdir
+
+    def logfile(rpm):
+        return os.path.join(ctx["workdir"],
+                            "deploy.%s.log" % os.path.basename(rpm))
+
     repo = ctx["repo"]
     largs = [([_deploy_cmd(repo, rpm, dest), ],
-              dict(timeout=None,
-                   logfile=("deploy_%s.log" % os.path.basename(rpm))))
+              dict(timeout=None, logfile=logfile(rpm)))
              for rpm, dest in ctx.get("rpms_to_deploy", [])]
 
     rcs = SH.prun(largs)
@@ -322,6 +331,27 @@ def _deploy(ctx):
     return True
 
 
+def _init_workdir(ctx):
+    """
+    Initialize working dir.
+
+    FIXME: This is a quick and dirty hack.
+    """
+    m = "Created workdir %s. This dir will be kept as it is. " + \
+        "Please remove it manually if you do not want to keep it."
+    workdir = ctx.get("workdir", False)
+    ret = None
+
+    if workdir:
+        if not os.path.exists(workdir):
+            os.makedirs(workdir)
+    else:
+        workdir = ret = __setup_workdir()
+
+    logging.info(m % workdir)
+    return ret
+
+
 # Commands:
 @hook
 def init(ctx):
@@ -331,9 +361,15 @@ def init(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
+    workdir = _init_workdir(ctx)
+    if workdir:
+        ctx["workdir"] = workdir
+
+    logfile = os.path.join(ctx["workdir"], "init.log")
+
     repo = ctx["repo"]
     rc = SH.run("mkdir -p " + ' '.join(repo.rpmdirs), repo.server_user,
-                repo.server_name, timeout=None,
+                repo.server_name, logfile=logfile, timeout=None,
                 conn_timeout=repo.server_timeout)
 
     if rc and ctx.get("genconf", False):
@@ -350,10 +386,13 @@ def genconf(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    workdir = __setup_workdir("myrepo_" + ctx["repo"].name + "-release-")
+    workdir = _init_workdir(ctx)
+    if workdir:
+        ctx["workdir"] = workdir
 
     repo = ctx["repo"]
-    srpm = build_repodata_srpm(ctx, workdir, ctx["tpaths"])
+    srpm = build_repodata_srpm(ctx, ctx["workdir"], ctx["tpaths"],
+                               os.path.join(ctx["workdir"], "genconf.log"))
 
     if srpm is None:
         logging.error("Failed to build yum repo release SRPM. "
@@ -373,6 +412,10 @@ def update(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
+    workdir = _init_workdir(ctx)
+    if workdir:
+        ctx["workdir"] = workdir
+
     repo = ctx["repo"]
     cf = "for d in %s; " + \
          "do (cd $d && (for f in ../%s/*.noarch.rpm; " + \
@@ -383,7 +426,7 @@ def update(ctx):
         c = cf % (" ".join(repo.archs[1:]), repo.primary_arch)
 
         SH.run(c, repo.server_user, repo.server_name, repo.destdir,
-               logfile=os.path.join(os.curdir, "update.0.log"),
+               logfile=os.path.join(ctx["workdir"], "update.0.log"),
                timeout=None, conn_timeout=repo.server_timeout,
                stop_on_error=True)
 
@@ -392,7 +435,7 @@ def update(ctx):
     c += " || createrepo --deltas --oldpackagedirs . --database ."
 
     largs = [([c, repo.server_user, repo.server_name, d],
-              dict(logfile="update.1.log", timeout=None,
+              dict(logfile=os.path.join(d, "update.1.log"), timeout=None,
                    conn_timeout=repo.server_timeout, stop_on_error=True))
              for d in repo.rpmdirs]
 
@@ -410,7 +453,18 @@ def build(ctx):
     """
     assert "srpms" in ctx, "'build' command requires arguments of srpm paths"
 
-    return all(_build_srpm(ctx, srpm) for srpm in ctx["srpms"])
+    workdir = _init_workdir(ctx)
+    if workdir:
+        ctx["workdir"] = workdir
+
+    rc = True
+    for srpm in ctx["srpms"]:
+        logfile = os.path.join(workdir,
+                               "build.%s.log" % os.path.basename(srpm))
+        if not _build_srpm(ctx, srpm, logfile):
+            rc = False
+
+    return rc
 
 
 @hook
