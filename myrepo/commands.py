@@ -35,6 +35,8 @@ import time
 
 _SIGN = "rpm --resign --define '_signature gpg' --define '_gpg_name %s' %s"
 
+_TMPDIR = os.environ.get("TMPDIR", "/tmp")
+
 # Aliases
 is_noarch = RU.is_noarch
 
@@ -50,7 +52,10 @@ def _datestamp(d=datetime.datetime.now()):
     return datetime.datetime.strftime(d, "%a %b %e %Y")
 
 
-def __setup_workdir(prefix, topdir="/tmp"):
+def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
+    """
+    Create temporal working dir to put data and log files.
+    """
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
 
 
@@ -166,6 +171,9 @@ def build_repodata_srpm(ctx, workdir, tpaths):
     :param workdir: Working dir to build RPMs
     :param tpaths: Template path list :: [str]
     """
+    assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
+        "Workdir must not be curdir!"
+
     repo = ctx["repo"]
 
     repofile = gen_repo_file(repo, workdir, tpaths)
@@ -175,13 +183,13 @@ def build_repodata_srpm(ctx, workdir, tpaths):
         mpath = os.path.join(workdir, "%s-%s.cfg" % (repo.dist, d.arch))
         open(mpath, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
 
-    logf = os.path.join(workdir, "build_repodata_srpm.log")
+    logfile = os.path.join(workdir, "build_repodata_srpm.log")
     vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
 
     c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
         "--define '_buildroot .' -bs %s%s" % (os.path.basename(rpmspec), vopt)
 
-    if SH.run(c, workdir=workdir, logfile=logf):
+    if SH.run(c, workdir=workdir, logfile=logfile):
         srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
         assert srpms, "No src.rpm found in " + workdir
 
