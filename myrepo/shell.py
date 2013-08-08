@@ -71,7 +71,7 @@ def _killpg(pgid, sig=signal.SIGKILL):
     return os.killpg(pgid, sig)
 
 
-def _run(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
+def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
     """
     subprocess.Popen wrapper to run command ``cmd``. It will be blocked.
 
@@ -81,7 +81,7 @@ def _run(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True or its log file path
+    :param logfile: Dump log file if True or log file path is specified
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     assert os.path.exists(workdir), "Working dir %s does not exist!" % workdir
