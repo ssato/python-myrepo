@@ -483,7 +483,7 @@ def deploy(ctx):
     ret = True
     for srpm, rc in results:
         if rc:
-            logging.info("Success: " + srpm)
+            logging.debug("Success: " + srpm)
         else:
             logging.warn("Fail: " + srpm)
             ret = False
