@@ -343,8 +343,10 @@ def _init_workdir(ctx):
     ret = None
 
     if workdir:
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
+        if os.path.exists(workdir):
+            return ret  # Avoid to output the notification message.
+
+        os.makedirs(workdir)
     else:
         workdir = ret = __setup_workdir()
 
