@@ -118,7 +118,7 @@ class Repo(object):
     (True, 'x86_64')
     >>> repo.base_dist, repo.base_label
     ('fedora-19', 'fedora-19-x86_64')
-    >>> repo.distdir, repo.destdir
+    >>> repo.subdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
     'http://yumrepos.example.com/~jdoe/yum/fedora/19'
@@ -173,12 +173,12 @@ class Repo(object):
         self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
 
         if subdir is None:
-            self.distdir = "%s/%s" % (basename, self.version)
+            self.subdir = "%s/%s" % (basename, self.version)
         else:
-            self.distdir = self._format(subdir)
+            self.subdir = self._format(subdir)
 
-        self.destdir = os.path.join(self.server_topdir, self.distdir)
-        self.baseurl = os.path.join(self.server_baseurl, self.distdir)
+        self.destdir = os.path.join(self.server_topdir, self.subdir)
+        self.baseurl = os.path.join(self.server_baseurl, self.subdir)
 
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]
