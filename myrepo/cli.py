@@ -97,8 +97,8 @@ def mk_repos(ctx, degenerate=False):
     for dist in dists:
         (dname, dver, archs, bdist) = dist
 
-        logging.debug("Creating repo: dname=%s, dver=%s, archs=%s, "
-                      "bdist=%s" % (dname, dver, archs, bdist))
+        logging.info("Creating repo: dname=%s, dver=%s, archs=%s, "
+                     "bdist=%s" % (dname, dver, archs, bdist))
 
         s = R.RepoServer(ctx["hostname"], ctx["user"], ctx["altname"],
                          ctx["topdir"], ctx["baseurl"], ctx["timeout"])
