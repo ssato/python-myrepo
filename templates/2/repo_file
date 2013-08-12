@@ -1,14 +1,14 @@
 [{{ reponame }}]
 name=Custom yum repository on {{ server_altname }} by {{ server_user }}
-baseurl={{ baseurl }}/$releasever/$basearch/
+baseurl={{ baseurl }}/{{ name }}/$releasever/$basearch/
 enabled=1
 {% if signkey %}gpgcheck=1
 gpgkey={{ keyurl }}{% else %}gpgcheck=0{% endif %}
 {% if metadata_expire is defined %}metadata_expire={{ metadata_expire }}{% endif %}
 
-[{{ name }}-source]
+[{{ reponame }}-source]
 name=Custom yum repository on {{ server_altname }} by {{ server_user }} (source)
-baseurl={{ baseurl }}/$releasever/sources/
+baseurl={{ baseurl }}/{{ name }}/$releasever/sources/
 enabled=0
 gpgcheck=0
 {% if metadata_expire is defined %}metadata_expire={{ metadata_expire }}{% endif %}
