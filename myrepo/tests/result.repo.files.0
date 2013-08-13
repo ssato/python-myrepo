@@ -1,0 +1,12 @@
+[fedora-yumrepos]
+name=Custom yum repository on yumrepos.example.com by jdoe
+baseurl=http://yumrepos.example.com/~jdoe/yum/fedora/$releasever/$basearch/
+enabled=1
+gpgcheck=0
+
+
+[fedora-yumrepos-source]
+name=Custom yum repository on yumrepos.example.com by jdoe (source)
+baseurl=http://yumrepos.example.com/~jdoe/yum/fedora/$releasever/sources/
+enabled=0
+gpgcheck=0

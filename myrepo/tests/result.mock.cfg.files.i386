@@ -1,0 +1,20 @@
+config_opts = {}
+execfile('/etc/mock/fedora-19-i386.cfg')
+
+config_opts['root'] = 'fedora-yumrepos-19-i386'
+config_opts['yum.conf'] += """
+
+[fedora-yumrepos]
+name=Custom yum repository on yumrepos.example.com by jdoe
+baseurl=http://yumrepos.example.com/~jdoe/yum/fedora/19/i386/
+enabled=1
+gpgcheck=0
+
+
+[fedora-yumrepos-source]
+name=Custom yum repository on yumrepos.example.com by jdoe (source)
+baseurl=http://yumrepos.example.com/~jdoe/yum/fedora/19/sources/
+enabled=0
+gpgcheck=0
+
+"""
