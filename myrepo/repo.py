@@ -17,11 +17,25 @@
 #
 from operator import attrgetter
 
-import myrepo.distribution as D
 import myrepo.globals as G
 import myrepo.shell as SH
+import myrepo.utils as U
 
+import datetime
+import locale
+import logging
 import os.path
+
+
+def _datestamp(d=datetime.datetime.now()):
+    """
+    Make up a date string to be used in %changelog section of RPM SPEC files.
+
+    >>> _datestamp(datetime.datetime(2013, 7, 31))
+    'Wed Jul 31 2013'
+    """
+    locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+    return datetime.datetime.strftime(d, "%a %b %e %Y")
 
 
 def _format(fmt_or_val, ctx={}):
@@ -46,27 +60,186 @@ def _foreach_member_of(obj):
         yield (k, v)
 
 
-class RepoServer(object):
+def _build_cmd(label, srpm):
     """
-    >>> s = RepoServer("localhost", "jdoe",
+    Make up a command string to build given ``srpm``.
+
+    NOTE: mock will print log messages to stderr (not stdout).
+
+    >>> logging.getLogger().setLevel(logging.INFO)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm'
+
+    >>> logging.getLogger().setLevel(logging.WARN)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm > /dev/null 2> /dev/null'
+
+    >>> logging.getLogger().setLevel(logging.DEBUG)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm -v'
+
+    :param label: Label of build target distribution,
+        e.g. fedora-19-x86_64, fedora-custom-19-x86_64
+    :param srpm: SRPM path to build
+
+    :return: A command string to build given ``srpm``
+    """
+    # suppress log messages from mock by log level:
+    level = logging.getLogger().level
+    if level >= logging.WARN:
+        log = " > /dev/null 2> /dev/null"
+    else:
+        log = " -v" if level < logging.INFO else ""
+
+    return "mock -r %s %s%s" % (label, srpm, log)
+
+
+def gen_repo_file_content(ctx, tpaths):
+    """
+    Make up the content of .repo file for given yum repositoriy ``repo``
+    will be put in /etc/yum.repos.d/ and return it.
+
+    NOTE: This function will be called more than twice. So, results of this
+    function will be memoized.
+
+    :param ctx: Context object to instantiate the template
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of .repo file will be put in
+    /etc/yum.repos.d/ :: str.
+    """
+    return U.compile_template("repo_file", ctx, tpaths)
+
+
+def gen_mock_cfg_content(ctx, tpaths):
+    """
+    Make up the content of mock.cfg file for given distribution (passed in
+    ctx["dist"]) will be put in /etc/yum.repos.d/ and return it.
+
+    :param ctx: Context object to instantiate the template
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of mock.cfg file for given repo will
+        be put in /etc/mock/ :: str
+    """
+    assert "repo_file_content" in ctx, \
+        "Template variable 'repo_file_content' is missing!"
+
+    return U.compile_template("mock.cfg", ctx, tpaths)
+
+
+def gen_rpmspec_content(ctx, tpaths):
+    """
+    Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
+    files for given repo (ctx["repo"]).
+
+    :param ctx: Context object to instantiate the template
+    :param tpaths: Template path list :: [str]
+
+    :return: String represents the content of RPM SPEC file :: str
+    """
+    assert "template" in ctx, "Template (base) name 'template' is missing!"
+
+    if "datestamp" not in ctx:
+        ctx["datestamp"] = _datestamp()
+
+    return U.compile_template(ctx["template"], ctx, tpaths)
+
+
+def gen_repo_file(repo, workdir, tpaths):
+    """
+    Generate .repo file for given ``repo`` and return its path.
+
+    :param repo: Repo object
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+    """
+    path = os.path.join(workdir, "%s.repo" % repo.reponame)
+    c = gen_repo_file_content(repo.as_dict(), tpaths)
+
+    logging.info("Generate .repo file as " + path)
+    open(path, 'w').write(c)
+
+
+def _write_file(path, content, force=False):
+    """
+    :param path: Path of output file
+    :param content: Content to be written into output file
+    :param force: Force overwrite files even if it exists
+    """
+    if os.path.exists(path) and not force:
+        logging.info("The output '%s' already exists. Do nothing")
+    else:
+        logging.info("Generate file: " + path)
+        open(path, 'w').write(content)
+
+
+def gen_repo_files_g(repo, workdir, tpaths, force=False):
+    """
+    Generate .repo and mock.cfg files for given ``repo`` and return these
+    paths (generator version).
+
+    :param repo: Repo object
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+    :param force: Force overwrite files even if it exists
+
+    :return: List of generated file's path
+    """
+    rfc = gen_repo_file_content(repo.as_dict(), tpaths)
+    path = os.path.join(workdir, "%s.repo" % repo.reponame)
+
+    _write_file(path, rfc, force)
+    yield path
+
+    for d in repo.dists:
+        root = repo.mock_root(d)
+        rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
+                                                                d.arch)
+        ctx = dict(mock_root=root, repo_file_content=rfc2,
+                   base_mockcfg=("%s-%s.cfg" % (d.dist, d.arch)))
+
+        path = os.path.join(workdir, "%s.cfg" % root)
+        c = gen_mock_cfg_content(ctx, tpaths)
+
+        _write_file(path, c, force)
+        yield path
+
+
+def gen_repo_files(repo, workdir, tpaths, force=False):
+    """
+    Generate .repo and mock.cfg files for given ``repo`` and return these
+    paths.
+
+    :param repo: Repo object
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+    :param force: Force overwrite files even if it exists
+    """
+    return list(gen_repo_files_g(repo, workdir, tpaths, force))
+
+
+class Server(object):
+    """
+    >>> s = Server("localhost", "jdoe",
     ...                baseurl="file:///home/%(user)s/public_html/yum")
-    >>> s.name, s.user, s.altname, s.shortname
-    ('localhost', 'jdoe', 'localhost', 'localhost')
+    >>> s.name, s.user, s.altname, s.shortname, s.shortaltname
+    ('localhost', 'jdoe', 'localhost', 'localhost', 'localhost')
     >>> s.topdir
     '~jdoe/public_html/yum'
     >>> s.baseurl
     'file:///home/jdoe/public_html/yum'
 
-    >>> s = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
-    >>> s.name, s.user, s.altname, s.shortname
-    ('yumrepos.local', 'jdoe', 'yumrepos.example.com', 'yumrepos')
+    >>> s = Server("yumrepos.local", "jdoe", "yumrepos.example.com")
+    >>> s.name, s.user, s.altname, s.shortname, s.shortaltname
+    ('yumrepos.local', 'jdoe', 'yumrepos.example.com', 'yumrepos', 'yumrepos')
     >>> s.baseurl
     'http://yumrepos.example.com/~jdoe/yum'
 
     >>> s.is_local
     False
 
-    >>> s = RepoServer("localhost", "jdoe", baseurl="file:///tmp")
+    >>> s = Server("localhost", "jdoe", baseurl="file:///tmp")
     >>> s.baseurl
     'file:///tmp'
     >>> s.is_local
@@ -88,11 +261,11 @@ class RepoServer(object):
         self.altname = name if altname is None else altname
         self.timeout = timeout  # It will be ignored if this host is localhost.
 
-        sep = '.'
-        self.shortname = name.split(sep)[0] if sep in name else name
+        self.shortname = self._mk_shortname(self.name)
+        self.shortaltname = self._mk_shortname(self.altname)
 
         ctx = dict(name=name, user=user, altname=self.altname, timeout=timeout,
-                   shortname=self.shortname)
+                   shortname=self.shortname, shortaltname=self.shortaltname)
 
         # The followings may be format strings.
         self.topdir = _format(topdir, ctx)
@@ -100,65 +273,97 @@ class RepoServer(object):
 
         self.is_local = SH.is_local(self.name)
 
+    def _mk_shortname(self, name, sep='.'):
+        return name.split(sep)[0] if sep in name else name
+
+
+class Dist(object):
+    """
+    >>> d = Dist("fedora-19", "x86_64")
+    >>> d.dist, d.arch, d.label
+    ('fedora-19', 'x86_64', 'fedora-19-x86_64')
+    >>> d.mockcfg
+    'fedora-19-x86_64.cfg'
+    """
+
+    def __init__(self, dist, arch):
+        """
+        :param dist: ${name}-${version}, e.g. "fedora-19", "rhel-6".
+        :param arch: Architecture, e.g. "i386", "x86_64"
+        """
+        self.dist = dist
+        self.arch = arch
+
+        self.label = "%s-%s" % (dist, arch)
+        self.mockcfg = "%s.cfg" % self.label
+
+    def rpmdir(self):
+        """Dir to save built RPMs.
+        """
+        return "/var/lib/mock/%s/result" % self.label
+
+    def build_cmd(self, srpm):
+        return _build_cmd(self.label, srpm)
+
 
 class Repo(object):
     """
-    Yum repository class.
+    Yum repository.
 
-    >>> s = RepoServer("yumrepos.local", "jdoe", "yumrepos.example.com")
-    >>> repo = Repo("%(basename)s-%(server_shortname)s-%(server_user)s",
-    ...             19, ["x86_64", "i386"], "fedora", s)
-    >>> repo.version, repo.archs, repo.basename
-    ('19', ['x86_64', 'i386'], 'fedora')
-    >>> repo.server_name, repo.server_altname, repo.server_shortname
-    ('yumrepos.local', 'yumrepos.example.com', 'yumrepos')
+    >>> s = Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+    >>> repo = Repo("fedora", 19, ["x86_64", "i386"], s,
+    ...             "%(name)s-custom-%(version)s",
+    ...             reponame="%(name)s-%(server_shortaltname)s")
+
+    >>> repo.name, repo.version, repo.archs
+    ('fedora', '19', ['x86_64', 'i386'])
+
+    >>> repo.server_name, repo.server_altname
+    ('yumrepos-1.local', 'yumrepos.example.com')
+    >>> repo.server_shortname, repo.server_shortaltname,
+    ('yumrepos-1', 'yumrepos')
     >>> repo.server_baseurl
     'http://yumrepos.example.com/~jdoe/yum'
+
     >>> repo.multiarch, repo.primary_arch
     (True, 'x86_64')
-    >>> repo.base_dist, repo.base_label
-    ('fedora-19', 'fedora-19-x86_64')
+
+    >>> repo.dist, repo.bdist, repo.label
+    ('fedora-19', 'fedora-custom-19', 'fedora-19-x86_64')
+
     >>> repo.subdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
+    'http://yumrepos.example.com/~jdoe/yum'
+    >>> repo.url
     'http://yumrepos.example.com/~jdoe/yum/fedora/19'
     >>> repo.rpmdirs  # doctest: +NORMALIZE_WHITESPACE
     ['~jdoe/public_html/yum/fedora/19/sources',
      '~jdoe/public_html/yum/fedora/19/x86_64',
      '~jdoe/public_html/yum/fedora/19/i386']
-    >>> repo.name, repo.dist, repo.label  # doctest: +NORMALIZE_WHITESPACE
-    ('fedora-yumrepos-jdoe', 'fedora-yumrepos-jdoe-19',
-     'fedora-yumrepos-jdoe-19-x86_64')
-    >>> repo.repofile
-    'fedora-yumrepos-jdoe-19.repo'
+
+    >>> repo.reponame
+    'fedora-yumrepos'
     """
 
-    def __init__(self, name, version, archs, basename, server,
-                 bdist=None, subdir=G._SUBDIR,
-                 signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
-                 **kwargs):
+    def __init__(self, name, version, archs, server, bdist=None,
+                 reponame=G._REPONAME):
         """
-        :param name: Repository name or its format string,
-            e.g. "rpmfusion-free", "rhel-custom" and
-            "%(basename)s-%(server_shortname)s-%(server_user)s".
+        :param name: Build target distribution name, fedora or rhel.
         :param version: Version string or number :: int
         :param archs: List of architectures, e.g. ["x86_64", "i386"]
-
-        :param basename: Base (parent) distribution name
-        :param server: RepoServer object :: myrepo.repo.RepoServer
-
-        :param subdir: Dir or its format string to save RPMs of this repo,
-            relative to the server's topdir.
-        :param signkey: GPG key ID to sign, or None indicates will never sign
-        ...
+        :param server: Server object :: myrepo.repo.Server
+        :param bdist: Build distribution label w/o arch, e.g.
+            "fedora-custom-19", "rhel-6".
+        :param reponame: This repo's name or its format string, e.g.
+            "fedora-custom", "%(name)s-%(server_shortaltname)s"
         """
+        self.name = name
         self.version = str(version)
         self.archs = archs
-        self.basename = basename
         self.server = server
-        self.keydir = keydir
 
-        # TODO: Dirty hack.
+        # Setup aliases of self.server.<key>:
         for k, v in _foreach_member_of(server):
             setattr(self, "server_" + k, v)
 
@@ -169,47 +374,37 @@ class Repo(object):
             self.archs = [self.primary_arch] + \
                          [a for a in archs if a != self.primary_arch]
 
-        self.base_dist = "%s-%s" % (basename, self.version)
-        self.base_label = "%s-%s" % (self.base_dist, self.primary_arch)
+        self.dist = "%s-%s" % (self.name, self.version)
+        self.label = "%s-%s" % (self.dist, self.primary_arch)
 
-        if subdir is None:
-            self.subdir = "%s/%s" % (basename, self.version)
-        else:
-            self.subdir = self._format(subdir)
-
-        self.destdir = os.path.join(self.server_topdir, self.subdir)
-        self.baseurl = os.path.join(self.server_baseurl, self.subdir)
+        self.subdir = os.path.normpath(os.path.join(self.name, self.version))
+        self.destdir = os.path.normpath(os.path.join(self.server_topdir,
+                                                     self.subdir))
+        self.baseurl = self.server_baseurl
+        self.url = os.path.join(self.baseurl, self.subdir)
 
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]
-
-        self.name = self._format(name)
-
-        self.dist = "%s-%s" % (self.name, self.version)
 
         if bdist is None:
             self.bdist = self.dist
         else:
             self.bdist = self._format(bdist)
 
-        self.label = "%s-%s" % (self.dist, self.primary_arch)
-        self.repofile = "%s.repo" % self.dist
+        self.reponame = self._format(reponame)
+        self.rootbase = "%s-%s" % (self.reponame, self.version)
+        self.dists = [Dist(self.dist, a) for a in self.archs]
 
-        self.dists = [D.Dist(basename, self.version, a, self.bdist)
-                      for a in self.archs]
-
-        if signkey is None:
-            self.signkey = self.keyurl = self.keyfile = ""
-        else:
-            self.signkey = signkey
-            self.keyurl = self._format(keyurl)
-            self.keyfile = os.path.join(self.keydir,
-                                        os.path.basename(self.keyurl))
+    def as_dict(self):
+        return self.__dict__
 
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
 
-    def as_dict(self):
-        return self.__dict__
+    def mock_root(self, dist):
+        """
+        :param dist: Dist object
+        """
+        return "%s-%s" % (self.rootbase, dist.arch)
 
 # vim:sw=4:ts=4:et:
