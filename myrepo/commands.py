@@ -40,62 +40,11 @@ _TMPDIR = os.environ.get("TMPDIR", "/tmp")
 is_noarch = RU.is_noarch
 
 
-def _datestamp(d=datetime.datetime.now()):
-    """
-    Make up a date string to be used in %changelog section of RPM SPEC files.
-
-    >>> _datestamp(datetime.datetime(2013, 7, 31))
-    'Wed Jul 31 2013'
-    """
-    locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
-    return datetime.datetime.strftime(d, "%a %b %e %Y")
-
-
 def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
     """
     Create temporal working dir to put data and log files.
     """
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
-
-
-def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
-    """
-    Generate .repo file, mock.cfg files and rpm spec for the repo
-    (ctx["repo"]), build src.rpm contains them, and returns the path of
-    built src.rpm.
-
-    :param ctx: Application context object
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-    """
-    assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
-        "Workdir must not be curdir!"
-
-    repo = ctx["repo"]
-
-    repofile = gen_repo_file(repo, workdir, tpaths)
-    rpmspec = gen_rpmspec(ctx, workdir, tpaths)
-
-    for d in repo.dists:  # d :: myrepo.distributed.Dist
-        mpath = os.path.join(workdir, "%s-%s.cfg" % (repo.dist, d.arch))
-        open(mpath, 'w').write(gen_mock_cfg_content(repo, d, tpaths))
-
-    if logfile is None:
-        logfile = os.path.join(workdir, "build_repodata_srpm.log")
-
-    vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
-
-    c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
-        "--define '_buildroot .' -bs %s%s" % (os.path.basename(rpmspec), vopt)
-
-    if SH.run(c, workdir=workdir, logfile=logfile):
-        srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
-        assert srpms, "No src.rpm found in " + workdir
-
-        return srpms[0] if srpms else None
-    else:
-        logging.warn("Failed to build yum repodata RPM from " + rpmspec)
-        return None
 
 
 def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
