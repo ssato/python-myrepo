@@ -61,7 +61,6 @@ class Test_00_functions(unittest.TestCase):
         ref = ref.replace("DATESTAMP", TT._datestamp())
 
         s = TT.gen_rpmspec_content(ctx, C.template_paths()).strip()
-
         self.assertEquals(s, ref, C.diff(s, ref))
 
 
