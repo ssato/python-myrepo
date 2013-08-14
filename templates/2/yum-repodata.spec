@@ -1,4 +1,4 @@
-%define distname "{{ repo.reponame }}-{{ repo.version }}"
+%define distname {{ repo.reponame }}-{{ repo.version }}
 
 Name:           {{ repo.reponame }}-release
 Version:        {{ repo.version }}
