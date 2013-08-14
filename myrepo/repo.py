@@ -135,30 +135,25 @@ def gen_rpmspec_content(ctx, tpaths):
 
     :param ctx: Context object to instantiate the template
     :param tpaths: Template path list :: [str]
+    :param tmpl: Template basename :: str
 
     :return: String represents the content of RPM SPEC file :: str
     """
-    assert "template" in ctx, "Template (base) name 'template' is missing!"
+    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
+    assert isinstance(ctx["repo"], Repo), \
+        "ctx['repo'] is not an instance of Repo class"
 
     if "datestamp" not in ctx:
         ctx["datestamp"] = _datestamp()
 
-    return U.compile_template(ctx["template"], ctx, tpaths)
+    if "fullname" not in ctx:
+        ctx["fullname"] = raw_input("Type your name > ")
 
+    if "email" not in ctx:
+        ctx["email"] = "%s@%s" % (ctx["repo"].server_user,
+                                  ctx["repo"].server_altname)
 
-def gen_repo_file(repo, workdir, tpaths):
-    """
-    Generate .repo file for given ``repo`` and return its path.
-
-    :param repo: Repo object
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-    """
-    path = os.path.join(workdir, "%s.repo" % repo.reponame)
-    c = gen_repo_file_content(repo.as_dict(), tpaths)
-
-    logging.info("Generate .repo file as " + path)
-    open(path, 'w').write(c)
+    return U.compile_template("yum-repodata.spec", ctx, tpaths)
 
 
 def _write_file(path, content, force=False):
@@ -312,7 +307,6 @@ class Repo(object):
 
     >>> s = Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
     >>> repo = Repo("fedora", 19, ["x86_64", "i386"], s,
-    ...             "%(name)s-custom-%(version)s",
     ...             reponame="%(name)s-%(server_shortaltname)s")
 
     >>> repo.name, repo.version, repo.archs
@@ -328,8 +322,8 @@ class Repo(object):
     >>> repo.multiarch, repo.primary_arch
     (True, 'x86_64')
 
-    >>> repo.dist, repo.bdist, repo.label
-    ('fedora-19', 'fedora-custom-19', 'fedora-19-x86_64')
+    >>> repo.dist, repo.label
+    ('fedora-19', 'fedora-19-x86_64')
 
     >>> repo.subdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
@@ -346,15 +340,12 @@ class Repo(object):
     'fedora-yumrepos'
     """
 
-    def __init__(self, name, version, archs, server, bdist=None,
-                 reponame=G._REPONAME):
+    def __init__(self, name, version, archs, server, reponame=G._REPONAME):
         """
         :param name: Build target distribution name, fedora or rhel.
         :param version: Version string or number :: int
         :param archs: List of architectures, e.g. ["x86_64", "i386"]
         :param server: Server object :: myrepo.repo.Server
-        :param bdist: Build distribution label w/o arch, e.g.
-            "fedora-custom-19", "rhel-6".
         :param reponame: This repo's name or its format string, e.g.
             "fedora-custom", "%(name)s-%(server_shortaltname)s"
         """
@@ -386,11 +377,6 @@ class Repo(object):
         self.rpmdirs = [os.path.join(self.destdir, d) for d in
                         ["sources"] + self.archs]
 
-        if bdist is None:
-            self.bdist = self.dist
-        else:
-            self.bdist = self._format(bdist)
-
         self.reponame = self._format(reponame)
         self.rootbase = "%s-%s" % (self.reponame, self.version)
         self.dists = [Dist(self.dist, a) for a in self.archs]
@@ -406,5 +392,6 @@ class Repo(object):
         :param dist: Dist object
         """
         return "%s-%s" % (self.rootbase, dist.arch)
+
 
 # vim:sw=4:ts=4:et:

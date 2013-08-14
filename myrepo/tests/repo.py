@@ -33,7 +33,6 @@ class Test_00_functions(unittest.TestCase):
     def test_10_gen_repo_file_content(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-custom-%(version)s",
                        "%(name)s-%(server_shortaltname)s")
 
         ref = C.readfile("result.repo.0")
@@ -50,6 +49,18 @@ class Test_00_functions(unittest.TestCase):
                    repo_file_content="REPO_FILE_CONTENT")
 
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+    def test_30_gen_rpmspec_content(self):
+        server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
+
+        ref = C.readfile("result.yum-repodata.spec.0").strip()
+        ref = ref.replace("DATESTAMP", TT._datestamp())
+
+        s = TT.gen_rpmspec_content(ctx, C.template_paths()).strip()
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
@@ -65,7 +76,6 @@ class Test_10_effectful_functions(unittest.TestCase):
     def test_10_gen_repo_file(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-custom-%(version)s",
                        "%(name)s-%(server_shortaltname)s")
 
         fs = TT.gen_repo_files(repo, self.workdir, C.template_paths())
@@ -113,7 +123,6 @@ class Test_30_classes(unittest.TestCase):
     def test_30__Repo__init__(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-custom-%(version)s",
                        "%(name)s-%(server_shortaltname)s")
 
         self.assertTrue(isinstance(repo, TT.Repo))
@@ -130,7 +139,6 @@ class Test_30_classes(unittest.TestCase):
         self.assertTrue(repo.multiarch)
         self.assertEquals(repo.primary_arch, "x86_64")
         self.assertEquals(repo.dist, "fedora-19")
-        self.assertEquals(repo.bdist, "fedora-custom-19")
         self.assertEquals(repo.label, "fedora-19-x86_64")
         self.assertEquals(repo.subdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
