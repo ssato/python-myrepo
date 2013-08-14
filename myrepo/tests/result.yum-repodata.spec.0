@@ -1,4 +1,4 @@
-%define distname "fedora-yumrepos-19"
+%define distname fedora-yumrepos-19
 
 Name:           fedora-yumrepos-release
 Version:        19
