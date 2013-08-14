@@ -19,7 +19,6 @@ from myrepo.hooks import hook
 
 import myrepo.shell as SH  # Use local copy instead of rpmkit.shell2
 import myrepo.utils as U
-import rpmkit.memoize as M
 import rpmkit.rpmutils as RU
 
 import datetime
@@ -57,108 +56,6 @@ def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
     Create temporal working dir to put data and log files.
     """
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
-
-
-@M.memoize
-def gen_repo_file_content(repo, tpaths):
-    """
-    Make up the content of .repo file for given yum repositoriy ``repo``
-    will be put in /etc/yum.repos.d/ and return it.
-
-    NOTE: This function will be called more than twice. So, results of this
-    function will be memoized.
-
-    :param repo: A myrepo.repo.Repo instance
-    :param tpaths: Template path list :: [str]
-
-    :return: String represents the content of .repo file will be put in
-        /etc/yum.repos.d/ :: str.
-    """
-    return U.compile_template("repo_file", repo.as_dict(), tpaths)
-
-
-def gen_mock_cfg_content(repo, dist, tpaths):
-    """
-    Update mock.cfg with addingg repository definitions in
-    given content and return it.
-
-    :param repo:  Repo object
-    :param dist:  Distribution object
-    :param tpaths: Template path list :: [str]
-
-    :return: String represents the content of mock.cfg file for given repo will
-        be put in /etc/mock/ :: str
-    """
-    ctx = dict(repo=repo, dist=dist,
-               repo_file_content=gen_repo_file_content(repo, tpaths))
-
-    return U.compile_template("mock.cfg", ctx, tpaths)
-
-
-def gen_rpmspec_content(ctx, tpaths):
-    """
-    Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
-    files for given repo (ctx["repo"]).
-
-    :param ctx: Application context object
-    :param tpaths: Template path list :: [str]
-
-    :return: String represents the content of RPM SPEC file :: str
-    """
-    ctx["datestamp"] = _datestamp()
-
-    return U.compile_template("yum-repodata.spec", ctx, tpaths)
-
-
-def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
-    """
-    Make up the command string to sign RPMs.
-
-    >>> exp = "rpm --resign --define '_signature gpg' "
-    >>> exp += "--define '_gpg_name ABCD123' a.rpm b.rpm"
-    >>> exp == sign_rpms_cmd("ABCD123", ["a.rpm", "b.rpm"])
-    True
-
-    TODO: It might ask user about the gpg passphrase everytime this method is
-    called.  How to store the passphrase or streamline that with gpg-agent ?
-
-    :param keyid: GPG Key ID to sign with :: str
-    :param rpms: RPM file path list :: [str]
-    :param ask: Ask key ID if both ``keyid`` and this are None
-    """
-    if keyid is None and ask:
-        keyid = raw_input("Input GPG Key ID to sign RPMs > ").strip()
-
-    return fmt % (keyid, ' '.join(rpms))
-
-
-def gen_repo_file(repo, workdir, tpaths):
-    """
-    Generate repo file and return its path.
-
-    TODO: Is it better to embed version string in .repo filename ?
-
-    :param repo:  Repo object
-    :param tpaths: Template path list :: [str]
-    """
-    path = os.path.join(workdir, "%s.repo" % repo.dist)
-    open(path, 'w').write(gen_repo_file_content(repo, tpaths))
-
-    return path
-
-
-def gen_rpmspec(ctx, workdir, tpaths):
-    """
-    Generate repo file and return its path.
-
-    :param ctx: Application context object
-    :param workdir: The top dir to generate output files
-    :param tpaths: Template path list :: [str]
-    """
-    path = os.path.join(workdir, "yum-repodata.spec")
-    open(path, 'w').write(gen_rpmspec_content(ctx, tpaths))
-
-    return path
 
 
 def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
@@ -199,6 +96,28 @@ def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
     else:
         logging.warn("Failed to build yum repodata RPM from " + rpmspec)
         return None
+
+
+def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
+    """
+    Make up the command string to sign RPMs.
+
+    >>> exp = "rpm --resign --define '_signature gpg' "
+    >>> exp += "--define '_gpg_name ABCD123' a.rpm b.rpm"
+    >>> exp == sign_rpms_cmd("ABCD123", ["a.rpm", "b.rpm"])
+    True
+
+    TODO: It might ask user about the gpg passphrase everytime this method is
+    called.  How to store the passphrase or streamline that with gpg-agent ?
+
+    :param keyid: GPG Key ID to sign with :: str
+    :param rpms: RPM file path list :: [str]
+    :param ask: Ask key ID if both ``keyid`` and this are None
+    """
+    if keyid is None and ask:
+        keyid = raw_input("Input GPG Key ID to sign RPMs > ").strip()
+
+    return fmt % (keyid, ' '.join(rpms))
 
 
 def _dists_by_srpm(repo, srpm):
