@@ -1,33 +1,35 @@
-Name:           {{ repo.name }}-release
+%define distname "{{ repo.reponame }}-{{ repo.version }}"
+
+Name:           {{ repo.reponame }}-release
 Version:        {{ repo.version }}
 Release:        1%{?dist}
-Summary:        Yum .repo files for {{ repo.dist }}
+Summary:        Yum .repo files for {{ repo.reponame }}
 Group:          System Environment/Base
 License:        MIT
-URL:            {{ repo.baseurl }}/
+URL:            {{ repo.url }}/
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 Requires:       yum
 # NOTE: .repo file does not depends on arch but mock.cfg does.
-Source0:        {{ repo.dist }}.repo
+Source0:        {{ repo.reponame }}.repo
 {% for arch in repo.archs -%}
-Source{{ loop.index }}:        {{ repo.dist }}-{{ arch }}.cfg
+Source{{ loop.index }}:        %{distname}-{{ arch }}.cfg
 {% endfor %}
 
 %description
-Yum repo and related config files of {{ repo.dist }}.
+Yum repo and related config files of {{ repo.reponame }}.
 
-This package contains release (.repo) file.
+This package contains yum repo (.repo) file.
 
 
-%package -n     mock-data-{{ repo.name }}
-Summary:        Mock related config files for {{ repo.dist }}
+%package -n     %{distname}-mockbuild-data
+Summary:        Mockbuild config files for %{distname}
 Group:          Development/Tools
 Requires:       mock
 
 
-%description -n mock-data-{{ repo.name }}
-Yum repo and related config files of {{ repo.dist }}.
+%description -n %{distname}-mockbuild-data
+Yum repo and related config files of %{distname}.
 
 This package contains mock.cfg file.
 
@@ -47,8 +49,8 @@ rm -rf $RPM_BUILD_ROOT
 
 mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
 mkdir -p $RPM_BUILD_ROOT/etc/mock
-install -m 644 {{ repo.dist }}.repo $RPM_BUILD_ROOT/etc/yum.repos.d
-for f in {{ repo.dist }}-*.cfg; do install -m 644 $f $RPM_BUILD_ROOT/etc/mock; done
+install -m 644 {{ repo.reponame }}.repo $RPM_BUILD_ROOT/etc/yum.repos.d
+for f in %{distname}-*.cfg; do install -m 644 $f $RPM_BUILD_ROOT/etc/mock; done
 
 
 %clean
@@ -60,7 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/yum.repos.d/*.repo
 
 
-%files   -n     mock-data-{{ repo.name }}
+%files -n       %{distname}-mockbuild-data
 %defattr(-,root,root,-)
 %config %{_sysconfdir}/mock/*.cfg
 
@@ -68,4 +70,3 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * {{ datestamp }} {{ fullname }} <{{ email }}> - {{ repo.version }}-1
 - Initial packaging.
-
