@@ -129,6 +129,32 @@ class Test_10_effectful_functions(unittest.TestCase):
 
 class Test_30_classes(unittest.TestCase):
 
+    def test_10__Server__init__(self):
+        s = TT.Server("localhost.localdomain", "jdoe", baseurl="file:///tmp")
+
+        self.assertEquals(s.name, "localhost.localdomain")
+        self.assertEquals(s.altname, "localhost.localdomain")
+        self.assertEquals(s.shortname, "localhost")
+        self.assertEquals(s.shortaltname, "localhost")
+        self.assertEquals(s.user, "jdoe")
+        self.assertEquals(s.baseurl, "file:///tmp")
+
+        self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
+                          "cp -a /tmp/a /b/c/d")
+
+    def test_12__Server__init__(self):
+        s = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+
+        self.assertEquals(s.name, "yumrepos-1.local")
+        self.assertEquals(s.altname, "yumrepos.example.com")
+        self.assertEquals(s.shortname, "yumrepos-1")
+        self.assertEquals(s.shortaltname, "yumrepos")
+        self.assertEquals(s.user, "jdoe")
+        self.assertEquals(s.baseurl, "http://yumrepos.example.com/~jdoe/yum")
+
+        self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
+                          "scp -p /tmp/a jdoe@yumrepos-1.local:/b/c/d")
+
     def test_20__Dict__init__(self):
         d = TT.Dist("fedora-19", "x86_64")
 

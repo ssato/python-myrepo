@@ -147,24 +147,6 @@ def _build_srpm(ctx, srpm, logfile=False):
     return True
 
 
-def _deploy_cmd(repo, src, dst):
-    """
-    Make up and and return command strings to deploy RPMs from ``src`` to
-    ``dst`` for the yum repository ``repo``.
-
-    :param repo: myrepo.repo.Repo object
-    :return: Deploying command string :: str
-    """
-    if repo.server_is_local:
-        if "~" in dst:
-            dst = os.path.expanduser(dst)
-
-        return "cp -a %s %s" % (src, dst)
-    else:
-        return "scp -p %s %s@%s:%s" % (src, repo.server_user,
-                                       repo.server_name, dst)
-
-
 def _deploy(ctx):
     """
     Deploy built RPMs.

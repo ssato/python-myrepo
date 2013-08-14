@@ -329,6 +329,24 @@ class Server(object):
     def _mk_shortname(self, name, sep='.'):
         return name.split(sep)[0] if sep in name else name
 
+    def deploy_cmd(self, src, dst):
+        """
+        Make up and and return command strings to deploy objects from ``src``
+        to ``dst`` on the server.
+
+        :param src: Copying source (path) :: str
+        :param dst: Copying destination (path) :: str
+
+        :return: command string to deploy objects :: str
+        """
+        if self.is_local:
+            if "~" in dst:
+                dst = os.path.expanduser(dst)
+
+            return "cp -a %s %s" % (src, dst)
+        else:
+            return "scp -p %s %s@%s:%s" % (src, self.user, self.name, dst)
+
 
 class Dist(object):
     """
@@ -451,5 +469,16 @@ class Repo(object):
         """
         return "%s-%s" % (self.rootbase, dist.arch)
 
+    def deploy_cmd(self, src, dst):
+        """
+        Make up and and return command strings to deploy objects from ``src``
+        to ``dst`` on the server.
+
+        :param src: Copying source (path) :: str
+        :param dst: Copying destination (path) :: str
+
+        :return: command string to deploy objects :: str
+        """
+        return self.server.deploy_cmd(src, dst)
 
 # vim:sw=4:ts=4:et:
