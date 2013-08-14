@@ -72,7 +72,7 @@ class Test_10_effectful_functions(unittest.TestCase):
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
-    def test_10_gen_repo_file(self):
+    def test_10_gen_repo_files(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
@@ -99,6 +99,32 @@ class Test_10_effectful_functions(unittest.TestCase):
             ref = ref.strip()
 
             self.assertEquals(s, ref, "f=%s\n" % f + C.diff(s, ref))
+
+    def test_30_gen_rpmspec(self):
+        server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
+
+        ref = C.readfile("result.yum-repodata.spec.0").strip()
+        ref = ref.replace("DATESTAMP", TT._datestamp())
+
+        f = TT.gen_rpmspec(ctx, self.workdir, C.template_paths())
+        s = open(f).read().strip()
+
+        self.assertTrue(os.path.exists(f))
+        self.assertEquals(s, ref, "f=%s\n" % f + C.diff(s, ref))
+
+    def test_40_build_repodata_srpm(self):
+        server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
+
+        srpms = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
+
+        self.assertFalse(srpms is None)
+        self.assertTrue(os.path.exists(srpms[0]))
 
 
 class Test_30_classes(unittest.TestCase):
