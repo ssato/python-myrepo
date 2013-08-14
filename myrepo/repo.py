@@ -22,6 +22,7 @@ import myrepo.shell as SH
 import myrepo.utils as U
 
 import datetime
+import glob
 import locale
 import logging
 import os.path
@@ -210,8 +211,65 @@ def gen_repo_files(repo, workdir, tpaths, force=False):
     :param workdir: Working dir to build RPMs
     :param tpaths: Template path list :: [str]
     :param force: Force overwrite files even if it exists
+
+    :return: List of path to the yum repo metadata files :: [str]
     """
     return list(gen_repo_files_g(repo, workdir, tpaths, force))
+
+
+def gen_rpmspec(ctx, workdir, tpaths, force=False):
+    """
+    Generate RPM SPEEC file to package yum repo metadata files (.repo and
+    mock.cfg) and return its path.
+
+    :param ctx: Context object to instantiate the template
+    :param workdir: Working dir to save RPM SPEC output
+    :param tpaths: Template path list :: [str]
+    :param force: Force overwrite files even if it exists
+
+    :return: List of path to the yum repo metadata files :: [str]
+    """
+    path = os.path.join(workdir, "%s-%s.spec" % (ctx["repo"].reponame,
+                                                 ctx["repo"].version))
+    c = gen_rpmspec_content(ctx, tpaths)
+    _write_file(path, c, force)
+
+    return path
+
+
+def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
+    """
+    Generate repodata files, .repo file, mock.cfg files and rpm spec, for given
+    yum repo (ctx["repo"]), package them and build src.rpm, and returns the
+    path of built src.rpm.
+
+    :param ctx: Context object to instantiate the template
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+    """
+    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
+    assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
+        "Workdir must not be curdir!"
+
+    files = gen_repo_files(ctx["repo"], workdir, tpaths)
+    f = gen_rpmspec(ctx, workdir, tpaths)
+
+    if logfile is None:
+        logfile = os.path.join(workdir, "build_repodata_srpm.log")
+
+    vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
+
+    c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
+        "--define '_buildroot .' -bs %s%s" % (os.path.basename(f), vopt)
+
+    if SH.run(c, workdir=workdir, logfile=logfile):
+        srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
+        assert srpms, "No src.rpm found in " + workdir
+
+        return srpms[0] if srpms else None
+    else:
+        logging.warn("Failed to build yum repodata RPM from " + f)
+        return None
 
 
 class Server(object):
