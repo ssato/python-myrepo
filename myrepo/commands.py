@@ -47,6 +47,30 @@ def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
     return tempfile.mkdtemp(dir=topdir, prefix=prefix)
 
 
+def _init_workdir(workdir):
+    """
+    Initialize (create) working dir if not exists and return its path.
+
+    FIXME: This is a quick and dirty hack.
+
+    :param workdir: Working dir path or None
+    :return: The path to working dir (created)
+    """
+    m = "Created workdir %s. This dir will be kept as it is. " + \
+        "Please remove it manually if you do not want to keep it."
+
+    if workdir:
+        if os.path.exists(workdir):
+            return None  # Avoid to log more than twice.
+
+        os.makedirs(workdir)
+    else:
+        workdir = __setup_workdir()
+
+    logging.info(m % workdir)
+    return workdir
+
+
 def sign_rpms_cmd(keyid=None, rpms=[], ask=True, fmt=_SIGN):
     """
     Make up the command string to sign RPMs.
@@ -80,7 +104,7 @@ def _deploy(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else AssertionError will be raised.
     """
-    workdir = _init_workdir(ctx)
+    workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
         ctx["workdir"] = workdir
 
@@ -103,29 +127,6 @@ def _deploy(ctx):
     return True
 
 
-def _init_workdir(ctx):
-    """
-    Initialize working dir.
-
-    FIXME: This is a quick and dirty hack.
-    """
-    m = "Created workdir %s. This dir will be kept as it is. " + \
-        "Please remove it manually if you do not want to keep it."
-    workdir = ctx.get("workdir", False)
-    ret = None
-
-    if workdir:
-        if os.path.exists(workdir):
-            return ret  # Avoid to output the notification message.
-
-        os.makedirs(workdir)
-    else:
-        workdir = ret = __setup_workdir()
-
-    logging.info(m % workdir)
-    return ret
-
-
 # Commands:
 @hook
 def init(ctx):
@@ -135,7 +136,7 @@ def init(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    workdir = _init_workdir(ctx)
+    workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
         ctx["workdir"] = workdir
 
@@ -160,7 +161,7 @@ def genconf(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    workdir = _init_workdir(ctx)
+    workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
         ctx["workdir"] = workdir
 
@@ -186,7 +187,7 @@ def update(ctx):
     :param ctx: Application context object holding parameters
     :return: True if success else False
     """
-    workdir = _init_workdir(ctx)
+    workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
         ctx["workdir"] = workdir
 
@@ -227,7 +228,7 @@ def build(ctx):
     """
     assert "srpms" in ctx, "'build' command requires arguments of srpm paths"
 
-    workdir = _init_workdir(ctx)
+    workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
         ctx["workdir"] = workdir
 
