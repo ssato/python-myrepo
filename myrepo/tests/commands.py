@@ -60,49 +60,6 @@ def _gen_local_fs_repo(workdir):
 
 class Test_00_functions(unittest.TestCase):
 
-    def test_00__datestamp_w_arg(self):
-        d = datetime.datetime(2013, 7, 31)
-        self.assertEquals(TT._datestamp(d), 'Wed Jul 31 2013')
-
-    def test_10_gen_repo_file_content(self):
-        repo = _REPO_0
-
-        ref = C.readfile("result.repo.0")
-        s = TT.gen_repo_file_content(repo, C.template_paths())
-
-        self.assertEquals(s, ref, C.diff(s, ref))
-
-    def test_20_gen_mock_cfg_content(self):
-        repo = _REPO_0
-
-        c = C.readfile("result.repo.0")
-        ref = C.readfile("result.mock.cfg.0").replace("REPO_FILE_CONTENT", c)
-
-        s = TT.gen_mock_cfg_content(repo, repo.dists[0], C.template_paths())
-
-        self.assertEquals(s, ref, C.diff(s, ref))
-
-    def test_25_gen_mock_cfg_content(self):
-        repo = _REPO_2
-
-        c = C.readfile("result.repo.2").replace("USER", E.get_username())
-        ref = C.readfile("result.mock.cfg.0").replace("REPO_FILE_CONTENT", c)
-
-        s = TT.gen_mock_cfg_content(repo, repo.dists[0], C.template_paths())
-
-        self.assertEquals(s, ref, C.diff(s, ref))
-
-    def test_30_gen_rpmspec_content(self):
-        dstamp = TT._datestamp()
-        ctx = dict(repo=_REPO_0, datestamp=dstamp, fullname="John Doe",
-                   email="jdoe@example.com")
-
-        ref = C.readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
-                                                               dstamp)
-        s = TT.gen_rpmspec_content(ctx, C.template_paths())
-
-        self.assertEquals(s, ref, C.diff(s, ref))
-
     def test_40_sign_rpms_cmd(self):
         ref = C.readfile("result.sign_rpms.0")
         s = TT.sign_rpms_cmd("XYZ01234", ["aaa-0.1-1.noarch.rpm",
@@ -124,43 +81,6 @@ class Test_00_functions(unittest.TestCase):
         self.assertEquals(s, "cp -a /a /b")
 
 
-class Test_10_effectful_functions(unittest.TestCase):
-
-    def setUp(self):
-        self.workdir = C.setup_workdir()
-
-    def tearDown(self):
-        C.cleanup_workdir(self.workdir)
-
-    def test_10_gen_repo_file(self):
-        repo = _REPO_0
-
-        ref = C.readfile("result.repo.0")
-        fref = os.path.join(self.workdir, "%s.repo" % repo.dist)
-
-        f = TT.gen_repo_file(repo, self.workdir, C.template_paths())
-        s = open(f).read()
-
-        self.assertTrue(os.path.isfile(f))
-        self.assertEquals(f, fref)
-        self.assertEquals(s, ref, C.diff(s, ref))
-
-    def test_20_gen_rpmspec(self):
-        dstamp = TT._datestamp()
-        ctx = dict(repo=_REPO_0, datestamp=dstamp,
-                   fullname="John Doe", email="jdoe@example.com")
-
-        fref = os.path.join(self.workdir, "yum-repodata.spec")
-        ref = C.readfile("result.yum-repodata.spec.0").replace("DATESTAMP",
-                                                               dstamp)
-        f = TT.gen_rpmspec(ctx, self.workdir, C.template_paths())
-        s = open(f).read()
-
-        self.assertTrue(os.path.isfile(f))
-        self.assertEquals(f, fref)
-        self.assertEquals(s, ref, C.diff(s, ref))
-
-
 class Test_20_build_functions(unittest.TestCase):
 
     def setUp(self):
@@ -168,32 +88,6 @@ class Test_20_build_functions(unittest.TestCase):
 
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
-
-    def test_10_build_repodata_srpm(self):
-        dstamp = TT._datestamp()
-        ctx = dict(repo=_REPO_0, datestamp=dstamp, fullname="John Doe",
-                   email="jdoe@example.com")
-
-        srpm = TT.build_repodata_srpm(ctx, self.workdir,
-                                      C.template_paths())
-
-        self.assertFalse(srpm is None)
-        self.assertTrue(os.path.isfile(srpm))
-
-    def test_20__dists_by_srpm(self):
-        repo = _REPO_0
-        dstamp = TT._datestamp()
-
-        ctx = dict(repo=repo, datestamp=dstamp, fullname="John Doe",
-                   email="jdoe@example.com")
-
-        srpm = TT.build_repodata_srpm(ctx, self.workdir,
-                                      C.template_paths())
-
-        dists = TT._dists_by_srpm(repo, srpm)
-
-        self.assertTrue(dists)
-        self.assertEquals(dists[0], repo.dists[0])
 
     def test_30__build(self):
         repo = _REPO_2
