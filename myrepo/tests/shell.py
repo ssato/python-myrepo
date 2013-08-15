@@ -67,6 +67,12 @@ class Test_10_run(unittest.TestCase):
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertFalse(TT.stop_async_run(proc))
 
+    def test_02_run_async__simplest_case(self):
+        proc = TT.run_async("sleep 5 && true", workdir=self.workdir,
+                            logfile=True)
+        self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
+        self.assertFalse(TT.stop_async_run(proc, 2))
+
     def test_10_run__simplest_case(self):
         self.assertTrue(TT.run("true", workdir=self.workdir, logfile=True))
         self.assertFalse(TT.run("false", workdir=self.workdir, logfile=True))
