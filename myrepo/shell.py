@@ -225,6 +225,10 @@ def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
         reason = "interrupted"
         proc.terminate()
 
+        if proc.is_alive():
+            reason = "interrupt-but-could-not-terminate"
+            os.kill(proc.pid, signal.SIGKILL)
+
     m = "Failed (%s): %s" % (reason, proc.command)
 
     if stop_on_error:
