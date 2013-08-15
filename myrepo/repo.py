@@ -275,32 +275,59 @@ def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
         return None
 
 
-def build_srpm(repo, srpm, logfile=False):
+def start_building_srpm_async_g(repo, srpm, logfile=False):
     """
-    Build src.rpm and make up a list of RPMs to deploy and sign.
-
-    FIXME: Ugly code around signkey check and setting RPMs to deploy.
+    Start to build src.rpm for each dist (generator version).
 
     :param repo: Repo object
     :param srpm: Path to src.rpm to build
+    :param logfile: Log file path or False (not logged)
+
+    :return: List of multiprocessing.Process instances
+    """
+    fmt = "Build srpm %s for %s"
+
+    for d in repo.list_dists_to_build_srpm(srpm):
+        logging.info(fmt % (srpm, d.label))
+        yield SH.run_async(d.build_cmd(srpm), logfile=logfile)
+
+
+def start_building_srpm_async(repo, srpm, logfile=False):
+    """
+    Start to build src.rpm for each dist.
+
+    See also the above generator version.
+
+    :param repo: Repo object
+    :param srpm: Path to src.rpm to build
+    :param logfile: Log file path or False (not logged)
+
+    :return: List of multiprocessing.Process instances
+    """
+    return list(start_building_srpm_async_g(repo, srpm, logfile))
+
+
+def wait_building_srpm(repo, srpm, logfile=False, procs=[]):
+    """
+    Wait to src.rpm are built for dists.
+
+    :param repo: Repo object
+    :param srpm: Path to src.rpm to build
+    :param logfile: Log file path or False (not logged)
+    :param procs: List of multiprocessing.Process instaces to build src.rpm
+        for dists. see also above function ``start_building_srpm_async_g``.
 
     :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
     """
-    dists = repo.list_dists_to_build_srpm(srpm)
-    procs = []
-
-    for d in dists:
-        logging.info("Build srpm %s for %s" % (srpm, d.label))
-        c = d.build_cmd(srpm)
-        p = SH.run_async(c, logfile=logfile)
-        procs.append(p)
+    if not procs:
+        procs = start_building_srpm_async(repo, srpm, logfile)
 
     destdir = repo.destdir
     rpms_to_deploy = []  # :: [(rpm_path, destdir)]
     rpms_to_sign = []
     rc = True
 
-    for i, d in enumerate(dists):
+    for i, d in enumerate(repo.list_dists_to_build_srpm(srpm)):
         rpmdir = d.rpmdir()
 
         if not SH.stop_async_run(procs[i], timeout=None):
@@ -326,6 +353,20 @@ def build_srpm(repo, srpm, logfile=False):
 
     return (rc, dict(rpms_to_deploy=rpms_to_deploy,
                      rpms_to_sign=rpms_to_sign))
+
+
+def build_srpm(repo, srpm, logfile=False):
+    """
+    Build src.rpm and make up a list of RPMs to deploy and sign.
+
+    FIXME: Ugly code around signkey check and setting RPMs to deploy.
+
+    :param repo: Repo object
+    :param srpm: Path to src.rpm to build
+
+    :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
+    """
+    return wait_building_srpm(repo, srpm)
 
 
 class Server(object):
