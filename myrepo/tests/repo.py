@@ -121,10 +121,39 @@ class Test_10_effectful_functions(unittest.TestCase):
                        "%(name)s-%(server_shortaltname)s")
         ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
 
-        srpms = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
+        srpm = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
 
-        self.assertFalse(srpms is None)
-        self.assertTrue(os.path.exists(srpms[0]))
+        self.assertFalse(srpm is None)
+        self.assertTrue(os.path.exists(srpm))
+
+
+class Test_20_effectful_functions(unittest.TestCase):
+
+    def setUp(self):
+        self.workdir = C.setup_workdir()
+
+    def test_50_build_srpm(self):
+        server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
+        logfile = os.path.join(self.workdir, "build_srpm.log")
+
+        srpm = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
+
+        self.assertFalse(srpm is None)
+        self.assertTrue(os.path.exists(srpm))
+
+        (rc, rpms) = TT.build_srpm(repo, srpm, logfile)
+        self.assertTrue(rc)
+        self.assertTrue(rpms["rpms_to_deploy"])
+        self.assertTrue(rpms["rpms_to_sign"])
+
+        for rpm, destdir in rpms["rpms_to_deploy"]:
+            self.assertTrue(os.path.exists(rpm))
+
+        for rpm in rpms["rpms_to_sign"]:
+            self.assertTrue(os.path.exists(rpm))
 
 
 class Test_30_classes(unittest.TestCase):

@@ -20,6 +20,7 @@ from operator import attrgetter
 import myrepo.globals as G
 import myrepo.shell as SH
 import myrepo.utils as U
+import rpmkit.rpmutils as RU
 
 import datetime
 import glob
@@ -246,6 +247,8 @@ def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
     :param ctx: Context object to instantiate the template
     :param workdir: Working dir to build RPMs
     :param tpaths: Template path list :: [str]
+
+    :return: Path to the built src.rpm file or None (failed to build it)
     """
     assert "repo" in ctx, "Variable 'repo' is missing in ctx"
     assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
@@ -270,6 +273,59 @@ def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
     else:
         logging.warn("Failed to build yum repodata RPM from " + f)
         return None
+
+
+def build_srpm(repo, srpm, logfile=False):
+    """
+    Build src.rpm and make up a list of RPMs to deploy and sign.
+
+    FIXME: Ugly code around signkey check and setting RPMs to deploy.
+
+    :param repo: Repo object
+    :param srpm: Path to src.rpm to build
+
+    :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
+    """
+    dists = repo.list_dists_to_build_srpm(srpm)
+    procs = []
+
+    for d in dists:
+        logging.info("Build srpm %s for %s" % (srpm, d.label))
+        c = d.build_cmd(srpm)
+        p = SH.run_async(c, logfile=logfile)
+        procs.append(p)
+
+    destdir = repo.destdir
+    rpms_to_deploy = []  # :: [(rpm_path, destdir)]
+    rpms_to_sign = []
+    rc = True
+
+    for i, d in enumerate(dists):
+        rpmdir = d.rpmdir()
+
+        if not SH.stop_async_run(procs[i], timeout=None):
+            logging.warn("Failed to build srpm %s for %s" % (srpm, d.label))
+            rc = False
+
+        srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
+        assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
+
+        srpm_to_copy = srpms_to_copy[0]
+        rpms_to_deploy.append((srpm_to_copy, os.path.join(destdir, "sources")))
+
+        brpms = [f for f in glob.glob(os.path.join(rpmdir, "*.rpm"))
+                 if not f.endswith(".src.rpm")]
+
+        m = "Found rpms: " + str([os.path.basename(f) for f in brpms])
+        logging.debug(m)
+
+        for p in brpms:
+            rpms_to_deploy.append((p, os.path.join(destdir, d.arch)))
+
+        rpms_to_sign += brpms
+
+    return (rc, dict(rpms_to_deploy=rpms_to_deploy,
+                     rpms_to_sign=rpms_to_sign))
 
 
 class Server(object):
@@ -468,6 +524,15 @@ class Repo(object):
         :param dist: Dist object
         """
         return "%s-%s" % (self.rootbase, dist.arch)
+
+    def list_dists_to_build_srpm(self, srpm):
+        """
+        List dists to build given src.rpm.
+
+        :param srpm: Path to src.rpm to build
+        :return: List of Dist objects to build given srpm
+        """
+        return self.dists[:1] if RU.is_noarch(srpm) else self.dists
 
     def deploy_cmd(self, src, dst):
         """
