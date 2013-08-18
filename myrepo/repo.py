@@ -333,6 +333,7 @@ def wait_building_srpm(repo, srpm, logfile=False, procs=[]):
         if not SH.stop_async_run(procs[i], timeout=None):
             logging.warn("Failed to build srpm %s for %s" % (srpm, d.label))
             rc = False
+            continue
 
         srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
         assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
@@ -363,10 +364,11 @@ def build_srpm(repo, srpm, logfile=False):
 
     :param repo: Repo object
     :param srpm: Path to src.rpm to build
+    :param logfile: Log file path or False (not logged)
 
     :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
     """
-    return wait_building_srpm(repo, srpm)
+    return wait_building_srpm(repo, srpm, logfile)
 
 
 class Server(object):
