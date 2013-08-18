@@ -476,37 +476,38 @@ class Dist(object):
 
 class MaybeMultiarchDist(object):
     """
-    Objects represent a collection of Dist objects having same name and
-    version but different architectures.
+    A collection of Dist objects having same name and same version but
+    different architectures.
 
     >>> d = MaybeMultiarchDist("fedora", 19, ["x86_64", "i386"])
     >>> d.multiarch, d.primary_arch
     (True, 'x86_64')
-    >>> d.dist, d.label
-    ('fedora-19', 'fedora-19-x86_64')
-    >>> d.subdir
-    'fedora/19'
+    >>> d.dist, d.subdir
+    ('fedora-19', 'fedora/19')
     """
 
-    def __init__(self, name, version, archs):
+    def __init__(self, name, version, archs, primary_arch="x86_64"):
         """
         :param name: Distribution name, fedora or rhel.
         :param version: Version string or number :: int
         :param archs: List of architectures, e.g. ["x86_64", "i386"]
+        :param primary_arch: Primary arch or None. If archs[0] is the
+            primary_arch, pass None as this.
         """
+        assert archs, "parameter 'archs' must not be an empty list!"
+
         self.name = name
         self.version = str(version)
-        self.archs = archs
         self.dist = "%s-%s" % (self.name, self.version)
+        self.multiarch = len(archs) > 1
 
-        self.multiarch = "i386" in archs and "x86_64" in archs
-        self.primary_arch = "x86_64" if self.multiarch else archs[0]
-
-        if self.multiarch:
+        if primary_arch in archs:
+            self.primary_arch = primary_arch
             self.archs = [self.primary_arch] + \
-                         [a for a in archs if a != self.primary_arch]
+                         [a for a in archs if a != primary_arch]
+        else:
+            self.primary_arch = archs[0]
 
-        self.label = "%s-%s" % (self.dist, self.primary_arch)
         self.subdir = os.path.join(self.name, self.version)
 
 
