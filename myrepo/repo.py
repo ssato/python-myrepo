@@ -480,10 +480,14 @@ class MaybeMultiarchDist(object):
     different architectures.
 
     >>> d = MaybeMultiarchDist("fedora", 19, ["x86_64", "i386"])
+    >>> d.name, d.version, d.dist, d.subdir
+    ('fedora', '19', 'fedora-19', 'fedora/19')
     >>> d.multiarch, d.primary_arch
     (True, 'x86_64')
-    >>> d.dist, d.subdir
-    ('fedora-19', 'fedora/19')
+
+    >>> d = MaybeMultiarchDist("fedora", 19, ["x86_64"])
+    >>> d.multiarch, d.primary_arch
+    (False, 'x86_64')
     """
 
     def __init__(self, name, version, archs, primary_arch="x86_64"):
@@ -495,6 +499,8 @@ class MaybeMultiarchDist(object):
             primary_arch, pass None as this.
         """
         assert archs, "parameter 'archs' must not be an empty list!"
+        assert all(a in G._RPM_ARCHS for a in archs), \
+            "Invalid arch[s] found in given arch list: " + ', '.join(archs)
 
         self.name = name
         self.version = str(version)
@@ -508,6 +514,7 @@ class MaybeMultiarchDist(object):
                          [a for a in archs if a != primary_arch]
         else:
             self.primary_arch = archs[0]
+            self.archs = archs
 
 
 class Repo(object):

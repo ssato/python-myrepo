@@ -29,6 +29,11 @@ _TEMPLATE_PATHS = [os.path.join(MYREPO_TEMPLATE_PATH, "2"),
 _LOG_FMT = "%(asctime)s [%(levelname)-4s] myrepo: %(message)s"
 _LOG_DFMT = "%H:%M:%S"  # too much? "%a, %d %b %Y %H:%M:%S"
 
+
+# RPM archs:
+_RPM_ARCHS = ("i386", "i586", "i686", "x86_64", "ppc", "ia64", "s390",
+              "s390x", "noarch")
+
 # timeouts [sec]:
 _CONN_LOCAL_TIMEOUT = 3
 _CONN_REMOTE_TIMEOUT = 10
