@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import rpmkit.environ as E
-
 import multiprocessing
 import logging
 import os
@@ -117,7 +115,7 @@ def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
         if rc and rc == rc_expected:
             return  # Not an error.
 
-        raise  # Raise it again.
+        raise RuntimeError(str(e))  # Raise ex again.
 
 
 def _spawn(cmd, workdir, rc_expected=0, logfile=True, **kwargs):
@@ -142,9 +140,6 @@ _CONN_TO = 10
 def init(loglevel=logging.INFO):
     multiprocessing.log_to_stderr()
     multiprocessing.get_logger().setLevel(loglevel)
-    results = multiprocessing.Queue()
-
-    return results
 
 
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
@@ -169,15 +164,14 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
         if "~" in workdir:
             workdir = os.path.expanduser(workdir)
     else:
-        if user is None:
-            user = E.get_username()
-
         if conn_timeout is None:
             toopt = ""
         else:
             toopt = '' "-o ConnectTimeout=%d" % conn_timeout
 
-        cmd = "ssh %s %s@%s 'cd %s && %s'" % (toopt, user, host, workdir, cmd)
+        h = host if user is None else "%s@%s" % (user, host)
+
+        cmd = "ssh %s %s 'cd %s && %s'" % (toopt, h, workdir, cmd)
         logging.debug("Remote host. Rewrote cmd to " + cmd)
 
         workdir = os.curdir
@@ -186,15 +180,36 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     proc = _spawn(cmd, workdir, rc_expected, logfile, **kwargs)
     proc.start()
 
-    # Hack:
-    setattr(proc, "command", cmd)
+    # Hacks:
+    setattr(proc, "cmd", cmd)
+    setattr(proc, "cwd", workdir)
 
     return proc
 
 
+def _force_stop_proc(proc, val0=True, val1=False):
+    """
+    Force stopping the given process ``proc`` and return termination was
+    success or not.
+
+    :param proc: An instance of multiprocessing.Process.
+    :param val0: Return value if the process was successfully terminated.
+    :param val1: Return value if the process was failed to be terminated
+        and then killed.
+
+    :return: val0 or val1 according to conditions (see above).
+    """
+    proc.terminate()
+    if not proc.is_alive():
+        return val0
+
+    os.kill(proc.pid, signal.SIGKILL)
+    return val1
+
+
 def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
     """
-    Stop the given process ``proc`` spawned from the above function.
+    Stop the given process ``proc`` spawned from function ``run_async``.
 
     :param proc: An instance of multiprocessing.Process
     :param timeout: Command execution timeout in seconds or None
@@ -204,32 +219,24 @@ def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
         raised if stop_on_error is True
     """
     _validate_timeout(timeout)
+    assert isinstance(proc, multiprocessing.Process), \
+        "Invalid type of 'proc' parameter was given!"
 
     try:
         proc.join(timeout)
 
         if proc.is_alive():
-            reason = "timeout"
-            proc.terminate()
-
-            if proc.is_alive():
-                reason = "timeout-and-could-not-terminate"
-                os.kill(proc.pid, signal.SIGKILL)
+            reason = _force_stop_proc(proc, "timeout", "timeout-and-killed")
         else:
             if proc.exitcode == 0:
-                return True
-            else:
-                reason = "other"
+                return True  # Exit at once w/ successful status code.
+
+            reason = "other"
 
     except KeyboardInterrupt as e:
-        reason = "interrupted"
-        proc.terminate()
+        reason = _force_stop_proc(proc, "interrupted", "interrupt-and-killed")
 
-        if proc.is_alive():
-            reason = "interrupt-but-could-not-terminate"
-            os.kill(proc.pid, signal.SIGKILL)
-
-    m = "Failed (%s): %s" % (reason, proc.command)
+    m = "Failed (%s): %s" % (reason, proc.cmd)
 
     if stop_on_error:
         raise RuntimeError(m)
@@ -277,7 +284,7 @@ def prun_async(list_of_args):
     :param list_of_args: List of arguments (:: [([arg], dict(kwarg=...))]) for
         each job will be passed to ``run_async`` function.
 
-    :return: List of greenlet instances
+    :return: List of multiprocessing.Process instances
     """
     return [run_async(*args, **kwargs) for args, kwargs in list_of_args]
 
