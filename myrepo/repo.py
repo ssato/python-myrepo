@@ -529,23 +529,18 @@ class Repo(object):
     >>> s = Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
     >>> repo = Repo("fedora", 19, ["x86_64", "i386"], s,
     ...             reponame="%(name)s-%(server_shortaltname)s")
-
     >>> repo.name, repo.version, repo.archs
     ('fedora', '19', ['x86_64', 'i386'])
-
     >>> repo.server_name, repo.server_altname
     ('yumrepos-1.local', 'yumrepos.example.com')
     >>> repo.server_shortname, repo.server_shortaltname,
     ('yumrepos-1', 'yumrepos')
     >>> repo.server_baseurl
     'http://yumrepos.example.com/~jdoe/yum'
-
     >>> repo.multiarch, repo.primary_arch
     (True, 'x86_64')
-
-    >>> repo.dist, repo.label
-    ('fedora-19', 'fedora-19-x86_64')
-
+    >>> repo.dist
+    'fedora-19'
     >>> repo.subdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
@@ -556,7 +551,6 @@ class Repo(object):
     ['~jdoe/public_html/yum/fedora/19/sources',
      '~jdoe/public_html/yum/fedora/19/x86_64',
      '~jdoe/public_html/yum/fedora/19/i386']
-
     >>> repo.reponame
     'fedora-yumrepos'
     """
