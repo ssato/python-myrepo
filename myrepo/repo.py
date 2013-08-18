@@ -581,7 +581,7 @@ class Repo(object):
                          [a for a in archs if a != self.primary_arch]
 
         self.dist = "%s-%s" % (self.name, self.version)
-        self.label = "%s-%s" % (self.dist, self.primary_arch)
+        #self.label = "%s-%s" % (self.dist, self.primary_arch)
 
         self.subdir = os.path.normpath(os.path.join(self.name, self.version))
         self.destdir = os.path.normpath(os.path.join(self.server_topdir,

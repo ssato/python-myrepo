@@ -219,7 +219,6 @@ class Test_30_classes(unittest.TestCase):
         self.assertTrue(repo.multiarch)
         self.assertEquals(repo.primary_arch, "x86_64")
         self.assertEquals(repo.dist, "fedora-19")
-        self.assertEquals(repo.label, "fedora-19-x86_64")
         self.assertEquals(repo.subdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,
