@@ -499,6 +499,7 @@ class MaybeMultiarchDist(object):
         self.name = name
         self.version = str(version)
         self.dist = "%s-%s" % (self.name, self.version)
+        self.subdir = os.path.join(self.name, self.version)
         self.multiarch = len(archs) > 1
 
         if primary_arch in archs:
@@ -507,8 +508,6 @@ class MaybeMultiarchDist(object):
                          [a for a in archs if a != primary_arch]
         else:
             self.primary_arch = archs[0]
-
-        self.subdir = os.path.join(self.name, self.version)
 
 
 class Repo(object):
