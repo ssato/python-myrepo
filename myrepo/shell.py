@@ -142,6 +142,54 @@ def init(loglevel=logging.INFO):
     multiprocessing.get_logger().setLevel(loglevel)
 
 
+def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
+               conn_timeout=_CONN_TO):
+    """
+    >>> adjust_cmd("true", workdir="/tmp")
+    ('true', '/tmp')
+
+    >>> (cmd, workdir) = adjust_cmd("true", host="repo.example.com",
+    ...                             workdir="/tmp", conn_timeout=None)
+    >>> cmd
+    "ssh  repo.example.com 'cd /tmp && true'"
+    >>> workdir == os.curdir
+    True
+
+    >>> (cmd, workdir) = adjust_cmd("true", host="repo.example.com",
+    ...                             workdir="/tmp", conn_timeout=10)
+    >>> cmd
+    "ssh -o ConnectTimeout=10 repo.example.com 'cd /tmp && true'"
+    >>> workdir == os.curdir
+    True
+
+    "ssh  repo.example.com 'cd /tmp && true'"
+    :param cmd: Command string
+    :param user: Run command as this user
+    :param host: Host on which command runs
+    :param workdir: Working directory in which command runs
+    :param conn_timeout: Connection timeout in seconds or None
+
+    :return: A tuple of (command_string, workdir)
+    """
+    if is_local(host):
+        if "~" in workdir:
+            workdir = os.path.expanduser(workdir)
+    else:
+        if conn_timeout is None:
+            toopt = ""
+        else:
+            toopt = '' "-o ConnectTimeout=%d" % conn_timeout
+
+        h = host if user is None else "%s@%s" % (user, host)
+
+        cmd = "ssh %s %s 'cd %s && %s'" % (toopt, h, workdir, cmd)
+        logging.debug("Remote host. Rewrote cmd to " + cmd)
+
+        workdir = os.curdir
+
+    return (cmd, workdir)
+
+
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
               rc_expected=0, logfile=False, conn_timeout=_CONN_TO,
               **kwargs):
@@ -159,22 +207,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     :return: multiprocessing.Process instance
     """
     _validate_timeout(conn_timeout)
-
-    if is_local(host):
-        if "~" in workdir:
-            workdir = os.path.expanduser(workdir)
-    else:
-        if conn_timeout is None:
-            toopt = ""
-        else:
-            toopt = '' "-o ConnectTimeout=%d" % conn_timeout
-
-        h = host if user is None else "%s@%s" % (user, host)
-
-        cmd = "ssh %s %s 'cd %s && %s'" % (toopt, h, workdir, cmd)
-        logging.debug("Remote host. Rewrote cmd to " + cmd)
-
-        workdir = os.curdir
+    (cmd, workdir) = adjust_cmd(cmd, user, host, workdir, conn_timeout)
 
     logging.debug("Run: cmd=%s, cwd=%s" % (cmd, workdir))
     proc = _spawn(cmd, workdir, rc_expected, logfile, **kwargs)

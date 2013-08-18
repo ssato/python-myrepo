@@ -46,6 +46,33 @@ def delayed_interrupt(pid, wait=10):
         p.terminate()
 
 
+class Test_00_functions(unittest.TestCase):
+
+    def test_10_local__fullpath_workdir(self):
+        (cmd, workdir) = TT.adjust_cmd("true", workdir="/tmp")
+
+        self.assertEquals(cmd, "true")
+        self.assertEquals(workdir, "/tmp")
+
+    def test_12_local__user_workdir(self):
+        """TODO: How to test cases if "~" in workdir"""
+        pass
+
+    def test_14_remote__no_conn_timeout(self):
+        (cmd, workdir) = TT.adjust_cmd("true", host="repos.example.com", 
+                                       workdir="/tmp", conn_timeout=None)
+        self.assertEquals(cmd, "ssh  repos.example.com 'cd /tmp && true'")
+        self.assertEquals(workdir, os.curdir)
+
+    def test_16_remote__no_conn_timeout(self):
+        (cmd, workdir) = TT.adjust_cmd("true", host="repos.example.com", 
+                                       workdir="/tmp", conn_timeout=7)
+        cmdref = "ssh -o ConnectTimeout=7 repos.example.com 'cd /tmp && true'"
+
+        self.assertEquals(cmd, cmdref)
+        self.assertEquals(workdir, os.curdir)
+
+
 class Test_10_run(unittest.TestCase):
 
     def setUp(self):
