@@ -516,6 +516,11 @@ class MaybeMultiarchDist(object):
             self.primary_arch = archs[0]
             self.archs = archs
 
+        self.labels = ["%s-%s" % (self.dist, a) for a in self.archs]
+
+    def build_cmds(self, srpm):
+        return [_build_cmd(label, srpm) for label in self.labels]
+
 
 class Repo(object):
     """
