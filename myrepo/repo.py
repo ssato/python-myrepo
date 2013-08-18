@@ -474,12 +474,12 @@ class Dist(object):
         return _build_cmd(self.label, srpm)
 
 
-class Dists(object):
+class MaybeMultiarchDist(object):
     """
     Objects represent a collection of Dist objects having same name and
     version but different architectures.
 
-    >>> d = Dists("fedora", 19, ["x86_64", "i386"])
+    >>> d = MaybeMultiarchDist("fedora", 19, ["x86_64", "i386"])
     >>> d.multiarch, d.primary_arch
     (True, 'x86_64')
     >>> d.dist, d.label
