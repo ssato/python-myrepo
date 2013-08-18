@@ -371,6 +371,7 @@ def build_srpm(repo, srpm, logfile=False):
     return wait_building_srpm(repo, srpm, logfile)
 
 
+# Classes:
 class Server(object):
     """
     >>> s = Server("localhost", "jdoe",
@@ -557,7 +558,8 @@ class Repo(object):
     'fedora-yumrepos'
     """
 
-    def __init__(self, name, version, archs, server, reponame=G._REPONAME):
+    def __init__(self, name, version, archs, server, reponame=G._REPONAME,
+                 primary_arch="x86_64"):
         """
         :param name: Build target distribution name, fedora or rhel.
         :param version: Version string or number :: int
@@ -565,25 +567,28 @@ class Repo(object):
         :param server: Server object :: myrepo.repo.Server
         :param reponame: This repo's name or its format string, e.g.
             "fedora-custom", "%(name)s-%(server_shortaltname)s"
+        :param primary_arch: Primary arch or None. If archs[0] is the
+            primary_arch, pass None as this.
         """
         self.name = name
         self.version = str(version)
         self.archs = archs
         self.server = server
+        self.multiarch = len(archs) > 1
 
         # Setup aliases of self.server.<key>:
         for k, v in _foreach_member_of(server):
             setattr(self, "server_" + k, v)
 
-        self.multiarch = "i386" in self.archs and "x86_64" in self.archs
-        self.primary_arch = "x86_64" if self.multiarch else self.archs[0]
-
-        if self.multiarch:
+        if primary_arch in archs:
+            self.primary_arch = primary_arch
             self.archs = [self.primary_arch] + \
-                         [a for a in archs if a != self.primary_arch]
+                         [a for a in archs if a != primary_arch]
+        else:
+            self.primary_arch = archs[0]
+            self.archs = archs
 
         self.dist = "%s-%s" % (self.name, self.version)
-        #self.label = "%s-%s" % (self.dist, self.primary_arch)
 
         self.subdir = os.path.normpath(os.path.join(self.name, self.version))
         self.destdir = os.path.normpath(os.path.join(self.server_topdir,
@@ -597,6 +602,7 @@ class Repo(object):
         self.reponame = self._format(reponame)
         self.rootbase = "%s-%s" % (self.reponame, self.version)
         self.dists = [Dist(self.dist, a) for a in self.archs]
+        self.primary_dist = self.dists[0]
 
     def as_dict(self):
         return self.__dict__
