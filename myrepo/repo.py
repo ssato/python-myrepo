@@ -429,6 +429,10 @@ class Server(object):
     def _mk_shortname(self, name, sep='.'):
         return name.split(sep)[0] if sep in name else name
 
+    def adjust_cmd(self, cmd, workdir):
+        return SH.adjust_cmd(cmd, self.server_user, self.server_host,
+                             workdir)
+
     def deploy_cmd(self, src, dst):
         """
         Make up and and return command strings to deploy objects from ``src``

@@ -28,7 +28,7 @@ _REMOTE_REPO_0 = MR.Repo("fedora", 19, ["x86_64", "i386"],
                          MR.Server("yumrepos-1.local", "jdoe"))
 
 
-class Test_10_mk_cmds_functions(unittest.TestCase):
+class Test_10(unittest.TestCase):
 
     def test_10_mk_cmds_to_build_srpm__noarch(self):
         repo = _REMOTE_REPO_0
