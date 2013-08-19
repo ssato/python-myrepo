@@ -137,11 +137,6 @@ _RUN_TO = None
 _CONN_TO = 10
 
 
-def init(loglevel=logging.INFO):
-    multiprocessing.log_to_stderr()
-    multiprocessing.get_logger().setLevel(loglevel)
-
-
 def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
                conn_timeout=_CONN_TO):
     """
