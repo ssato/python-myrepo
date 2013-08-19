@@ -524,10 +524,11 @@ class MaybeMultiarchDist(object):
 
         if primary_arch in archs:
             self.primary_arch = primary_arch
-            self.archs = [self.primary_arch] + \
-                         [a for a in archs if a != primary_arch]
+            self.other_archs = [a for a in archs if a != primary_arch]
+            self.archs = [self.primary_arch] + self.other_archs
         else:
             self.primary_arch = archs[0]
+            self.other_archs = archs[1:]
             self.archs = archs
 
         self.labels = ["%s-%s" % (self.dist, a) for a in self.archs]
@@ -543,8 +544,8 @@ class Repo(object):
     >>> s = Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
     >>> repo = Repo("fedora", 19, ["x86_64", "i386"], s,
     ...             reponame="%(name)s-%(server_shortaltname)s")
-    >>> repo.name, repo.version, repo.archs
-    ('fedora', '19', ['x86_64', 'i386'])
+    >>> repo.name, repo.version, repo.archs, repo.other_archs
+    ('fedora', '19', ['x86_64', 'i386'], ['i386'])
     >>> repo.server_name, repo.server_altname
     ('yumrepos-1.local', 'yumrepos.example.com')
     >>> repo.server_shortname, repo.server_shortaltname,
@@ -593,10 +594,11 @@ class Repo(object):
 
         if primary_arch in archs:
             self.primary_arch = primary_arch
-            self.archs = [self.primary_arch] + \
-                         [a for a in archs if a != primary_arch]
+            self.other_archs = [a for a in archs if a != primary_arch]
+            self.archs = [self.primary_arch] + self.other_archs
         else:
             self.primary_arch = archs[0]
+            self.other_archs = archs[1:]
             self.archs = archs
 
         self.dist = "%s-%s" % (self.name, self.version)
