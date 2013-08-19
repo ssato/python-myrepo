@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.repo as MR
+import myrepo.shell as SH
 import rpmkit.rpmutils as RU
 
 import logging
@@ -49,20 +50,52 @@ def mk_cmds_to_build_srpm(repo, srpm, noarch=None, bdist=None):
         return [MR._build_cmd("%s-%s" % (bdist, a), srpm) for a in repo.archs]
 
 
-def mk_cmds_to_deploy_rpms(repo, bdist=None):
+_MK_SYMLINKS_TO_NOARCH_RPM = """\
+for arch in %(other_archs_s)s; do \
+    (cd $arch/ && (for f in ../%(primar_arch)s/%(noarch_rpms)s; do \
+        ln -sf $f ./; done)); done
+"""
+
+
+def mk_cmds_to_deploy_rpms(repo, srpm, noarch=None, bdist=None):
     """
     Make up list of command strings to build given srpm.
 
     :param repo: Repo instance
+    :param srpm: srpm path
+    :param noarch: True or False if built RPM is noarch/arch-dependent
     :param bdist: Build dist (name-version), e.g. 'fedora-custom-19'
 
     :return: List of commands to build given srpm
     """
     assert isinstance(repo, MR.Repo), "Wrong arg repo of type " + repr(repo)
 
+    if noarch is None:
+        noarch = RU.is_noarch(srpm)
+
     if bdist is None:
         bdist = repo.dist
 
-    pass
+    dcmd = repo.server.deploy_cmd
+    c0 = dcmd(os.path.join(rpmdir, "*.src.rpm"),
+              os.path.join(repo.destdir, "sources"))
+
+    if noarch:
+        rpmdir = "/var/lib/mock/%s-%s/result/" % (bdist, repo.primary_arch)
+
+        ctx = dict(other_archs_s=' '.join(repo.other_archs),
+                   primar_arch=repo.primar_arch,
+                   noarch_rpms="*.noarch.rpm")
+        (sc, sc_dir) = repo.adjust_cmd(_MK_SYMLINKS_TO_NOARCH_RPM % ctx)
+
+        bc = SH.bind(dcmd(os.path.join(rpmdir, "*.noarch.rpm"),
+                          os.path.join(repo.destdir, repo.primary_arch)), sc)
+        cs = [c0, bc]
+    else:
+        cs = [c0] + [dcmd(os.path.join(rpmdir, "*.%s.rpm" % a),
+                          os.path.join(repo.destdir, a)) for a in repo.archs]
+
+    return cs
+
 
 # vim:sw=4:ts=4:et:
