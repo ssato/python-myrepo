@@ -180,6 +180,21 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
     return (cmd, workdir)
 
 
+def bind(cmd1, cmd2, workdir1=os.curdir, workdir2=os.curdir):
+    """
+    >>> (c, d) = bind("true", "false")
+    >>> c
+    'true && false'
+
+    >>> bind("true", "false", "/tmp", "/")
+    ('true && cd / && false', '/tmp')
+    """
+    if workdir1 == workdir2:
+        return ("%s && %s" % (cmd1, cmd2), workdir1)
+    else:
+        return ("%s && cd %s && %s" % (cmd1, workdir2, cmd2), workdir1)
+
+
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
               rc_expected=0, logfile=False, conn_timeout=_CONN_TO,
               **kwargs):
