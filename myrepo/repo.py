@@ -399,7 +399,7 @@ class Server(object):
     True
     """
 
-    def __init__(self, name, user, altname=None, topdir=G._SERVER_TOPDIR,
+    def __init__(self, name, user=None, altname=None, topdir=G._SERVER_TOPDIR,
                  baseurl=G._SERVER_BASEURL, timeout=G._CONN_TIMEOUT):
         """
         :param name: FQDN or hostname of the server provides yum repos
@@ -429,7 +429,13 @@ class Server(object):
     def _mk_shortname(self, name, sep='.'):
         return name.split(sep)[0] if sep in name else name
 
-    def adjust_cmd(self, cmd, workdir):
+    def adjust_cmd(self, cmd, workdir=os.curdir):
+        """
+        :param cmd: Command string
+        :param workdir: Working directory in which command runs
+
+        :return: A tuple of (command_string, workdir)
+        """
         return SH.adjust_cmd(cmd, self.server_user, self.server_host,
                              workdir)
 
@@ -449,7 +455,8 @@ class Server(object):
 
             return "cp -a %s %s" % (src, dst)
         else:
-            return "scp -p %s %s@%s:%s" % (src, self.user, self.name, dst)
+            h = "%s@%s" % (self.user, self.name) if self.user else self.name
+            return "scp -p %s %s:%s" % (src, h, dst)
 
 
 class Dist(object):
