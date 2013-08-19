@@ -162,7 +162,6 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
     >>> workdir == os.curdir
     True
 
-    "ssh  repo.example.com 'cd /tmp && true'"
     :param cmd: Command string
     :param user: Run command as this user
     :param host: Host on which command runs
@@ -175,14 +174,10 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
         if "~" in workdir:
             workdir = os.path.expanduser(workdir)
     else:
-        if conn_timeout is None:
-            toopt = ""
-        else:
-            toopt = '' "-o ConnectTimeout=%d" % conn_timeout
-
+        top = "-o ConnectTimeout=%d" % conn_timeout if conn_timeout else ''
         h = host if user is None else "%s@%s" % (user, host)
 
-        cmd = "ssh %s %s 'cd %s && %s'" % (toopt, h, workdir, cmd)
+        cmd = "ssh %s %s 'cd %s && %s'" % (top, h, workdir, cmd)
         logging.debug("Remote host. Rewrote cmd to " + cmd)
 
         workdir = os.curdir
