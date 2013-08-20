@@ -436,8 +436,7 @@ class Server(object):
 
         :return: A tuple of (command_string, workdir)
         """
-        return SH.adjust_cmd(cmd, self.server_user, self.server_host,
-                             workdir)
+        return SH.adjust_cmd(cmd, self.user, self.name, workdir)
 
     def deploy_cmd(self, src, dst):
         """
@@ -637,6 +636,15 @@ class Repo(object):
         :return: List of Dist objects to build given srpm
         """
         return self.dists[:1] if RU.is_noarch(srpm) else self.dists
+
+    def adjust_cmd(self, cmd, workdir=os.curdir):
+        """
+        :param cmd: Command string
+        :param workdir: Working directory in which command runs
+
+        :return: A tuple of (command_string, workdir)
+        """
+        return self.server.adjust_cmd(cmd, workdir)
 
     def deploy_cmd(self, src, dst):
         """
