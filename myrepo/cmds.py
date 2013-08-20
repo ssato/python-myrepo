@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+from myrepo.hooks import hook
+
 import myrepo.repo as MR
 import myrepo.shell as SH
 import myrepo.utils as U
@@ -22,6 +24,42 @@ import rpmkit.rpmutils as RU
 
 import logging
 import os.path
+import os
+import tempfile
+
+
+_TMPDIR = os.environ.get("TMPDIR", "/tmp")
+
+
+def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
+    """
+    Create temporal working dir to put data and log files.
+    """
+    return tempfile.mkdtemp(dir=topdir, prefix=prefix)
+
+
+def _init_workdir(workdir):
+    """
+    Initialize (create) working dir if not exists and return its path.
+
+    FIXME: This is a quick and dirty hack.
+
+    :param workdir: Working dir path or None
+    :return: The path to working dir (created)
+    """
+    m = "Created workdir %s. This dir will be kept as it is. " + \
+        "Please remove it manually if you do not want to keep it."
+
+    if workdir:
+        if os.path.exists(workdir):
+            return None  # Avoid to log more than twice.
+
+        os.makedirs(workdir)
+    else:
+        workdir = __setup_workdir()
+
+    logging.info(m % workdir)
+    return workdir
 
 
 def _build_cmd(label, srpm):
@@ -163,6 +201,43 @@ def mk_cmds_to_init__no_genconf(repo, *args, **kwargs):
     dirs_s = os.path.join(repo.destdir,
                           "{%s}" % ','.join(repo.archs + ["sources"]))
     return [repo.adjust_cmd("mkdir -p " + dirs_s)[0]]
+
+
+# commands:
+@hook
+def build(ctx):
+    """
+    Build src.rpm and make up a list of RPMs to deploy and sign.
+
+    FIXME: ugly code around signkey check.
+
+    :param ctx: Application context object holding parameters
+    """
+    assert "srpms" in ctx, "'build' command needs srpm paths!"
+    assert "repos" in ctx, "No repos defined in given ctx!"
+
+    def csgen():
+        for repo, bdist in ctx["repos"]:
+            for srpm, noarch in ctx["srpms"]:
+                yield mk_cmds_to_build_srpm(repo, srpm, noarch, bdist)
+
+    cs = U.uconcat(cs for cs in cgen())
+
+    if "dryrun" in ctx:
+        "commands to run:"
+        for c in cs:
+            print "# " + c
+
+        sys.exit(0)
+
+    workdir = _init_workdir(ctx.get("workdir", None))
+    if workdir:
+        ctx["workdir"] = workdir
+
+    logpath = lambda srpm: os.path.join(workdir, "build.%s.log" %
+                                        os.path.basename(srpm))
+    ps = [SH.run_async(c, logfile=logpath(srpm)) for srpm in srpms]
+    return all(stop_async_run(p) for p in ps)
 
 
 # vim:sw=4:ts=4:et:
