@@ -17,10 +17,45 @@
 #
 import myrepo.repo as MR
 import myrepo.shell as SH
+import myrepo.utils as U
 import rpmkit.rpmutils as RU
 
 import logging
 import os.path
+
+
+def _build_cmd(label, srpm):
+    """
+    Make up a command string to build given ``srpm``.
+
+    NOTE: mock will print log messages to stderr (not stdout).
+
+    >>> logging.getLogger().setLevel(logging.INFO)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm'
+
+    >>> logging.getLogger().setLevel(logging.WARN)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm > /dev/null 2> /dev/null'
+
+    >>> logging.getLogger().setLevel(logging.DEBUG)
+    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
+    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm -v'
+
+    :param label: Label of build target distribution,
+        e.g. fedora-19-x86_64, fedora-custom-19-x86_64
+    :param srpm: SRPM path to build
+
+    :return: A command string to build given ``srpm``
+    """
+    # suppress log messages from mock by log level:
+    level = logging.getLogger().level
+    if level >= logging.WARN:
+        log = " > /dev/null 2> /dev/null"
+    else:
+        log = " -v" if level < logging.INFO else ""
+
+    return "mock -r %s %s%s" % (label, srpm, log)
 
 
 def mk_cmds_to_build_srpm(repo, srpm, noarch=None, bdist=None):
@@ -45,9 +80,9 @@ def mk_cmds_to_build_srpm(repo, srpm, noarch=None, bdist=None):
 
     if noarch:
         label = "%s-%s" % (bdist, repo.primary_arch)
-        return [MR._build_cmd(label, srpm)]
+        return [_build_cmd(label, srpm)]
     else:
-        return [MR._build_cmd("%s-%s" % (bdist, a), srpm) for a in repo.archs]
+        return [_build_cmd("%s-%s" % (bdist, a), srpm) for a in repo.archs]
 
 
 _MK_SYMLINKS_TO_NOARCH_RPM = """\
