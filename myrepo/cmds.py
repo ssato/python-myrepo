@@ -76,7 +76,7 @@ def mk_cmds_to_deploy_rpms(repo, srpm, noarch=None, bdist=None):
         bdist = repo.dist
 
     dcmd = repo.server.deploy_cmd
-    rpmdir = "/var/lib/mock/%s-%%s/result/" % bdist
+    rpmdir = "/var/lib/mock/%s-%%s/result" % bdist
     c0 = dcmd(os.path.join(rpmdir % repo.primary_arch, "*.src.rpm"),
               os.path.join(repo.destdir, "sources"))
 
