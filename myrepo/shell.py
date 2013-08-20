@@ -140,8 +140,15 @@ _CONN_TO = 10
 def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
                conn_timeout=_CONN_TO):
     """
+    >>> adjust_cmd("true")
+    ('true', '.')
     >>> adjust_cmd("true", workdir="/tmp")
     ('true', '/tmp')
+
+    >>> (cmd, workdir) = adjust_cmd("true", host="repo.example.com",
+    ...                             conn_timeout=None)
+    >>> cmd
+    "ssh  repo.example.com 'true'"
 
     >>> (cmd, workdir) = adjust_cmd("true", host="repo.example.com",
     ...                             workdir="/tmp", conn_timeout=None)
@@ -171,8 +178,9 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
     else:
         top = "-o ConnectTimeout=%d" % conn_timeout if conn_timeout else ''
         h = host if user is None else "%s@%s" % (user, host)
+        w = '' if workdir in (os.curdir, None) else "cd %s && " % workdir
 
-        cmd = "ssh %s %s 'cd %s && %s'" % (top, h, workdir, cmd)
+        cmd = "ssh %s %s '%s%s'" % (top, h, w, cmd)
         logging.debug("Remote host. Rewrote cmd to " + cmd)
 
         workdir = os.curdir
