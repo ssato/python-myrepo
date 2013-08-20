@@ -27,6 +27,7 @@ import os
 # Aliases:
 typecheck = U.typecheck
 is_local = U.is_local
+uconcat = U.uconcat
 
 
 def compile_template(tmpl, context={}, tpaths=G._TEMPLATE_PATHS):
