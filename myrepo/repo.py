@@ -15,29 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from operator import attrgetter
-
 import myrepo.globals as G
 import myrepo.shell as SH
 import myrepo.utils as U
 import rpmkit.rpmutils as RU
 
-import datetime
 import glob
 import locale
 import logging
 import os.path
-
-
-def _datestamp(d=datetime.datetime.now()):
-    """
-    Make up a date string to be used in %changelog section of RPM SPEC files.
-
-    >>> _datestamp(datetime.datetime(2013, 7, 31))
-    'Wed Jul 31 2013'
-    """
-    locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
-    return datetime.datetime.strftime(d, "%a %b %e %Y")
 
 
 def _format(fmt_or_val, ctx={}):
@@ -60,315 +46,6 @@ def _foreach_member_of(obj):
             continue
 
         yield (k, v)
-
-
-def _build_cmd(label, srpm):
-    """
-    Make up a command string to build given ``srpm``.
-
-    NOTE: mock will print log messages to stderr (not stdout).
-
-    >>> logging.getLogger().setLevel(logging.INFO)
-    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
-    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm'
-
-    >>> logging.getLogger().setLevel(logging.WARN)
-    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
-    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm > /dev/null 2> /dev/null'
-
-    >>> logging.getLogger().setLevel(logging.DEBUG)
-    >>> _build_cmd("fedora-19-x86_64", "/tmp/abc-0.1.src.rpm")
-    'mock -r fedora-19-x86_64 /tmp/abc-0.1.src.rpm -v'
-
-    :param label: Label of build target distribution,
-        e.g. fedora-19-x86_64, fedora-custom-19-x86_64
-    :param srpm: SRPM path to build
-
-    :return: A command string to build given ``srpm``
-    """
-    # suppress log messages from mock by log level:
-    level = logging.getLogger().level
-    if level >= logging.WARN:
-        log = " > /dev/null 2> /dev/null"
-    else:
-        log = " -v" if level < logging.INFO else ""
-
-    return "mock -r %s %s%s" % (label, srpm, log)
-
-
-def gen_repo_file_content(ctx, tpaths):
-    """
-    Make up the content of .repo file for given yum repositoriy ``repo``
-    will be put in /etc/yum.repos.d/ and return it.
-
-    NOTE: This function will be called more than twice. So, results of this
-    function will be memoized.
-
-    :param ctx: Context object to instantiate the template
-    :param tpaths: Template path list :: [str]
-
-    :return: String represents the content of .repo file will be put in
-    /etc/yum.repos.d/ :: str.
-    """
-    return U.compile_template("repo_file", ctx, tpaths)
-
-
-def gen_mock_cfg_content(ctx, tpaths):
-    """
-    Make up the content of mock.cfg file for given distribution (passed in
-    ctx["dist"]) will be put in /etc/yum.repos.d/ and return it.
-
-    :param ctx: Context object to instantiate the template
-    :param tpaths: Template path list :: [str]
-
-    :return: String represents the content of mock.cfg file for given repo will
-        be put in /etc/mock/ :: str
-    """
-    assert "repo_file_content" in ctx, \
-        "Template variable 'repo_file_content' is missing!"
-
-    return U.compile_template("mock.cfg", ctx, tpaths)
-
-
-def gen_rpmspec_content(ctx, tpaths):
-    """
-    Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
-    files for given repo (ctx["repo"]).
-
-    :param ctx: Context object to instantiate the template
-    :param tpaths: Template path list :: [str]
-    :param tmpl: Template basename :: str
-
-    :return: String represents the content of RPM SPEC file :: str
-    """
-    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
-    assert isinstance(ctx["repo"], Repo), \
-        "ctx['repo'] is not an instance of Repo class"
-
-    if "datestamp" not in ctx:
-        ctx["datestamp"] = _datestamp()
-
-    if "fullname" not in ctx:
-        ctx["fullname"] = raw_input("Type your name > ")
-
-    if "email" not in ctx:
-        ctx["email"] = "%s@%s" % (ctx["repo"].server_user,
-                                  ctx["repo"].server_altname)
-
-    return U.compile_template("yum-repodata.spec", ctx, tpaths)
-
-
-def _write_file(path, content, force=False):
-    """
-    :param path: Path of output file
-    :param content: Content to be written into output file
-    :param force: Force overwrite files even if it exists
-    """
-    if os.path.exists(path) and not force:
-        logging.info("The output '%s' already exists. Do nothing")
-    else:
-        logging.info("Generate file: " + path)
-        open(path, 'w').write(content)
-
-
-def gen_repo_files_g(repo, workdir, tpaths, force=False):
-    """
-    Generate .repo and mock.cfg files for given ``repo`` and return these
-    paths (generator version).
-
-    :param repo: Repo object
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
-
-    :return: List of generated file's path
-    """
-    rfc = gen_repo_file_content(repo.as_dict(), tpaths)
-    path = os.path.join(workdir, "%s.repo" % repo.reponame)
-
-    _write_file(path, rfc, force)
-    yield path
-
-    for d in repo.dists:
-        root = repo.mock_root(d)
-        rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
-                                                                d.arch)
-        ctx = dict(mock_root=root, repo_file_content=rfc2,
-                   base_mockcfg=("%s-%s.cfg" % (d.dist, d.arch)))
-
-        path = os.path.join(workdir, "%s.cfg" % root)
-        c = gen_mock_cfg_content(ctx, tpaths)
-
-        _write_file(path, c, force)
-        yield path
-
-
-def gen_repo_files(repo, workdir, tpaths, force=False):
-    """
-    Generate .repo and mock.cfg files for given ``repo`` and return these
-    paths.
-
-    :param repo: Repo object
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
-
-    :return: List of path to the yum repo metadata files :: [str]
-    """
-    return list(gen_repo_files_g(repo, workdir, tpaths, force))
-
-
-def gen_rpmspec(ctx, workdir, tpaths, force=False):
-    """
-    Generate RPM SPEEC file to package yum repo metadata files (.repo and
-    mock.cfg) and return its path.
-
-    :param ctx: Context object to instantiate the template
-    :param workdir: Working dir to save RPM SPEC output
-    :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
-
-    :return: List of path to the yum repo metadata files :: [str]
-    """
-    path = os.path.join(workdir, "%s-%s.spec" % (ctx["repo"].reponame,
-                                                 ctx["repo"].version))
-    c = gen_rpmspec_content(ctx, tpaths)
-    _write_file(path, c, force)
-
-    return path
-
-
-def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
-    """
-    Generate repodata files, .repo file, mock.cfg files and rpm spec, for given
-    yum repo (ctx["repo"]), package them and build src.rpm, and returns the
-    path of built src.rpm.
-
-    :param ctx: Context object to instantiate the template
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-
-    :return: Path to the built src.rpm file or None (failed to build it)
-    """
-    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
-    assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
-        "Workdir must not be curdir!"
-
-    files = gen_repo_files(ctx["repo"], workdir, tpaths)
-    f = gen_rpmspec(ctx, workdir, tpaths)
-
-    if logfile is None:
-        logfile = os.path.join(workdir, "build_repodata_srpm.log")
-
-    vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
-
-    c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
-        "--define '_buildroot .' -bs %s%s" % (os.path.basename(f), vopt)
-
-    if SH.run(c, workdir=workdir, logfile=logfile):
-        srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
-        assert srpms, "No src.rpm found in " + workdir
-
-        return srpms[0] if srpms else None
-    else:
-        logging.warn("Failed to build yum repodata RPM from " + f)
-        return None
-
-
-def start_building_srpm_async_g(repo, srpm, logfile=False):
-    """
-    Start to build src.rpm for each dist (generator version).
-
-    :param repo: Repo object
-    :param srpm: Path to src.rpm to build
-    :param logfile: Log file path or False (not logged)
-
-    :return: List of multiprocessing.Process instances
-    """
-    fmt = "Build srpm %s for %s"
-
-    for d in repo.list_dists_to_build_srpm(srpm):
-        logging.info(fmt % (srpm, d.label))
-        yield SH.run_async(d.build_cmd(srpm), logfile=logfile)
-
-
-def start_building_srpm_async(repo, srpm, logfile=False):
-    """
-    Start to build src.rpm for each dist.
-
-    See also the above generator version.
-
-    :param repo: Repo object
-    :param srpm: Path to src.rpm to build
-    :param logfile: Log file path or False (not logged)
-
-    :return: List of multiprocessing.Process instances
-    """
-    return list(start_building_srpm_async_g(repo, srpm, logfile))
-
-
-def wait_building_srpm(repo, srpm, logfile=False, procs=[]):
-    """
-    Wait to src.rpm are built for dists.
-
-    :param repo: Repo object
-    :param srpm: Path to src.rpm to build
-    :param logfile: Log file path or False (not logged)
-    :param procs: List of multiprocessing.Process instaces to build src.rpm
-        for dists. see also above function ``start_building_srpm_async_g``.
-
-    :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
-    """
-    if not procs:
-        procs = start_building_srpm_async(repo, srpm, logfile)
-
-    destdir = repo.destdir
-    rpms_to_deploy = []  # :: [(rpm_path, destdir)]
-    rpms_to_sign = []
-    rc = True
-
-    for i, d in enumerate(repo.list_dists_to_build_srpm(srpm)):
-        rpmdir = d.rpmdir()
-
-        if not SH.stop_async_run(procs[i], timeout=None):
-            logging.warn("Failed to build srpm %s for %s" % (srpm, d.label))
-            rc = False
-            continue
-
-        srpms_to_copy = glob.glob(os.path.join(rpmdir, "*.src.rpm"))
-        assert srpms_to_copy, "Could not find src.rpm in " + rpmdir
-
-        srpm_to_copy = srpms_to_copy[0]
-        rpms_to_deploy.append((srpm_to_copy, os.path.join(destdir, "sources")))
-
-        brpms = [f for f in glob.glob(os.path.join(rpmdir, "*.rpm"))
-                 if not f.endswith(".src.rpm")]
-
-        m = "Found rpms: " + str([os.path.basename(f) for f in brpms])
-        logging.debug(m)
-
-        for p in brpms:
-            rpms_to_deploy.append((p, os.path.join(destdir, d.arch)))
-
-        rpms_to_sign += brpms
-
-    return (rc, dict(rpms_to_deploy=rpms_to_deploy,
-                     rpms_to_sign=rpms_to_sign))
-
-
-def build_srpm(repo, srpm, logfile=False):
-    """
-    Build src.rpm and make up a list of RPMs to deploy and sign.
-
-    FIXME: Ugly code around signkey check and setting RPMs to deploy.
-
-    :param repo: Repo object
-    :param srpm: Path to src.rpm to build
-    :param logfile: Log file path or False (not logged)
-
-    :return: (return_code, {"rpms_to_deploy":, "rpms_to_sign":}
-    """
-    return wait_building_srpm(repo, srpm, logfile)
 
 
 # Classes:
@@ -483,9 +160,6 @@ class Dist(object):
         """
         return "/var/lib/mock/%s/result" % self.label
 
-    def build_cmd(self, srpm):
-        return _build_cmd(self.label, srpm)
-
 
 class MaybeMultiarchDist(object):
     """
@@ -531,9 +205,6 @@ class MaybeMultiarchDist(object):
             self.archs = archs
 
         self.labels = ["%s-%s" % (self.dist, a) for a in self.archs]
-
-    def build_cmds(self, srpm):
-        return [_build_cmd(label, srpm) for label in self.labels]
 
 
 class Repo(object):
