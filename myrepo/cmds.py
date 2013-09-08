@@ -31,6 +31,10 @@ import tempfile
 _TMPDIR = os.environ.get("TMPDIR", "/tmp")
 
 
+def __assert_repo(repo):
+    assert isinstance(repo, MR.Repo), "Wrong arg repo of type " + repr(repo)
+
+
 def __setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
     """
     Create temporal working dir to put data and log files.
@@ -108,7 +112,7 @@ def mk_cmds_to_build_srpm(repo, srpm, noarch=None, bdist=None):
 
     :return: List of commands to build given srpm
     """
-    assert isinstance(repo, MR.Repo), "Wrong arg repo of type " + repr(repo)
+    __assert_repo(repo)
 
     if noarch is None:
         noarch = RU.is_noarch(srpm)
@@ -140,7 +144,7 @@ def mk_cmds_to_deploy_rpms(repo, srpm, noarch=None, bdist=None):
 
     :return: List of commands to build given srpm
     """
-    assert isinstance(repo, MR.Repo), "Wrong arg repo of type " + repr(repo)
+    __assert_repo(repo)
 
     if noarch is None:
         noarch = RU.is_noarch(srpm)
@@ -185,6 +189,7 @@ def mk_cmds_to_update(repo, *args, **kwargs):
     :param repo: Repo instance
     :return: List of commands to update repo metadata
     """
+    __assert_repo(repo)
     return [c for c, _d in
             (repo.adjust_cmd(_UPDATE_REPO_METADATA,
                              os.path.join(repo.destdir, a)) for a in
@@ -198,6 +203,7 @@ def mk_cmds_to_init__no_genconf(repo, *args, **kwargs):
     :param repo: Repo instance
     :return: List of commands to update repo metadata
     """
+    __assert_repo(repo)
     dirs_s = os.path.join(repo.destdir,
                           "{%s}" % ','.join(repo.archs + ["sources"]))
     return [repo.adjust_cmd("mkdir -p " + dirs_s)[0]]
