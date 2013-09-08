@@ -55,3 +55,25 @@ Meta
 
 * Author: Satoru SATOH <ssato _at_ redhat.com>
 * License: GPLv3+
+
+TODO
+------
+
+* Write tests:
+
+  * myrepo/tests/__init__.py
+  * myrepo/tests/cli.py
+  * myrepo/tests/cmds.py
+  * myrepo/tests/commands.py
+  * myrepo/tests/common.py
+  * myrepo/tests/config.py
+  * myrepo/tests/genconf.py
+  * myrepo/tests/globals.py
+  * myrepo/tests/hooks.py
+  * myrepo/tests/parser.py
+  * myrepo/tests/plugin.py
+  * myrepo/tests/repo.py
+  * myrepo/tests/shell.py
+  * myrepo/tests/utils.py
+
+.. vim:sw=2:ts=2:et:
