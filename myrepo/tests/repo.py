@@ -81,7 +81,6 @@ class Test_30_classes(unittest.TestCase):
                           "http://yumrepos.example.com/~jdoe/yum")
         self.assertTrue(repo.multiarch)
         self.assertEquals(repo.primary_arch, "x86_64")
-        self.assertEquals(repo.dist, "fedora-19")
         self.assertEquals(repo.subdir, "fedora/19")
         self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
         self.assertEquals(repo.baseurl,

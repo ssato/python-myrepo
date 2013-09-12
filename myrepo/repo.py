@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.globals as G
+import myrepo.srpm as MS
 import myrepo.shell as SH
 import myrepo.utils as U
 import rpmkit.rpmutils as RU
@@ -224,8 +225,6 @@ class Repo(object):
     'http://yumrepos.example.com/~jdoe/yum'
     >>> repo.multiarch, repo.primary_arch
     (True, 'x86_64')
-    >>> repo.dist
-    'fedora-19'
     >>> repo.subdir, repo.destdir
     ('fedora/19', '~jdoe/public_html/yum/fedora/19')
     >>> repo.baseurl
@@ -238,10 +237,19 @@ class Repo(object):
      '~jdoe/public_html/yum/fedora/19/i386']
     >>> repo.reponame
     'fedora-yumrepos'
+
+    >>> srpm = MS.Srpm("/dummy/path/src.rpm"); srpm.noarch = False
+    >>> repo.list_build_labels(srpm)
+    ['fedora-19-x86_64', 'fedora-19-i386']
+    >>> repo.mockcfg_files(srpm)
+    ['fedora-19-x86_64.cfg', 'fedora-19-i386.cfg']
+    >>> repo.mockdirs(srpm)  # doctest: +NORMALIZE_WHITESPACE
+    ['/var/lib/mock/fedora-19-x86_64/result',
+     '/var/lib/mock/fedora-19-i386/result']
     """
 
     def __init__(self, name, version, archs, server, reponame=G._REPONAME,
-                 primary_arch="x86_64"):
+                 primary_arch="x86_64", build_for_self=False):
         """
         :param name: Build target distribution name, fedora or rhel.
         :param version: Version string or number :: int
@@ -251,11 +259,13 @@ class Repo(object):
             "fedora-custom", "%(name)s-%(server_shortaltname)s"
         :param primary_arch: Primary arch or None. If archs[0] is the
             primary_arch, pass None as this.
+        :param build_for_self: build given srpm for self if True
         """
         self.name = name
         self.version = str(version)
         self.server = server
         self.multiarch = len(archs) > 1
+        self.build_for_self = build_for_self
 
         # Setup aliases of self.server.<key>:
         for k, v in _foreach_member_of(server):
@@ -270,8 +280,6 @@ class Repo(object):
 
         self.archs = [self.primary_arch] + self.other_archs
 
-        self.dist = "%s-%s" % (self.name, self.version)
-
         self.subdir = os.path.normpath(os.path.join(self.name, self.version))
         self.destdir = os.path.normpath(os.path.join(self.server_topdir,
                                                      self.subdir))
@@ -282,7 +290,9 @@ class Repo(object):
                         ["sources"] + self.archs]
 
         self.reponame = self._format(reponame)
-        self.rootbase = "%s-%s" % (self.reponame, self.version)
+
+        self.dist = "%s-%s" % (self.reponame if self.build_for_self else
+                               self.name, self.version)
         self.dists = [Dist(self.dist, a) for a in self.archs]
         self.primary_dist = self.dists[0]
 
@@ -292,20 +302,41 @@ class Repo(object):
     def _format(self, fmt_or_val):
         return _format(fmt_or_val, self.as_dict())
 
-    def mock_root(self, dist):
+    def list_dists(self, srpm):
         """
-        :param dist: Dist object
-        """
-        return "%s-%s" % (self.rootbase, dist.arch)
+        Return mock.cfg files to build given ``sprm``.
 
-    def list_dists_to_build_srpm(self, srpm):
+        :param srpm: "resolved" myrepo.srpm.Srpm instance
+        :return: List of paths to mock.cfg files
         """
-        List dists to build given src.rpm.
+        return [self.primary_dist] if srpm.noarch else self.dists
 
-        :param srpm: Path to src.rpm to build
-        :return: List of Dist objects to build given srpm
+    def list_build_labels(self, srpm):
         """
-        return self.dists[:1] if RU.is_noarch(srpm) else self.dists
+        Return list of build lables for given srpm.
+
+        :param srpm: "resolved" myrepo.srpm.Srpm instance
+        :return: List of paths to mock.cfg files
+        """
+        return [d.label for d in self.list_dists(srpm)]
+
+    def mockcfg_files(self, srpm):
+        """
+        Return mock.cfg files to build given ``sprm``.
+
+        :param srpm: "resolved" myrepo.srpm.Srpm instance
+        :return: List of paths to mock.cfg files
+        """
+        return [d.mockcfg for d in self.list_dists(srpm)]
+
+    def mockdirs(self, srpm):
+        """
+        Return dirs where built RPMs are.
+
+        :param srpm: "resolved" myrepo.srpm.Srpm instance
+        :return: List of paths to dirs in which built RPMs are
+        """
+        return [d.rpmdir() for d in self.list_dists(srpm)]
 
     def adjust_cmd(self, cmd, workdir=os.curdir):
         """
