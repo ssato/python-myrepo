@@ -317,6 +317,12 @@ class Repo(object):
         """
         return self.server.adjust_cmd(cmd, workdir)
 
+    def mk_cmd(self, cmd, workdir=os.curdir):
+        """
+        Alias to self.adjust_cmd.
+        """
+        return self.adjust_cmd(cmd, workdir=os.curdir)
+
     def deploy_cmd(self, src, dst):
         """
         Make up and and return command strings to deploy objects from ``src``
