@@ -321,7 +321,7 @@ class Repo(object):
         """
         Alias to self.adjust_cmd.
         """
-        return self.adjust_cmd(cmd, workdir=os.curdir)
+        return self.adjust_cmd(cmd, workdir)
 
     def deploy_cmd(self, src, dst):
         """
