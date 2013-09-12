@@ -137,13 +137,13 @@ _RUN_TO = None
 _CONN_TO = 10
 
 
-def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
+def adjust_cmd(cmd, user=None, host="localhost", workdir=None,
                conn_timeout=_CONN_TO):
     """
     >>> adjust_cmd("true")
     ('true', '.')
     >>> adjust_cmd("true", workdir="/tmp")
-    ('true', '/tmp')
+    ('cd /tmp && true', '.')
 
     >>> (cmd, workdir) = adjust_cmd("true", host="repo.example.com",
     ...                             conn_timeout=None)
@@ -173,8 +173,14 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=os.curdir,
     :return: A tuple of (command_string, workdir)
     """
     if is_local(host):
-        if "~" in workdir:
-            workdir = os.path.expanduser(workdir)
+        if workdir is not None:
+            if "~" in workdir:
+                workdir = os.path.expanduser(workdir)
+
+            cmd = "cd %s && %s" % (workdir, cmd)
+            logging.debug("Rewrote cmd to " + cmd)
+
+        workdir = os.curdir
     else:
         top = "-o ConnectTimeout=%d" % conn_timeout if conn_timeout else ''
         h = host if user is None else "%s@%s" % (user, host)
