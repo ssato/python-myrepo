@@ -17,6 +17,7 @@
 #
 import myrepo.actions.utils as TT
 import myrepo.repo as MR
+import myrepo.srpm as MS
 import myrepo.tests.common as C
 
 import logging
@@ -37,7 +38,15 @@ class Test_00_pure_functions(unittest.TestCase):
         with self.assertRaises(AssertionError) as cm:
             TT.assert_repo(None)
 
-    def test_20_init_workdir__dir_exists(self):
+    def test_10_assert_srpm__ok(self):
+        srpm = MS.Srpm("/a/b/c/dummy/path/to/srpm.rpm")
+        TT.assert_srpm(srpm)
+
+    def test_12_assert_srpm__ng(self):
+        with self.assertRaises(AssertionError) as cm:
+            TT.assert_srpm(None)
+
+    def test_30_init_workdir__dir_exists(self):
         self.assertEquals(TT.init_workdir("/tmp"), "/tmp")
 
 
@@ -49,14 +58,14 @@ class Test_10_effecful_functions(unittest.TestCase):
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
-    def test_10_setup_workdir(self):
+    def test_20_setup_workdir(self):
         prefix = "tt-"
         wdir = TT.setup_workdir(prefix=prefix, topdir=self.workdir)
 
         self.assertTrue(os.path.basename(wdir).startswith(prefix))
         self.assertTrue(os.path.exists(wdir))
 
-    def test_20_init_workdir__dir_not_exists(self):
+    def test_30_init_workdir__dir_not_exists(self):
         wdir = os.path.join(self.workdir, "wdir")
 
         wdir_result = TT.init_workdir(wdir)

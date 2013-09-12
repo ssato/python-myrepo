@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.repo as MR
+import myrepo.srpm as MS
 
 import logging
 import os.path
@@ -29,6 +30,10 @@ _TMPDIR = os.environ.get("TMPDIR", "/tmp")
 
 def assert_repo(repo):
     assert isinstance(repo, MR.Repo), "Wrong arg repo of type " + repr(repo)
+
+
+def assert_srpm(srpm):
+    assert isinstance(srpm, MS.Srpm), "Wrong arg srpm of type " + repr(srpm)
 
 
 def setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
