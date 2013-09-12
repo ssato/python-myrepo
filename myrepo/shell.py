@@ -142,6 +142,8 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=None,
     """
     >>> adjust_cmd("true")
     ('true', '.')
+    >>> adjust_cmd("true", os.curdir)
+    ('true', '.')
     >>> adjust_cmd("true", workdir="/tmp")
     ('cd /tmp && true', '.')
 
@@ -173,7 +175,9 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=None,
     :return: A tuple of (command_string, workdir)
     """
     if is_local(host):
-        if workdir is not None:
+        if workdir in (None, os.curdir):
+            return (cmd, os.curdir)
+        else:
             if "~" in workdir:
                 workdir = os.path.expanduser(workdir)
 
