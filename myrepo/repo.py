@@ -254,7 +254,6 @@ class Repo(object):
         """
         self.name = name
         self.version = str(version)
-        self.archs = archs
         self.server = server
         self.multiarch = len(archs) > 1
 
@@ -265,11 +264,11 @@ class Repo(object):
         if primary_arch in archs:
             self.primary_arch = primary_arch
             self.other_archs = [a for a in archs if a != primary_arch]
-            self.archs = [self.primary_arch] + self.other_archs
         else:
             self.primary_arch = archs[0]
             self.other_archs = archs[1:]
-            self.archs = archs
+
+        self.archs = [self.primary_arch] + self.other_archs
 
         self.dist = "%s-%s" % (self.name, self.version)
 
