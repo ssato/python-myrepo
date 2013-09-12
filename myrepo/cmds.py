@@ -25,6 +25,7 @@ import rpmkit.rpmutils as RU
 import logging
 import os.path
 import os
+import sys
 import tempfile
 
 
@@ -135,7 +136,7 @@ ln -sf $f ./; done)); done"""
 
 def mk_cmds_to_deploy_rpms(repo, srpm, noarch=None, bdist=None):
     """
-    Make up list of command strings to build given srpm.
+    Make up list of command strings to deploy rpms built from given srpm.
 
     :param repo: Repo instance
     :param srpm: srpm path
@@ -209,7 +210,50 @@ def mk_cmds_to_init__no_genconf(repo, *args, **kwargs):
     return [repo.adjust_cmd("mkdir -p " + dirs_s)[0]]
 
 
+def print_commands_and_exit_if_dryrun(ctx, cs):
+    """
+    :param ctx: Application context object holding parameters
+    :param cs: List of command strings to run
+    """
+    if "dryrun" in ctx:
+        "commands to run:"
+        for c in cs:
+            print "# " + c
+
+        sys.exit(0)
+
+
+def mk_cmds_to_build_srpm_for_multi_repos(repos, srpm, noarch):
+    """
+    Make up commands to build src.rpm for given multiple repos.
+
+    :param repos: List of a tuple of (repo object, bdist)
+    :param srpm: Path to src.rpm to build
+    :param noarch: True if src.rpm is noarch
+
+    :return: List of command strings to build src.rpm
+    """
+    return U.uconcat(mk_cmds_to_build_srpm(repo, srpm, noarch, bdist)
+                     for repo, bdist in repos)
+
+
 # commands:
+@hook
+def update(ctx):
+    """
+    Update yum repo metadata.
+
+    :param ctx: Application context object holding parameters
+    """
+    assert "repos" in ctx, "No repos defined in given ctx!"
+
+    cs = U.uconcat(mk_cmds_to_update(repo) for repo, bdist in ctx["repos"])
+    print_commands_and_exit_if_dryrun(ctx, cs)
+
+    ps = [SH.run_async(c, logfile=False) for c in cs]
+    return all(SH.stop_async_run(p) for p in ps)
+
+
 @hook
 def build(ctx):
     """
@@ -219,22 +263,12 @@ def build(ctx):
 
     :param ctx: Application context object holding parameters
     """
-    assert "srpms" in ctx, "'build' command needs srpm paths!"
+    assert "srpm" in ctx, "'build' command needs srpm path!"
     assert "repos" in ctx, "No repos defined in given ctx!"
 
-    def csgen():
-        for repo, bdist in ctx["repos"]:
-            for srpm, noarch in ctx["srpms"]:
-                yield mk_cmds_to_build_srpm(repo, srpm, noarch, bdist)
-
-    cs = U.uconcat(cs for cs in cgen())
-
-    if "dryrun" in ctx:
-        "commands to run:"
-        for c in cs:
-            print "# " + c
-
-        sys.exit(0)
+    cs = mk_cmds_to_build_srpm_for_multi_repos(ctx["repos"], ctx["srpm"],
+                                               ctx.get("noarch", None))
+    print_commands_and_exit_if_dryrun(ctx, cs)
 
     workdir = _init_workdir(ctx.get("workdir", None))
     if workdir:
@@ -243,7 +277,24 @@ def build(ctx):
     logpath = lambda srpm: os.path.join(workdir, "build.%s.log" %
                                         os.path.basename(srpm))
     ps = [SH.run_async(c, logfile=logpath(srpm)) for srpm in srpms]
-    return all(stop_async_run(p) for p in ps)
+    return all(SH.stop_async_run(p) for p in ps)
+
+
+@hook
+def deploy(ctx):
+    """
+    Deploy RPM.
+
+    :param ctx: Application context object holding parameters
+    """
+    assert "repos" in ctx, "No repos defined in given ctx!"
+
+    if "srpm" in ctx:
+        cs = mk_cmds_to_build_srpm_for_multi_repos(ctx["repos"], ctx["srpm"],
+                                                   ctx.get("noarch", None))
+    else:
+        pass
+
 
 
 # vim:sw=4:ts=4:et:
