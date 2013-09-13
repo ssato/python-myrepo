@@ -57,7 +57,7 @@ def prepare_0(repo, srpm):
         (sc, sc_dir) = repo.adjust_cmd(_MK_SYMLINKS_TO_NOARCH_RPM % ctx,
                                        repo.destdir)
 
-        bc = SH.bind(dcmd(os.path.join(rpmdirs[0], noarch_rpms),
+        bc = MS.bind(dcmd(os.path.join(rpmdirs[0], noarch_rpms),
                           os.path.join(repo.destdir, repo.primary_arch)),
                      sc)[0]
         cs = [c0, bc]
@@ -82,7 +82,7 @@ def prepare(repos, srpm):
     return MU.uconcat(prepare_0(repo, srpm) for repo in repos)
 
 
-def run(ctx, ctmpl=_CMD_TEMPLATE):
+def run(ctx):
     """
     :param repos: List of Repo instances
 
