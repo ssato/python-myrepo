@@ -27,6 +27,7 @@ import os
 # Aliases:
 typecheck = U.typecheck
 is_local = U.is_local
+concat = U.concat
 uconcat = U.uconcat
 
 
