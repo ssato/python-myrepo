@@ -28,7 +28,7 @@ import unittest
 
 class Test_00_pure_functions(unittest.TestCase):
 
-    def test_00_prepare_0__localhost_noarch(self):
+    def test_00_prepare_0__localhost_noarch_multi_archs_repo(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
                            baseurl="file:///tmp")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server)
@@ -55,7 +55,30 @@ class Test_00_pure_functions(unittest.TestCase):
         for c, exp in itertools.izip(cs, cs_expected):
             self.assertEquals(c, exp)
 
-    def test_02_prepare_0__localhost(self):
+    def test_02_prepare_0__localhost_noarch_single_arch_repo(self):
+        server = MR.Server("localhost", topdir="/tmp/yum",
+                           baseurl="file:///tmp")
+        repo = MR.Repo("fedora", 19, ["x86_64"], server)
+
+        srpm = MS.Srpm("/a/b/c/dummy.src.rpm")
+        srpm.name = "foo"
+        srpm.version = "1.0"
+        srpm.noarch = True
+
+        dcmd = repo.server.deploy_cmd
+
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/19/sources")
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/19/x86_64")
+
+        cs_expected = [c0, c1]
+        cs = TT.prepare_0(repo, srpm)
+
+        for c, exp in itertools.izip(cs, cs_expected):
+            self.assertEquals(c, exp)
+
+    def test_04_prepare_0__localhost(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
                            baseurl="file:///tmp")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server)
@@ -80,7 +103,6 @@ class Test_00_pure_functions(unittest.TestCase):
             self.assertEquals(c, exp)
 
     def test_10_prepare__localhost_noarch(self):
-        return
         server = MR.Server("localhost", topdir="/tmp/yum",
                            baseurl="file:///tmp")
         repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
@@ -92,19 +114,39 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.version = "1.0"
         srpm.noarch = True
 
-        dcmd = repo.server.deploy_cmd
+        cs_expected = []
 
+        dcmd = repos[0].server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/18/sources")
+        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/18/x86_64")
+        ctx = dict(other_archs_s="i386", primary_arch="x86_64",
+                   noarch_rpms="foo-1.0-*.noarch.rpm")
+        c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
+        cs_expected.append(c0)
+        cs_expected.append("%s && %s" % (c1, c2))
+
+        dcmd = repos[1].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
         c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
-
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
+        cs_expected.append(c0)
+        cs_expected.append("%s && %s" % (c1, c2))
 
-        cs_expected = [c0, "%s && %s" % (c1, c2)]
-        cs = TT.prepare_0(repo, srpm)
+        dcmd = repos[2].server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/rhel/6/sources")
+        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/rhel/6/x86_64")
+        cs_expected.append(c0)
+        cs_expected.append(c1)
+
+        cs = TT.prepare(repos, srpm)
 
         for c, exp in itertools.izip(cs, cs_expected):
             self.assertEquals(c, exp)
