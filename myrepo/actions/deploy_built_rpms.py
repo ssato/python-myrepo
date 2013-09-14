@@ -86,7 +86,7 @@ def prepare(repos, srpm):
 
     :return: List of command strings to deploy built RPMs.
     """
-    return MU.uconcat(prepare_0(repo, srpm) for repo in repos)
+    return MU.concat(prepare_0(repo, srpm) for repo in repos)
 
 
 def run(ctx):
