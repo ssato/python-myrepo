@@ -20,6 +20,7 @@ import myrepo.actions.utils as MAU
 import myrepo.shell as MS
 import myrepo.utils as MU
 
+import itertools
 import os.path
 
 
@@ -62,7 +63,7 @@ def prepare_0(repo, srpm):
                      sc)[0]
         cs = [c0, bc]
     else:
-        das = zip(rpmdirs, repo.archs)
+        das = itertools.izip(rpmdirs, repo.archs)
         cs = [c0] + [dcmd(os.path.join(d, rpmname_pre + "*.%s.rpm" % a),
                           os.path.join(repo.destdir, a)) for d, a in das]
 
