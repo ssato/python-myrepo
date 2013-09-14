@@ -53,14 +53,20 @@ def prepare_0(repo, srpm):
     if srpm.noarch:
         noarch_rpms = rpmname_pre + "*.noarch.rpm"
 
-        ctx = dict(other_archs_s=' '.join(repo.other_archs),
-                   primary_arch=repo.primary_arch, noarch_rpms=noarch_rpms)
-        (sc, sc_dir) = repo.adjust_cmd(_MK_SYMLINKS_TO_NOARCH_RPM % ctx,
-                                       repo.destdir)
+        if repo.other_archs:
+            ctx = dict(other_archs_s=' '.join(repo.other_archs),
+                       primary_arch=repo.primary_arch,
+                       noarch_rpms=noarch_rpms)
+            (sc, sc_dir) = repo.adjust_cmd(_MK_SYMLINKS_TO_NOARCH_RPM % ctx,
+                                           repo.destdir)
 
-        bc = MS.bind(dcmd(os.path.join(rpmdirs[0], noarch_rpms),
-                          os.path.join(repo.destdir, repo.primary_arch)),
-                     sc)[0]
+            bc = MS.bind(dcmd(os.path.join(rpmdirs[0], noarch_rpms),
+                              os.path.join(repo.destdir, repo.primary_arch)),
+                         sc)[0]
+        else:
+            bc = dcmd(os.path.join(rpmdirs[0], noarch_rpms),
+                      os.path.join(repo.destdir, repo.primary_arch))
+
         cs = [c0, bc]
     else:
         das = itertools.izip(rpmdirs, repo.archs)
