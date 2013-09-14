@@ -49,7 +49,7 @@ class Test_00_pure_functions(unittest.TestCase):
             return ["cd %s && %s" % (os.path.join(repo.destdir, a),
                                      TT._CMD_TEMPLATE) for a in repo.archs]
 
-        cs_expected = MU.uconcat(cs_expected_gen(repo) for repo in repos)
+        cs_expected = MU.concat(cs_expected_gen(repo) for repo in repos)
         cs = TT.prepare(repos)
 
         for c, exp in itertools.izip(cs, cs_expected):
@@ -72,7 +72,7 @@ class Test_10_effecful_functions(unittest.TestCase):
                  MR.Repo("rhel", 6, ["x86_64", ], server)]
         ctx = dict(repos=repos)
 
-        repos_destdirs = MU.uconcat([os.path.join(repo.destdir, a) for a in
+        repos_destdirs = MU.concat([os.path.join(repo.destdir, a) for a in
                                     repo.archs] for repo in repos)
 
         for d in repos_destdirs:

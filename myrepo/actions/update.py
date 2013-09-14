@@ -54,7 +54,7 @@ def prepare(repos, ctmpl=_CMD_TEMPLATE):
 
     :return: List of commands to update metadata of ``repos``
     """
-    return MU.uconcat(prepare_0(repo, ctmpl) for repo in repos)
+    return MU.concat(prepare_0(repo, ctmpl) for repo in repos)
 
 
 def run(ctx, ctmpl=_CMD_TEMPLATE):
