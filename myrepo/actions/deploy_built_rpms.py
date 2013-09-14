@@ -96,8 +96,10 @@ def run(ctx):
     :return: True if commands run successfully else False
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
+    assert "srpm" in ctx, "No srpm defined in given ctx!"
 
-    ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"], ctmpl)]
+    ps = [MS.run_async(c, logfile=False) for c in
+          prepare(ctx["repos"], ctx["srpm"])]
     return all(MS.stop_async_run(p) for p in ps)
 
 

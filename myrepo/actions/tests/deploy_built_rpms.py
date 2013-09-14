@@ -161,7 +161,10 @@ class Test_10_effecful_functions(unittest.TestCase):
         C.cleanup_workdir(self.workdir)
 
     def test_20_run__localhost(self):
+        """FIXME: Add test cases for myrepo.actions.deploy_built_rpms.run.
+        """
         return
+
         topdir = os.path.join(self.workdir, "yum")
         server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
         repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
