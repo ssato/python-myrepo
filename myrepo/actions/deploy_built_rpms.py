@@ -43,8 +43,6 @@ def prepare_0(repo, srpm):
     MAU.assert_srpm(srpm)
 
     dcmd = repo.server.deploy_cmd
-    repo.mockdirs(srpm)
-
     rpmdirs = repo.mockdirs(srpm)
     rpmname_pre = "%s-%s-" % (srpm.name, srpm.version)
     c0 = dcmd(os.path.join(rpmdirs[0], rpmname_pre + "*.src.rpm"),
