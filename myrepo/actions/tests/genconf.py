@@ -109,10 +109,10 @@ class Test_00_pure_functions(unittest.TestCase):
         files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
                                          C.template_paths()))
         counter = itertools.count()
-        eof = lambda : "EOF_%d" % counter.next()
+        eof = lambda: "EOF_%d" % counter.next()
 
         counter2 = itertools.count()
-        eof2 = lambda : "EOF_%d" % counter2.next()
+        eof2 = lambda: "EOF_%d" % counter2.next()
 
         rcs = [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
@@ -136,7 +136,7 @@ class Test_10_effectful_functions(unittest.TestCase):
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
-        ctx = dict(repos=[repo, ], fullname="John Doe", email="jdoe@example.com",
+        ctx = dict(repos=[repo], fullname="John Doe", email="jdoe@example.com",
                    workdir=self.workdir, tpaths=C.template_paths())
 
         self.assertTrue(TT.run(ctx))
