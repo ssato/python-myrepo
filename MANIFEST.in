@@ -3,6 +3,7 @@ include README*
 include myrepo.spec.in
 include setup.py
 include aux/*
+include tests/*
 recursive-include myrepo *.py
 recursive-include templates *
 include src/*
