@@ -24,11 +24,14 @@ import myrepo.utils as MU
 import rpmkit.rpmutils as RU
 
 import datetime
-import functools
 import locale
 import logging
 import os.path
 import uuid
+
+
+def gen_uid():
+    return uuid.uuid1()
 
 
 def _datestamp(d=None):
@@ -163,7 +166,7 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     >>>
     """
     if eof is None:
-        eof = "EOF_%s" % uuid.uuid1()
+        eof = "EOF_%s" % gen_uid()
 
     return cfmt % (eof, path, content, eof)
 
@@ -191,7 +194,7 @@ def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1):
     return cfmt % (os.path.dirname(rpmspec), os.path.basename(rpmspec), vopt)
 
 
-def prepare_0(repo, ctx):
+def prepare_0(repo, ctx, eof=None):
     """
     Make up list of command strings to generate repo's metadata rpms.
 
@@ -203,18 +206,18 @@ def prepare_0(repo, ctx):
     MAU.assert_repo(repo)
     _check_vars_for_template(ctx, ["workdir", "tpaths"])
 
-    files = list(gen_repo_files_g(repo, ctx["workdir"], ctx["tpaths"]))
+    files = list(gen_repo_files_g(repo, ctx, ctx["workdir"], ctx["tpaths"]))
     rpmspec = files[-1][0]  # FIXME: Ugly hack! (see ``gen_repo_files_g``)
 
-    cs = [mk_write_file_cmd(p, c) for p, c in files] + \
+    cs = [mk_write_file_cmd(p, c, eof) for p, c in files] + \
          [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands
     # to generate files; .repo file, the rpm spec and mock.cfg files:
-    return functools.reduce(lambda c0, c1: MS.bind(c0, c1)[1], cs)
+    return [" && ".join(cs)]
 
 
-def prepare(repos, ctx):
+def prepare(repos, ctx, eof=None):
     """
     Make up list of command strings to update metadata of given repos.
     It's similar to above ``prepare_0`` but applicable to multiple repos.
@@ -224,7 +227,7 @@ def prepare(repos, ctx):
 
     :return: List of command strings to deploy built RPMs.
     """
-    return MU.concat(prepare_0(repo, ctx) for repo in repos)
+    return MU.concat(prepare_0(repo, ctx, eof) for repo in repos)
 
 
 def run(ctx):

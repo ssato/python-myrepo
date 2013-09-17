@@ -95,6 +95,25 @@ class Test_00_pure_functions(unittest.TestCase):
         self.assertEquals(files[3][0],
                           os.path.join(workdir, "fedora-yumrepos-19.spec"))
 
+    def test_100_prepare(self):
+        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(fullname="John Doe", email="jdoe@example.com",
+                   mockcfg="fedora-19-x86_64.cfg",
+                   label="fedora-yumrepos-19-x86_64",
+                   repo_file_content="REPO_FILE_CONTENT",
+                   workdir="/tmp/myrepo-t-000", tpaths=C.template_paths())
+
+        files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
+                                         C.template_paths()))
+        rcs = [TT.mk_write_file_cmd(p, c, eof="EOF_123") for p, c in files] + \
+              [TT.mk_build_srpm_cmd(files[-1][0], False)]
+
+        expected = ' && '.join(rcs)
+        s = TT.prepare_0(repo, ctx, "EOF_123")[0]
+
+        self.assertEquals(s, expected, C.diff(expected, s))
 
 
 """
