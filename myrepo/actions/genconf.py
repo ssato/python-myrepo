@@ -24,6 +24,7 @@ import myrepo.utils as MU
 import rpmkit.rpmutils as RU
 
 import datetime
+import itertools
 import locale
 import logging
 import os.path
@@ -159,14 +160,14 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     :param content: Content to be written into output file
 
     >>> c = "abc"
-    >>> print mk_write_file_cmd("/a/b/c/f.txt", c, "EOF_123")
+    >>> eof = const = lambda: EOF_123
+    >>> print mk_write_file_cmd("/a/b/c/f.txt", c, eof)
     cat << EOF_123 > /a/b/c/f.txt
     abc
     EOF_123
     >>>
     """
-    eof = "EOF_%s" % gen_eof() if eof is None or not callable(eof) else eof()
-
+    eof = gen_eof() if eof is None or not callable(eof) else eof()
     return cfmt % (eof, path, content, eof)
 
 
@@ -236,8 +237,20 @@ def run(ctx):
     :return: True if commands run successfully else False
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
+    _check_vars_for_template(ctx, ["workdir"])
 
-    ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"], ctx)]
+    if not os.path.exists(ctx["workdir"]):
+        os.makedirs(ctx["workdir"])
+
+    counter = itertools.count()
+
+    def logfile():
+        tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%F-%T")
+        return os.path.join(ctx["workdir"],
+                            "genconf.%s.%d.log" % (tstamp, counter.next()))
+
+    ps = [MS.run_async(c, logfile=logfile()) for c in
+          prepare(ctx["repos"], ctx)]
     return all(MS.stop_async_run(p) for p in ps)
 
 
