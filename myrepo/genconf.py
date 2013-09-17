@@ -67,9 +67,9 @@ def gen_mock_cfg_content(ctx, tpaths):
 
     :return: String represents the content of mock.cfg file for given repo will
         be put in /etc/mock/ :: str
-    """
-    assert "repo_file_content" in ctx, \
-        "Template variable 'repo_file_content' is missing!"
+    """ 
+    for vn in ("mockcfg", "label", "repo_file_content"):
+        assert vn in ctx, "Template variable '%s' is missing!" % vn
 
     return U.compile_template("mock.cfg", ctx, tpaths)
 
@@ -135,13 +135,12 @@ def gen_repo_files_g(repo, workdir, tpaths, force=False):
     yield path
 
     for d in repo.dists:
-        root = repo.mock_root(d)
+        label = "%s-%s-%s" % (repo.reponame, repo.version, d.arch)
         rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
                                                                 d.arch)
-        ctx = dict(mock_root=root, repo_file_content=rfc2,
-                   base_mockcfg=("%s-%s.cfg" % (d.dist, d.arch)))
+        ctx = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
 
-        path = os.path.join(workdir, "%s.cfg" % root)
+        path = os.path.join(workdir, "%s.cfg" % label)
         c = gen_mock_cfg_content(ctx, tpaths)
 
         _write_file(path, c, force)

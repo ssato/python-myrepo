@@ -45,8 +45,8 @@ class Test_00_functions(unittest.TestCase):
 
     def test_20_gen_mock_cfg_content(self):
         ref = C.readfile("result.mock.cfg.0")
-        ctx = dict(base_mockcfg="fedora-19-x86_64.cfg",
-                   mock_root="fedora-custom-19-x86_64",
+        ctx = dict(mockcfg="fedora-19-x86_64.cfg",
+                   label="fedora-custom-19-x86_64",
                    repo_file_content="REPO_FILE_CONTENT")
 
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
@@ -71,7 +71,8 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_10_gen_repo_files(self):
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
