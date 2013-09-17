@@ -17,27 +17,41 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+import myrepo.actions.utils as MAU
 import myrepo.repo as MR
-import myrepo.shell as SH
-import myrepo.utils as U
+import myrepo.shell as MS
+import myrepo.utils as MU
 import rpmkit.rpmutils as RU
 
 import datetime
-import glob
+import functools
 import locale
 import logging
 import os.path
+import uuid
 
 
-def _datestamp(d=datetime.datetime.now()):
+def _datestamp(d=None):
     """
     Make up a date string to be used in %changelog section of RPM SPEC files.
 
     >>> _datestamp(datetime.datetime(2013, 7, 31))
     'Wed Jul 31 2013'
     """
+    if d is None:
+        d = datetime.datetime.now()
+
     locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
     return datetime.datetime.strftime(d, "%a %b %e %Y")
+
+
+def _check_vars_for_template(ctx, vars=[]):
+    """
+    :param ctx: Context object to instantiate the template
+    :param vars: Context object to instantiate the template
+    """
+    for vn in vars:
+        assert vn in ctx, "Template variable '%s' is missing!" % vn
 
 
 def gen_repo_file_content(ctx, tpaths):
@@ -54,7 +68,11 @@ def gen_repo_file_content(ctx, tpaths):
     :return: String represents the content of .repo file will be put in
     /etc/yum.repos.d/ :: str.
     """
-    return U.compile_template("repo_file", ctx, tpaths)
+    # Other candidates: "signkey", "keyurl" and "metadata_expire"
+    _check_vars_for_template(ctx, ["reponame", "server_altname", "server_user",
+                                   "baseurl", "name"])
+
+    return MU.compile_template("repo_file", ctx, tpaths)
 
 
 def gen_mock_cfg_content(ctx, tpaths):
@@ -67,26 +85,24 @@ def gen_mock_cfg_content(ctx, tpaths):
 
     :return: String represents the content of mock.cfg file for given repo will
         be put in /etc/mock/ :: str
-    """ 
-    for vn in ("mockcfg", "label", "repo_file_content"):
-        assert vn in ctx, "Template variable '%s' is missing!" % vn
+    """
+    _check_vars_for_template(ctx, ["mockcfg", "label", "repo_file_content"])
 
-    return U.compile_template("mock.cfg", ctx, tpaths)
+    return MU.compile_template("mock.cfg", ctx, tpaths)
 
 
 def gen_rpmspec_content(ctx, tpaths):
     """
     Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
-    files for given repo (ctx["repo"]).
+    files for given repo ``repo``.
 
     :param ctx: Context object to instantiate the template
     :param tpaths: Template path list :: [str]
 
     :return: String represents the content of RPM SPEC file :: str
     """
-    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
-    assert isinstance(ctx["repo"], MR.Repo), \
-        "ctx['repo'] is not an instance of Repo class"
+    _check_vars_for_template(ctx, ["repo"])
+    MAU.assert_repo(ctx["repo"])
 
     if "datestamp" not in ctx:
         ctx["datestamp"] = _datestamp()
@@ -95,44 +111,24 @@ def gen_rpmspec_content(ctx, tpaths):
         ctx["fullname"] = raw_input("Type your full name > ")
 
     if "email" not in ctx:
-        ctx["email"] = "%s@%s" % (ctx["repo"].server_user,
-                                  ctx["repo"].server_altname)
+        ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
 
-    return U.compile_template("yum-repodata.spec", ctx, tpaths)
+    return MU.compile_template("yum-repodata.spec", ctx, tpaths)
 
 
-def _write_file(path, content, force=False):
+def gen_repo_files_g(repo, workdir, tpaths):
     """
-    :param path: Path of output file
-    :param content: Content to be written into output file
-    :param force: Force overwrite files even if it exists
-
-    :raise IOError: if failed to write ``content`` to the file ``path``.
-    """
-    if os.path.exists(path) and not force:
-        logging.info("The output '%s' already exists. Do nothing")
-    else:
-        logging.info("Generate file: " + path)
-        open(path, 'w').write(content)
-
-
-def gen_repo_files_g(repo, workdir, tpaths, force=False):
-    """
-    Generate .repo and mock.cfg files for given ``repo`` and return these
-    paths (generator version).
+    Generate .repo, mock.cfg files and the RPM SPEC file for given ``repo`` and
+    return list of pairs of the path and the content of each files.
 
     :param repo: Repo object
     :param workdir: Working dir to build RPMs
     :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
 
-    :return: List of generated file's path
+    :return: List of pairs of path to file to generate and its content
     """
-    rfc = gen_repo_file_content(repo.as_dict(), tpaths)
-    path = os.path.join(workdir, "%s.repo" % repo.reponame)
-
-    _write_file(path, rfc, force)
-    yield path
+    yield (os.path.join(workdir, "%s.repo" % repo.reponame),
+           gen_repo_file_content(repo, tpaths))
 
     for d in repo.dists:
         label = "%s-%s-%s" % (repo.reponame, repo.version, d.arch)
@@ -140,83 +136,105 @@ def gen_repo_files_g(repo, workdir, tpaths, force=False):
                                                                 d.arch)
         ctx = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
 
-        path = os.path.join(workdir, "%s.cfg" % label)
-        c = gen_mock_cfg_content(ctx, tpaths)
+        yield (os.path.join(workdir, "%s.cfg" % label),
+               gen_mock_cfg_content(ctx, tpaths))
 
-        _write_file(path, c, force)
-        yield path
+    yield (os.path.join(workdir, "%s-%s.spec" % (repo.reponame, repo.version)),
+           gen_rpmspec_content(repo, ctx, tpaths))
 
 
-def gen_repo_files(repo, workdir, tpaths, force=False):
+_CMD_TEMPLATE_0 = """cat << %s > %s
+%s
+%s"""
+
+
+def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     """
-    Generate .repo and mock.cfg files for given ``repo`` and return these
-    paths.
+    :param path: Path of output file
+    :param content: Content to be written into output file
 
-    :param repo: Repo object
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
-
-    :return: List of path to the yum repo metadata files :: [str]
+    >>> c = "abc"
+    >>> print mk_write_file_cmd("/a/b/c/f.txt", c, "EOF_123")
+    cat << EOF_123 > /a/b/c/f.txt
+    abc
+    EOF_123
+    >>>
     """
-    return list(gen_repo_files_g(repo, workdir, tpaths, force))
+    if eof is None:
+        eof = "EOF_%s" % uuid.uuid1()
+
+    return cfmt % (eof, path, content, eof)
 
 
-def gen_rpmspec(ctx, workdir, tpaths, force=False):
+_CMD_TEMPLATE_1 = """\
+cd %s && rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' \
+--define '_buildroot .' -bs %s%s"""
+
+
+def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1):
     """
-    Generate RPM SPEEC file to package yum repo metadata files (.repo and
-    mock.cfg) and return its path.
+    :param rpmspec: Path to the RPM SPEC file to build srpm
+    :param verbose: Verbosity level
 
+    :return: Command string to build repodata srpm
+
+    >>> ref = "cd /a/b && "
+    >>> ref += "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' "
+    >>> ref += "--define '_buildroot .' -bs c.spec"
+
+    >>> s = mk_build_srpm_cmd("/a/b/c.spec")
+    >>> assert s == ref, s
+    """
+    vopt = " --verbose" if verbose else ''
+    return cfmt % (os.path.dirname(rpmspec), os.path.basename(rpmspec), vopt)
+
+
+def prepare_0(repo, ctx):
+    """
+    Make up list of command strings to generate repo's metadata rpms.
+
+    :param repo: myrepo.repo.Repo instance
     :param ctx: Context object to instantiate the template
-    :param workdir: Working dir to save RPM SPEC output
-    :param tpaths: Template path list :: [str]
-    :param force: Force overwrite files even if it exists
 
-    :return: List of path to the yum repo metadata files :: [str]
+    :return: List of command strings to deploy built RPMs.
     """
-    path = os.path.join(workdir, "%s-%s.spec" % (ctx["repo"].reponame,
-                                                 ctx["repo"].version))
-    c = gen_rpmspec_content(ctx, tpaths)
-    _write_file(path, c, force)
+    MAU.assert_repo(repo)
+    _check_vars_for_template(ctx, ["workdir", "tpaths"])
 
-    return path
+    files = list(gen_repo_files_g(repo, ctx["workdir"], ctx["tpaths"]))
+    rpmspec = files[-1][0]  # FIXME: Ugly hack! (see ``gen_repo_files_g``)
+
+    cs = [mk_write_file_cmd(p, c) for p, c in files] + \
+         [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
+
+    # NOTE: cmd to build srpm must wait for the completion of previous commands
+    # to generate files; .repo file, the rpm spec and mock.cfg files:
+    return functools.reduce(lambda c0, c1: MS.bind(c0, c1)[1], cs)
 
 
-def build_repodata_srpm(ctx, workdir, tpaths, logfile=None):
+def prepare(repos, ctx):
     """
-    Generate repodata files, .repo file, mock.cfg files and rpm spec, for given
-    yum repo (ctx["repo"]), package them and build src.rpm, and returns the
-    path of built src.rpm.
+    Make up list of command strings to update metadata of given repos.
+    It's similar to above ``prepare_0`` but applicable to multiple repos.
 
+    :param repos: List of Repo instances
     :param ctx: Context object to instantiate the template
-    :param workdir: Working dir to build RPMs
-    :param tpaths: Template path list :: [str]
 
-    :return: Path to the built src.rpm file or None (failed to build it)
+    :return: List of command strings to deploy built RPMs.
     """
-    assert "repo" in ctx, "Variable 'repo' is missing in ctx"
-    assert os.path.realpath(workdir) != os.path.realpath(os.curdir), \
-        "Workdir must not be curdir!"
+    return MU.concat(prepare_0(repo, ctx) for repo in repos)
 
-    files = gen_repo_files(ctx["repo"], workdir, tpaths)
-    f = gen_rpmspec(ctx, workdir, tpaths)
 
-    if logfile is None:
-        logfile = os.path.join(workdir, "build_repodata_srpm.log")
+def run(ctx):
+    """
+    :param repos: List of Repo instances
 
-    vopt = " --verbose" if logging.getLogger().level < logging.INFO else ''
+    :return: True if commands run successfully else False
+    """
+    assert "repos" in ctx, "No repos defined in given ctx!"
 
-    c = "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' " + \
-        "--define '_buildroot .' -bs %s%s" % (os.path.basename(f), vopt)
-
-    if SH.run(c, workdir=workdir, logfile=logfile):
-        srpms = glob.glob(os.path.join(workdir, "*.src.rpm"))
-        assert srpms, "No src.rpm found in " + workdir
-
-        return srpms[0] if srpms else None
-    else:
-        logging.warn("Failed to build yum repodata RPM from " + f)
-        return None
+    ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"], ctx)]
+    return all(MS.stop_async_run(p) for p in ps)
 
 
 # vim:sw=4:ts=4:et:
