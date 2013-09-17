@@ -60,14 +60,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12.999-1
+* Tue Sep 17 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12.999-1
 - A lot of refactoring
 - Migrated to multiprocessing based job handling code
 - Cleanup old tenjin-based templates not used any more
 - Added missing runtime dependency to mock
 - Removed extra runtime dependency to python-bunch not used any more
 - Removed dependency to packagemaker and added dependency to rpm-build instead
-- Added basic unit test cases for myrepo.* including command functions
+- New modules to implement sub commands in myrepo.actions.* and added
+  corresponding test cases for them
 
 * Fri May 10 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12-1
 - Fixed a bug that myrepo refers rpmkit.tenjinwrapper which removed in the
