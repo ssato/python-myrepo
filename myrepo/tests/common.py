@@ -75,8 +75,8 @@ def sample_base_dist():
     return random.choice([d for d in E.list_dists() if is_base_dist(d)])
 
 
-def readfile(f):
-    return open(os.path.join(selfdir(), f)).read()
+def readfile(f, d=selfdir()):
+    return open(os.path.join(d, f)).read()
 
 
 def diff(s, ref):

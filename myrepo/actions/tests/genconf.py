@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.genconf as TT
+import myrepo.actions.genconf as TT
 import myrepo.repo as MR
 import myrepo.tests.common as C
 
@@ -23,6 +23,9 @@ import datetime
 import logging
 import os.path
 import unittest
+
+
+_CURDIR = os.path.dirname(__file__)
 
 
 class Test_00_functions(unittest.TestCase):
@@ -36,7 +39,7 @@ class Test_00_functions(unittest.TestCase):
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
 
-        ref = C.readfile("result.repo.0")
+        ref = C.readfile("result.repo.0", _CURDIR)
         ctx = repo.as_dict()
 
         s = TT.gen_repo_file_content(ctx, C.template_paths())
@@ -44,7 +47,7 @@ class Test_00_functions(unittest.TestCase):
         self.assertEquals(s, ref, C.diff(s, ref))
 
     def test_20_gen_mock_cfg_content(self):
-        ref = C.readfile("result.mock.cfg.0")
+        ref = C.readfile("result.mock.cfg.0", _CURDIR)
         ctx = dict(mockcfg="fedora-19-x86_64.cfg",
                    label="fedora-custom-19-x86_64",
                    repo_file_content="REPO_FILE_CONTENT")
@@ -58,7 +61,7 @@ class Test_00_functions(unittest.TestCase):
                        "%(name)s-%(server_shortaltname)s")
         ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
 
-        ref = C.readfile("result.yum-repodata.spec.0").strip()
+        ref = C.readfile("result.yum-repodata.spec.0", _CURDIR).strip()
         ref = ref.replace("DATESTAMP", TT._datestamp())
 
         s = TT.gen_rpmspec_content(ctx, C.template_paths()).strip()
@@ -81,18 +84,18 @@ class Test_10_effectful_functions(unittest.TestCase):
 
         fs = TT.gen_repo_files(repo, self.workdir, C.template_paths())
 
-        refs = [C.readfile("result.repo.files.0"),
-                C.readfile("result.mock.cfg.files.x86_64"),
-                C.readfile("result.mock.cfg.files.i386")]
+        refs = [C.readfile("result.repo.files.0", _CURDIR),
+                C.readfile("result.mock.cfg.files.x86_64", _CURDIR),
+                C.readfile("result.mock.cfg.files.i386", _CURDIR)]
 
         for f in fs:
             if f.endswith(".repo"):
-                ref = C.readfile("result.repo.files.0")
+                ref = C.readfile("result.repo.files.0", _CURDIR)
             else:
                 if f.endswith("x86_64.cfg"):
-                    ref = C.readfile("result.mock.cfg.files.x86_64")
+                    ref = C.readfile("result.mock.cfg.files.x86_64", _CURDIR)
                 else:
-                    ref = C.readfile("result.mock.cfg.files.i386")
+                    ref = C.readfile("result.mock.cfg.files.i386", _CURDIR)
 
             self.assertTrue(os.path.isfile(f))
 
@@ -108,7 +111,7 @@ class Test_10_effectful_functions(unittest.TestCase):
                        "%(name)s-%(server_shortaltname)s")
         ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
 
-        ref = C.readfile("result.yum-repodata.spec.0").strip()
+        ref = C.readfile("result.yum-repodata.spec.0", _CURDIR).strip()
         ref = ref.replace("DATESTAMP", TT._datestamp())
 
         f = TT.gen_rpmspec(ctx, self.workdir, C.template_paths())
