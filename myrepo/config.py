@@ -227,7 +227,7 @@ def opt_parser(usage=_USAGE, conf=None):
                         "repos. Please note that this is different from "
                         "the hostname specified with --hostname option. "
                         "The former (--hostname) specifies the hostname of "
-                        "the server to connect from your workstation, and "
+                        "the server to connect from your admin host, and "
                         "the later (--altname) specifies the hostname of "
                         "the server yum clients access to. The hostname "
                         "specified with --hostname will be used by default.")
