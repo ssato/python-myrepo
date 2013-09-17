@@ -91,18 +91,18 @@ def gen_mock_cfg_content(ctx, tpaths):
     return MU.compile_template("mock.cfg", ctx, tpaths)
 
 
-def gen_rpmspec_content(ctx, tpaths):
+def gen_rpmspec_content(repo, ctx, tpaths):
     """
     Make up the content of RPM SPEC file for RPMs contain .repo and mock.cfg
     files for given repo ``repo``.
 
+    :param repo: Repo object
     :param ctx: Context object to instantiate the template
     :param tpaths: Template path list :: [str]
 
     :return: String represents the content of RPM SPEC file :: str
     """
-    _check_vars_for_template(ctx, ["repo"])
-    MAU.assert_repo(ctx["repo"])
+    MAU.assert_repo(repo)
 
     if "datestamp" not in ctx:
         ctx["datestamp"] = _datestamp()
@@ -113,31 +113,33 @@ def gen_rpmspec_content(ctx, tpaths):
     if "email" not in ctx:
         ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
 
+    ctx["repo"] = repo.as_dict()
     return MU.compile_template("yum-repodata.spec", ctx, tpaths)
 
 
-def gen_repo_files_g(repo, workdir, tpaths):
+def gen_repo_files_g(repo, ctx, workdir, tpaths):
     """
     Generate .repo, mock.cfg files and the RPM SPEC file for given ``repo`` and
     return list of pairs of the path and the content of each files.
 
     :param repo: Repo object
+    :param ctx: Context object to instantiate the template
     :param workdir: Working dir to build RPMs
     :param tpaths: Template path list :: [str]
 
     :return: List of pairs of path to file to generate and its content
     """
-    yield (os.path.join(workdir, "%s.repo" % repo.reponame),
-           gen_repo_file_content(repo, tpaths))
+    rfc = gen_repo_file_content(repo.as_dict(), tpaths)
+    yield (os.path.join(workdir, "%s.repo" % repo.reponame), rfc)
 
     for d in repo.dists:
         label = "%s-%s-%s" % (repo.reponame, repo.version, d.arch)
         rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
                                                                 d.arch)
-        ctx = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
+        ctx2 = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
 
         yield (os.path.join(workdir, "%s.cfg" % label),
-               gen_mock_cfg_content(ctx, tpaths))
+               gen_mock_cfg_content(ctx2, tpaths))
 
     yield (os.path.join(workdir, "%s-%s.spec" % (repo.reponame, repo.version)),
            gen_rpmspec_content(repo, ctx, tpaths))

@@ -28,25 +28,28 @@ import unittest
 _CURDIR = os.path.dirname(__file__)
 
 
-class Test_00_functions(unittest.TestCase):
+class Test_00_pure_functions(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
         d = datetime.datetime(2013, 7, 31)
         self.assertEquals(TT._datestamp(d), 'Wed Jul 31 2013')
 
-    def test_10_gen_repo_file_content(self):
+    def test_10__check_vars_for_template(self):
+        TT._check_vars_for_template({'a', 1}, ['a'])
+        with self.assertRaises(AssertionError):
+            TT._check_vars_for_template({}, ['a'])
+
+    def test_20_gen_repo_file_content(self):
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
 
         ref = C.readfile("result.repo.0", _CURDIR)
-        ctx = repo.as_dict()
-
-        s = TT.gen_repo_file_content(ctx, C.template_paths())
+        s = TT.gen_repo_file_content(repo.as_dict(), C.template_paths())
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_20_gen_mock_cfg_content(self):
+    def test_30_gen_mock_cfg_content(self):
         ref = C.readfile("result.mock.cfg.0", _CURDIR)
         ctx = dict(mockcfg="fedora-19-x86_64.cfg",
                    label="fedora-custom-19-x86_64",
@@ -55,19 +58,46 @@ class Test_00_functions(unittest.TestCase):
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_30_gen_rpmspec_content(self):
+    def test_40_gen_rpmspec_content(self):
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
-        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
+        ctx = dict(fullname="John Doe", email="jdoe@example.com")
 
         ref = C.readfile("result.yum-repodata.spec.0", _CURDIR).strip()
         ref = ref.replace("DATESTAMP", TT._datestamp())
 
-        s = TT.gen_rpmspec_content(ctx, C.template_paths()).strip()
+        s = TT.gen_rpmspec_content(repo, ctx, C.template_paths()).strip()
         self.assertEquals(s, ref, C.diff(s, ref))
 
+    def test_50_gen_repo_files_g(self):
+        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(fullname="John Doe", email="jdoe@example.com",
+                   mockcfg="fedora-19-x86_64.cfg",
+                   label="fedora-yumrepos-19-x86_64",
+                   repo_file_content="REPO_FILE_CONTENT")
+        workdir = "/tmp/myrepo-t-000"
 
+        files = list(TT.gen_repo_files_g(repo, ctx, workdir,
+                                         C.template_paths()))
+
+        self.assertTrue(files)
+        self.assertEquals(files[0][0],
+                          os.path.join(workdir, "fedora-yumrepos.repo"))
+        self.assertEquals(files[1][0],
+                          os.path.join(workdir,
+                                       "fedora-yumrepos-19-x86_64.cfg"))
+        self.assertEquals(files[2][0],
+                          os.path.join(workdir,
+                                       "fedora-yumrepos-19-i386.cfg"))
+        self.assertEquals(files[3][0],
+                          os.path.join(workdir, "fedora-yumrepos-19.spec"))
+
+
+
+"""
 class Test_10_effectful_functions(unittest.TestCase):
 
     def setUp(self):
@@ -130,6 +160,7 @@ class Test_10_effectful_functions(unittest.TestCase):
 
         self.assertFalse(srpm is None)
         self.assertTrue(os.path.exists(srpm))
+"""
 
 
 # vim:sw=4:ts=4:et:
