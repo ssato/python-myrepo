@@ -116,7 +116,6 @@ class Test_00_pure_functions(unittest.TestCase):
         self.assertEquals(s, expected, C.diff(expected, s))
 
 
-"""
 class Test_10_effectful_functions(unittest.TestCase):
 
     def setUp(self):
@@ -126,60 +125,14 @@ class Test_10_effectful_functions(unittest.TestCase):
         #C.cleanup_workdir(self.workdir)
         pass
 
-    def test_10_gen_repo_files(self):
+    def test_110_run(self):
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repos=[repo, ], fullname="John Doe", email="jdoe@example.com",
+                   workdir=self.workdir, tpaths=C.template_paths())
 
-        fs = TT.gen_repo_files(repo, self.workdir, C.template_paths())
-
-        refs = [C.readfile("result.repo.files.0", _CURDIR),
-                C.readfile("result.mock.cfg.files.x86_64", _CURDIR),
-                C.readfile("result.mock.cfg.files.i386", _CURDIR)]
-
-        for f in fs:
-            if f.endswith(".repo"):
-                ref = C.readfile("result.repo.files.0", _CURDIR)
-            else:
-                if f.endswith("x86_64.cfg"):
-                    ref = C.readfile("result.mock.cfg.files.x86_64", _CURDIR)
-                else:
-                    ref = C.readfile("result.mock.cfg.files.i386", _CURDIR)
-
-            self.assertTrue(os.path.isfile(f))
-
-            # normalize whitespaces and empty lines:
-            s = open(f).read().strip()
-            ref = ref.strip()
-
-            self.assertEquals(s, ref, "f=%s\n" % f + C.diff(s, ref))
-
-    def test_30_gen_rpmspec(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
-
-        ref = C.readfile("result.yum-repodata.spec.0", _CURDIR).strip()
-        ref = ref.replace("DATESTAMP", TT._datestamp())
-
-        f = TT.gen_rpmspec(ctx, self.workdir, C.template_paths())
-        s = open(f).read().strip()
-
-        self.assertTrue(os.path.exists(f))
-        self.assertEquals(s, ref, "f=%s\n" % f + C.diff(s, ref))
-
-    def test_40_build_repodata_srpm(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(repo=repo, fullname="John Doe", email="jdoe@example.com")
-
-        srpm = TT.build_repodata_srpm(ctx, self.workdir, C.template_paths())
-
-        self.assertFalse(srpm is None)
-        self.assertTrue(os.path.exists(srpm))
-"""
+        self.assertTrue(TT.run(ctx))
 
 
 # vim:sw=4:ts=4:et:
