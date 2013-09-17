@@ -30,8 +30,8 @@ import os.path
 import uuid
 
 
-def gen_uid():
-    return uuid.uuid1()
+def gen_eof():
+    return "EOF_%s" % uuid.uuid1()
 
 
 def _datestamp(d=None):
@@ -165,8 +165,7 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     EOF_123
     >>>
     """
-    if eof is None:
-        eof = "EOF_%s" % gen_uid()
+    eof = "EOF_%s" % gen_eof() if eof is None or not callable(eof) else eof()
 
     return cfmt % (eof, path, content, eof)
 

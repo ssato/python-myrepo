@@ -20,6 +20,7 @@ import myrepo.repo as MR
 import myrepo.tests.common as C
 
 import datetime
+import itertools
 import logging
 import os.path
 import unittest
@@ -107,11 +108,17 @@ class Test_00_pure_functions(unittest.TestCase):
 
         files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
                                          C.template_paths()))
-        rcs = [TT.mk_write_file_cmd(p, c, eof="EOF_123") for p, c in files] + \
+        counter = itertools.count()
+        eof = lambda : "EOF_%d" % counter.next()
+
+        counter2 = itertools.count()
+        eof2 = lambda : "EOF_%d" % counter2.next()
+
+        rcs = [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
 
         expected = ' && '.join(rcs)
-        s = TT.prepare_0(repo, ctx, "EOF_123")[0]
+        s = TT.prepare_0(repo, ctx, eof2)[0]
 
         self.assertEquals(s, expected, C.diff(expected, s))
 
