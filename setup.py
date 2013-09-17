@@ -89,6 +89,8 @@ setup(name=PACKAGE,
     url="https://github.com/ssato/python-myrepo",
     packages=[
         "myrepo",
+        "myrepo.actions",
+        "myrepo.actions.tests",
         "myrepo.tests",
         "myrepo.plugins",
     ],
