@@ -38,7 +38,7 @@ def setup_workdir():
 
 def log_called(f):
     def run_f(*args, **kwargs):
-        logging.info("called: %s, args=%s, kwargs=%s" % \
+        logging.info("called: %s, args=%s, kwargs=%s" %
                      (f.func_name, str(args), str(kwargs)))
         return f(*args, **kwargs)
 
