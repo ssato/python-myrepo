@@ -113,11 +113,12 @@ def _init_by_defaults():
     cfg = dict(hostname=h, user=u, altname=h, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
                dists_full=dists_full, dists=dists_s, dist_choices=dists_full,
-               basename=bname, subdir=G._SUBDIR,
-               signkey=G._SIGNKEY, keydir=G._KEYDIR, keyurl=G._KEYURL,
+               basename=bname,
+               signkey=None, keydir=G._KEYDIR, keyurl=G._KEYURL,
                genconf=True, email=E.get_email(), fullname=E.get_fullname(),
                config=None, profile=None, tpaths=G._TEMPLATE_PATHS,
-               workdir=None, verbose=False, quiet=False, debug=False)
+               build_for_self=False, workdir=None,
+               verbose=False, quiet=False, debug=False)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -195,8 +196,7 @@ def opt_parser(usage=_USAGE, conf=None):
                         "(optionally w/ build (mock) distribution label). "
                         "Options are some of " + dist_choices +
                         " [%default] and these combinations: e.g. "
-                        "fedora-19-x86_64, "
-                        "rhel-6-x86_64:my-custom-addon-rhel-6-x86_64")
+                        "fedora-19-x86_64, rhel-6-i386")
     cog.add_option("-T", "--tpaths", action="append", default=[],
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
@@ -242,24 +242,25 @@ def opt_parser(usage=_USAGE, conf=None):
                         "[%default]")
     p.add_option_group(sog)
 
-    iog = optparse.OptionGroup(p, "Options for 'init' command")
+    iog = optparse.OptionGroup(p, "Options for 'init' and 'genconf' command")
     iog.add_option("", "--no-genconf", action="store_false", dest="genconf",
                    help="Do not generate yum repo metadata RPMs after "
                         "initialization of yum repos.")
     iog.add_option("", "--name",
-                   help="Name of your yum repo or its format string "
-                        "[%default].")
-    iog.add_option("", "--basename",
                    help="Base distribution name or not set (None).")
-    iog.add_option("", "--subdir", help="Repository sub dir name [%default]")
+    iog.add_option("", "--fullname", help="Your full name [%default]")
     iog.add_option("", "--email",
                    help="Your email address or its format string [%default]")
-    iog.add_option("", "--fullname", help="Your full name [%default]")
-    iog.add_option("", "--signkey",
-                   help="GPG key ID if signing RPMs to deploy")
-    iog.add_option("", "--keydir", help="GPG key store directory [%default]")
-    iog.add_option("", "--keyurl", help="GPG key URL [%default]")
+    #iog.add_option("", "--signkey",
+    #               help="GPG key ID if signing RPMs to deploy")
+    #iog.add_option("", "--keydir", help="GPG key store directory [%default]")
+    #iog.add_option("", "--keyurl", help="GPG key URL [%default]")
     p.add_option_group(iog)
+
+    bog = optparse.OptionGroup(p, "Options for 'build' and 'deploy' command")
+    bog.add_option("", "--build-for-self",
+                   help="Build srpm by refering repo itself")
+    p.add_option_group(bog)
 
     return p
 

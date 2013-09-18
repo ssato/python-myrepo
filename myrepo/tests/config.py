@@ -26,10 +26,10 @@ import unittest
 _CONF_0 = """\
 [DEFAULT]
 # The followings are site-local convention and DO NOT EDIT:
-hostname: yumrepos.example.com
+hostname: yumrepos.example.local
+altname: yumrepos.example.com
 email: %(user)s@example.com
-name: %(basename)s-com-example-%(user)s
-subdir: yum
+reponame: %(basename)s-com-example-%(user)s
 
 # Customize the followings as needed:
 #user: jdoe
@@ -45,9 +45,10 @@ class Test_00(unittest.TestCase):
         self.assertTrue(isinstance(cfg, dict))
 
         keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "basename", "subdir",
+                "dists_full", "dists", "dist_choices", "basename",
                 "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
-                "config", "profile", "tpaths", "verbose", "quiet", "debug")
+                "config", "profile", "tpaths", "verbose",
+                "build_for_self", "workdir", "quiet", "debug")
 
         for k in keys:
             self.assertTrue(k in cfg)
@@ -68,8 +69,8 @@ class Test_10(unittest.TestCase):
         cfg = TT._init_by_config(self.conf)
         self.assertTrue(isinstance(cfg, dict))
 
-        for k in ("hostname", "email", "name", "subdir", "dists"):
-            self.assertTrue(k in cfg)
+        for k in ("hostname", "email", "reponame", "dists"):
+            self.assertTrue(k in cfg, "k=" + k)
 
     def test_20_init___w_config_file(self):
         open(self.conf, 'w').write(_CONF_0)
@@ -78,14 +79,15 @@ class Test_10(unittest.TestCase):
         self.assertTrue(isinstance(cfg, dict))
 
         keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "basename", "subdir",
+                "dists_full", "dists", "dist_choices", "basename",
                 "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
                 "config", "profile", "tpaths", "verbose", "quiet", "debug")
 
         for k in keys:
             self.assertTrue(k in cfg)
 
-        self.assertEquals(cfg["hostname"], "yumrepos.example.com")
+        self.assertEquals(cfg["hostname"], "yumrepos.example.local")
+        self.assertEquals(cfg["altname"], "yumrepos.example.com")
         self.assertEquals(cfg["dists"],
                           "fedora-19-x86_64,fedora-19-i386,rhel-6-x86_64")
 
