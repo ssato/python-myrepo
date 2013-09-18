@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.utils as MAU
+import myrepo.commands.utils as MAU
 
 import myrepo.shell as MS
 import myrepo.utils as MU

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.genconf as TT
+import myrepo.commands.genconf as TT
 import myrepo.repo as MR
 import myrepo.tests.common as C
 

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.deploy_built_rpms as TT
+import myrepo.commands.deploy_built_rpms as TT
 import myrepo.repo as MR
 import myrepo.srpm as MS
 import myrepo.utils as MU
@@ -161,7 +161,7 @@ class Test_10_effecful_functions(unittest.TestCase):
         C.cleanup_workdir(self.workdir)
 
     def test_20_run__localhost(self):
-        """FIXME: Add test cases for myrepo.actions.deploy_built_rpms.run.
+        """FIXME: Add test cases for myrepo.commands.deploy_built_rpms.run.
         """
         return
 

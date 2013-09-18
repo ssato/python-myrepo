@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.init as TT
+import myrepo.commands.init as TT
 import myrepo.repo as MR
 import myrepo.utils as MU
 import myrepo.tests.common as C

@@ -17,12 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.actions.utils import assert_repo
+from myrepo.commands.utils import assert_repo
 from myrepo.srpm import Srpm
 
-import myrepo.actions.build as MAB
-import myrepo.actions.deploy as MAD
-import myrepo.actions.update as MAU
+import myrepo.commands.build as MAB
+import myrepo.commands.deploy as MAD
+import myrepo.commands.update as MAU
 
 import myrepo.repo as MR
 import myrepo.shell as MS

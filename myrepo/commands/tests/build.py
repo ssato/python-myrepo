@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.build as TT
+import myrepo.commands.build as TT
 import myrepo.repo as MR
 import myrepo.srpm as MS
 import myrepo.utils as MU
@@ -93,7 +93,7 @@ class Test_10_effecful_functions(unittest.TestCase):
         C.cleanup_workdir(self.workdir)
 
     def test_20_run__localhost(self):
-        """FIXME: Add test cases for myrepo.actions.build.run."""
+        """FIXME: Add test cases for myrepo.commands.build.run."""
         return
 
 
