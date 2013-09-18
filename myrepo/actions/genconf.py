@@ -149,9 +149,8 @@ def gen_repo_files_g(repo, ctx, workdir, tpaths):
            gen_rpmspec_content(repo, ctx, tpaths))
 
 
-_CMD_TEMPLATE_0 = """s='%s'
-cat << %s > %s
-$s
+_CMD_TEMPLATE_0 = """cat << "%s" > %s
+%s
 %s"""
 
 
@@ -163,14 +162,13 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     >>> c = "abc"
     >>> eof = const = lambda: "EOF_123"
     >>> print mk_write_file_cmd("/a/b/c/f.txt", c, eof)
-    s='abc'
-    cat << EOF_123 > /a/b/c/f.txt
-    $s
+    cat << "EOF_123" > /a/b/c/f.txt
+    abc
     EOF_123
     >>>
     """
     eof = gen_eof() if eof is None or not callable(eof) else eof()
-    return cfmt % (content, eof, path, eof)
+    return cfmt % (eof, path, content, eof)
 
 
 _CMD_TEMPLATE_1 = """\
