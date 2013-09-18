@@ -129,11 +129,9 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        #pass
         C.cleanup_workdir(self.workdir)
 
     def test_110_run(self):
-        return
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
