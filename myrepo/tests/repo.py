@@ -16,17 +16,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.repo as TT
-import myrepo.genconf as MG
-import myrepo.tests.common as C
-
-import logging
-import os.path
 import unittest
 
 
 class Test_30_classes(unittest.TestCase):
 
-    def test_10__Server__init__(self):
+    def test_10__Server__init___localhost(self):
         s = TT.Server("localhost.localdomain", "jdoe", baseurl="file:///tmp")
 
         self.assertEquals(s.name, "localhost.localdomain")
@@ -39,7 +34,22 @@ class Test_30_classes(unittest.TestCase):
         self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
                           "cp -a /tmp/a /b/c/d")
 
-    def test_12__Server__init__(self):
+    def test_12__Server__init___remotehost_minimal_args(self):
+        s = TT.Server("yumrepos-1.local")
+
+        self.assertEquals(s.name, "yumrepos-1.local")
+        self.assertEquals(s.altname, "yumrepos-1.local")
+        self.assertEquals(s.shortname, "yumrepos-1")
+        self.assertEquals(s.shortaltname, "yumrepos-1")
+        self.assertNotEquals(s.user, None)
+        self.assertFalse('%' in s.baseurl)
+        self.assertEquals(s.baseurl,
+                          "http://yumrepos-1.local/~%s/yum" % s.user)
+
+        self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
+                          "scp -p /tmp/a %s@yumrepos-1.local:/b/c/d" % s.user)
+
+    def test_14__Server__init___remotehost(self):
         s = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
 
         self.assertEquals(s.name, "yumrepos-1.local")
@@ -63,7 +73,34 @@ class Test_30_classes(unittest.TestCase):
         self.assertEquals(d.mockcfg, "fedora-19-x86_64.cfg")
         self.assertEquals(d.rpmdir(), "/var/lib/mock/fedora-19-x86_64/result")
 
-    def test_30__Repo__init__(self):
+    def test_30__Repo__init___minimal_args(self):
+        server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server)
+
+        self.assertTrue(isinstance(repo, TT.Repo))
+
+        self.assertEquals(repo.name, "fedora")
+        self.assertEquals(repo.version, "19")
+        self.assertEquals(repo.archs, ["x86_64", "i386"])
+        self.assertEquals(repo.server_name, "yumrepos-1.local")
+        self.assertEquals(repo.server_altname, "yumrepos.example.com")
+        self.assertEquals(repo.server_shortname, "yumrepos-1")
+        self.assertEquals(repo.server_shortaltname, "yumrepos")
+        self.assertEquals(repo.server_baseurl,
+                          "http://yumrepos.example.com/~jdoe/yum")
+        self.assertTrue(repo.multiarch)
+        self.assertEquals(repo.primary_arch, "x86_64")
+        self.assertEquals(repo.subdir, "fedora/19")
+        self.assertEquals(repo.destdir, "~jdoe/public_html/yum/fedora/19")
+        self.assertEquals(repo.baseurl,
+                          "http://yumrepos.example.com/~jdoe/yum")
+        self.assertEquals(repo.rpmdirs,
+                          ["~jdoe/public_html/yum/fedora/19/sources",
+                           "~jdoe/public_html/yum/fedora/19/x86_64",
+                           "~jdoe/public_html/yum/fedora/19/i386"])
+        self.assertEquals(repo.reponame, TT.G._REPONAME % repo.as_dict())
+
+    def test_32__Repo__init__(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = TT.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
