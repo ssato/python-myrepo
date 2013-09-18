@@ -17,14 +17,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.utils as MAU
+from myrepo.actions.utils import assert_repo
+from myrepo.srpm import Srpm
+
+import myrepo.actions.build as MAB
+import myrepo.actions.deploy as MAD
+import myrepo.actions.update as MAU
+
 import myrepo.repo as MR
 import myrepo.shell as MS
 import myrepo.utils as MU
 import rpmkit.rpmutils as RU
 
 import datetime
-import itertools
+import glob
 import locale
 import logging
 import os.path
@@ -106,7 +112,7 @@ def gen_rpmspec_content(repo, ctx, tpaths):
 
     :return: String represents the content of RPM SPEC file :: str
     """
-    MAU.assert_repo(repo)
+    assert_repo(repo)
 
     if "datestamp" not in ctx:
         ctx["datestamp"] = _datestamp()
@@ -158,6 +164,8 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     """
     :param path: Path of output file
     :param content: Content to be written into output file
+    :param eof: The function to generate EOF marker strings for here docuemnts
+        or None, that is, it will be generated automatically.
 
     >>> c = "abc"
     >>> eof = const = lambda: "EOF_123"
@@ -200,10 +208,12 @@ def prepare_0(repo, ctx, eof=None):
 
     :param repo: myrepo.repo.Repo instance
     :param ctx: Context object to instantiate the template
+    :param eof: The function to generate EOF marker strings for here docuemnts
+        or None, that is, it will be generated automatically.
 
     :return: List of command strings to deploy built RPMs.
     """
-    MAU.assert_repo(repo)
+    assert_repo(repo)
     _check_vars_for_template(ctx, ["workdir", "tpaths"])
 
     files = list(gen_repo_files_g(repo, ctx, ctx["workdir"], ctx["tpaths"]))
@@ -224,10 +234,68 @@ def prepare(repos, ctx, eof=None):
 
     :param repos: List of Repo instances
     :param ctx: Context object to instantiate the template
+    :param eof: The function to generate EOF marker strings for here docuemnts
+        or None, that is, it will be generated automatically.
 
     :return: List of command strings to deploy built RPMs.
     """
     return MU.concat(prepare_0(repo, ctx, eof) for repo in repos)
+
+
+def run0(repo, ctx, experimental=False):
+    """
+    Make up and build repo metadata srpm and deploy built rpms.
+
+    :param repos: List of Repo instances
+    :param ctx: Context object to instantiate the template
+    :param experimental: Run experimental code if True
+
+    :return: True if success else False
+    """
+    workdir = ctx["workdir"]
+    reponame = "%s-%s" % (repo.reponame, repo.version)
+
+    c = prepare_0(repo, ctx)
+    logfile = os.path.join(workdir, "genconf.%s.log" % reponame)
+
+    if not MS.run(c, logfile=logfile):
+        raise RuntimeError("Failed to make metadata srpm: " + reponame)
+
+    name = "%s-release-%s" % (repo.reponame, repo.version)
+
+    srpmreg = os.path.join(workdir, "%s-*.src.rpm" % name)
+    srpms = glob.glob(srpmreg)
+    if srpms and not experimental:
+        print "Built repo metadata srpm: " + srpms[0]
+        return True
+    else:
+        m = "Failed to find repo metadata srpm, pattern=" + srpmreg
+        raise RuntimeError(m)
+
+    srpm = Srpm(srpms[0])
+    srpm.resolve()  # Effectful; It will access the srpm.
+
+    # build srpm, deploy built rpms and update the repo data.
+    cs = MAB.prepare_0(repo, srpm)
+    assert len(cs) == 1, str(cs)
+
+    logfile = os.path.join(workdir, "build.%s.log" % reponame)
+    if not MS.run(cs[0], logfile=logfile):
+        raise RuntimeError("Failed to build srpm: " + srpm.path)
+
+    ctx2 = ctx
+    ctx2["repos"] = [repo]
+    ctx2["srpm"] = srpm
+
+    logfile = os.path.join(workdir, "deploy.%s.log" % reponame)
+    if not MAD.run(ctx2):
+        raise RuntimeError("Failed to deploy repo metadata rpms")
+
+    logfile = os.path.join(workdir, "update.%s.log" % reponame)
+    if not MAU.run(ctx2):
+        raise RuntimeError("Failed to update the initialized repo")
+
+    return True
 
 
 def run(ctx):
@@ -242,19 +310,7 @@ def run(ctx):
     if not os.path.exists(ctx["workdir"]):
         os.makedirs(ctx["workdir"])
 
-    counter = itertools.count()
-
-    def logfile():
-        tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%F-%T")
-        return os.path.join(ctx["workdir"],
-                            "genconf.%s.%d.log" % (tstamp, counter.next()))
-
-    def _runs():
-        for c in prepare(ctx["repos"], ctx):
-            logging.info("cmd: " + c)
-            yield MS.run_async(c, logfile=logfile())
-
-    return all(MS.stop_async_run(p) for p in _runs())
+    return all(run0(repo, ctx) for repo in ctx["repos"])
 
 
 # vim:sw=4:ts=4:et:

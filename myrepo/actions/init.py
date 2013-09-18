@@ -15,8 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.actions.utils as MAU
+from myrepo.actions.utils import assert_repo
+from myrepo.srpm import Srpm
 
+import myrepo.actions.genconf as MAG
 import myrepo.shell as MS
 import myrepo.utils as MU
 
@@ -42,7 +44,7 @@ def prepare_0(repo):
 
     :return: List of command strings to deploy built RPMs.
     """
-    MAU.assert_repo(repo)
+    assert_repo(repo)
 
     dirs_s = _join_dirs(repo.destdir, repo.archs + ["sources"])
     return [repo.mk_cmd("mkdir -p " + dirs_s)[0]]
@@ -70,7 +72,19 @@ def run(ctx):
     assert "repos" in ctx, "No repos defined in given ctx!"
 
     ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"])]
-    return all(MS.stop_async_run(p) for p in ps)
+    rc = all(MS.stop_async_run(p) for p in ps)
+
+    if not rc:
+        raise RuntimeError("Failed to initialize the repo!")
+
+    if ctx.get("genconf", False):
+        workdir = ctx["workdir"]
+        if not os.path.exists(workdir):
+            os.makedirs(workdir)
+
+        return MAG.run(ctx)
+    else:
+        return rc
 
 
 # vim:sw=4:ts=4:et:

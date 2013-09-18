@@ -61,15 +61,40 @@ class Test_10_effecful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_20_run__localhost(self):
+        return
         topdir = os.path.join(self.workdir, "yum")
         server = MR.Server("localhost", topdir=topdir)
         repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
                  MR.Repo("fedora", 19, ["x86_64", "i386"], server),
                  MR.Repo("rhel", 6, ["x86_64", ], server)]
         ctx = dict(repos=repos)
+
+        def expected_dirs(repo):
+            return [os.path.join(repo.destdir, a) for a
+                    in repo.archs + ["sources"]]
+
+        self.assertTrue(TT.run(ctx))
+
+        for repo in repos:
+            for d in expected_dirs(repo):
+                self.assertTrue(os.path.exists(d), "Failed to create " + d)
+
+    def test_30_run__localhost_w_genconf(self):
+        topdir = os.path.join(self.workdir, "yum")
+        builddir = os.path.join(self.workdir, "build")
+
+        server = MR.Server("localhost", user="jdoe", topdir=topdir)
+        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
+                 MR.Repo("fedora", 19, ["x86_64", "i386"], server),
+                 MR.Repo("rhel", 6, ["x86_64", ], server)]
+
+        ctx = dict(repos=repos, fullname="John Doe", email="jdoe@example.com",
+                   workdir=builddir, tpaths=C.template_paths(),
+                   genconf=True)
 
         def expected_dirs(repo):
             return [os.path.join(repo.destdir, a) for a

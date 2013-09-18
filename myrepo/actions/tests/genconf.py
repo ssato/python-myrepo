@@ -129,27 +129,35 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_110_run(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(repos=[repo], fullname="John Doe", email="jdoe@example.com",
-                   workdir=self.workdir, tpaths=C.template_paths())
+        topdir = os.path.join(self.workdir, "yum")
+        server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
+        reponame = "%(name)s-%(server_shortaltname)s"
+        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
+                 MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
+                 MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
+
+        ctx = dict(repos=repos[:1], fullname="John Doe",
+                   email="jdoe@example.com", workdir=self.workdir,
+                   tpaths=C.template_paths())
 
         self.assertTrue(TT.run(ctx))
 
     def test_112_run_multi_repos(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        topdir = os.path.join(self.workdir, "yum")
+        server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
         reponame = "%(name)s-%(server_shortaltname)s"
         repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
                  MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
-                 MR.Repo("rhel", 19, ["x86_64", "i386"], server, reponame)]
-        ctx = dict(repos=repos, fullname="John Doe", email="jdoe@example.com",
-                   workdir=self.workdir, tpaths=C.template_paths())
+                 MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
+
+        ctx = dict(repos=repos, fullname="John Doe",
+                   email="jdoe@example.com", workdir=self.workdir,
+                   tpaths=C.template_paths())
 
         self.assertTrue(TT.run(ctx))
-
 
 # vim:sw=4:ts=4:et:
