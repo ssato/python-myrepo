@@ -20,6 +20,7 @@ import myrepo.srpm as MS
 import myrepo.shell as SH
 import myrepo.utils as U
 import rpmkit.rpmutils as RU
+import rpmkit.environ as E
 
 import glob
 import locale
@@ -88,7 +89,7 @@ class Server(object):
         :param timeout: SSH connection timeout to this server
         """
         self.name = name
-        self.user = user
+        self.user = E.get_username() if user is None else user
         self.altname = name if altname is None else altname
         self.timeout = timeout  # It will be ignored if this host is localhost.
 
