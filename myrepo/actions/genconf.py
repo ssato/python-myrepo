@@ -149,8 +149,9 @@ def gen_repo_files_g(repo, ctx, workdir, tpaths):
            gen_rpmspec_content(repo, ctx, tpaths))
 
 
-_CMD_TEMPLATE_0 = """cat << %s > %s
-%s
+_CMD_TEMPLATE_0 = """s='%s'
+cat << %s > %s
+$s
 %s"""
 
 
@@ -160,15 +161,16 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     :param content: Content to be written into output file
 
     >>> c = "abc"
-    >>> eof = const = lambda: EOF_123
+    >>> eof = const = lambda: "EOF_123"
     >>> print mk_write_file_cmd("/a/b/c/f.txt", c, eof)
+    s='abc'
     cat << EOF_123 > /a/b/c/f.txt
-    abc
+    $s
     EOF_123
     >>>
     """
     eof = gen_eof() if eof is None or not callable(eof) else eof()
-    return cfmt % (eof, path, content, eof)
+    return cfmt % (content, eof, path, eof)
 
 
 _CMD_TEMPLATE_1 = """\
@@ -214,7 +216,7 @@ def prepare_0(repo, ctx, eof=None):
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands
     # to generate files; .repo file, the rpm spec and mock.cfg files:
-    return [" && ".join(cs)]
+    return ["\n".join(cs)]
 
 
 def prepare(repos, ctx, eof=None):
@@ -249,9 +251,12 @@ def run(ctx):
         return os.path.join(ctx["workdir"],
                             "genconf.%s.%d.log" % (tstamp, counter.next()))
 
-    ps = [MS.run_async(c, logfile=logfile()) for c in
-          prepare(ctx["repos"], ctx)]
-    return all(MS.stop_async_run(p) for p in ps)
+    def _runs():
+        for c in prepare(ctx["repos"], ctx):
+            logging.info("cmd: " + c)
+            yield MS.run_async(c, logfile=logfile())
+
+    return all(MS.stop_async_run(p) for p in _runs())
 
 
 # vim:sw=4:ts=4:et:

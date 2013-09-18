@@ -117,7 +117,7 @@ class Test_00_pure_functions(unittest.TestCase):
         rcs = [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
 
-        expected = ' && '.join(rcs)
+        expected = '\n'.join(rcs)
         s = TT.prepare_0(repo, ctx, eof2)[0]
 
         self.assertEquals(s, expected, C.diff(expected, s))
@@ -129,14 +129,26 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        #C.cleanup_workdir(self.workdir)
-        pass
+        #pass
+        C.cleanup_workdir(self.workdir)
 
     def test_110_run(self):
+        return
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
         ctx = dict(repos=[repo], fullname="John Doe", email="jdoe@example.com",
+                   workdir=self.workdir, tpaths=C.template_paths())
+
+        self.assertTrue(TT.run(ctx))
+
+    def test_112_run_multi_repos(self):
+        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        reponame = "%(name)s-%(server_shortaltname)s"
+        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
+                 MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
+                 MR.Repo("rhel", 19, ["x86_64", "i386"], server, reponame)]
+        ctx = dict(repos=repos, fullname="John Doe", email="jdoe@example.com",
                    workdir=self.workdir, tpaths=C.template_paths())
 
         self.assertTrue(TT.run(ctx))
