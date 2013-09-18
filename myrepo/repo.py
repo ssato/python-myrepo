@@ -96,8 +96,9 @@ class Server(object):
         self.shortname = self._mk_shortname(self.name)
         self.shortaltname = self._mk_shortname(self.altname)
 
-        ctx = dict(name=name, user=user, altname=self.altname, timeout=timeout,
-                   shortname=self.shortname, shortaltname=self.shortaltname)
+        ctx = dict(name=name, user=self.user, altname=self.altname,
+                   timeout=timeout, shortname=self.shortname,
+                   shortaltname=self.shortaltname)
 
         # The followings may be format strings.
         self.topdir = _format(topdir, ctx)
