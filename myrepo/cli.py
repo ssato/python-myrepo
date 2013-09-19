@@ -75,6 +75,26 @@ def _degenerate_dists_g(dists):
         yield (dname, dver, archs, bdist)
 
 
+def mk_repo_server(ctx):
+    """
+    :param ctx: Configuration parameters :: dict
+    :return: myrepo.repo.Server instance
+
+    >>> ctx = dict(hostname="yumrepos-0.m2.local", user="jdoe",
+    ...            altname="yumrepos.example.com",
+    ...            topdir="~%(user)s/public_html/yum",
+    ...            baseurl="http://%(altname)s/~%(user)s/yum",
+    ...            timeout=5)
+    >>> s = mk_repo_server(ctx)
+    >>> isinstance(s, R.Server)
+    True
+    >>> s.baseurl
+    'http://yumrepos.example.com/~jdoe/yum'
+    """
+    return R.Server(ctx["hostname"], ctx["user"], ctx["altname"],
+                    ctx["topdir"], ctx["baseurl"], ctx["timeout"])
+
+
 def mk_repos(ctx, degenerate=False):
     """
     :param ctx: Configuration parameters :: dict
@@ -100,8 +120,7 @@ def mk_repos(ctx, degenerate=False):
         logging.info("Creating repo: dname=%s, dver=%s, archs=%s, "
                      "bdist=%s" % (dname, dver, archs, bdist))
 
-        s = R.RepoServer(ctx["hostname"], ctx["user"], ctx["altname"],
-                         ctx["topdir"], ctx["baseurl"], ctx["timeout"])
+        s = mk_repo_server(ctx)
         yield R.Repo(dname, dver, archs, ctx["basename"], s, bdist,
                      ctx["subdir"], ctx["signkey"], ctx["keydir"],
                      ctx["keyurl"])
