@@ -251,7 +251,7 @@ class Repo(object):
     """
 
     def __init__(self, name, version, archs, server, reponame=G._REPONAME,
-                 primary_arch="x86_64", build_for_self=False):
+                 primary_arch="x86_64", selfref=False):
         """
         :param name: Build target distribution name, fedora or rhel.
         :param version: Version string or number :: int
@@ -261,13 +261,13 @@ class Repo(object):
             "fedora-custom", "%(name)s-%(server_shortaltname)s"
         :param primary_arch: Primary arch or None. If archs[0] is the
             primary_arch, pass None as this.
-        :param build_for_self: build given srpm for self if True
+        :param selfref: build given srpm by refering the repo self
         """
         self.name = name
         self.version = str(version)
         self.server = server
         self.multiarch = len(archs) > 1
-        self.build_for_self = build_for_self
+        self.selfref = selfref
 
         # Setup aliases of self.server.<key>:
         for k, v in _foreach_member_of(server):
@@ -293,7 +293,7 @@ class Repo(object):
 
         self.reponame = self._format(reponame)
 
-        self.dist = "%s-%s" % (self.reponame if self.build_for_self else
+        self.dist = "%s-%s" % (self.reponame if self.selfref else
                                self.name, self.version)
         self.dists = [Dist(self.dist, a) for a in self.archs]
         self.primary_dist = self.dists[0]
