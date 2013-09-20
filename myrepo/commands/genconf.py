@@ -30,10 +30,12 @@ import myrepo.utils as MU
 import rpmkit.rpmutils as RU
 
 import datetime
+import getpass
 import glob
 import locale
 import logging
 import os.path
+import re
 import uuid
 
 
@@ -112,17 +114,8 @@ def gen_rpmspec_content(repo, ctx, tpaths):
     :return: String represents the content of RPM SPEC file :: str
     """
     assert_repo(repo)
-
-    if "datestamp" not in ctx:
-        ctx["datestamp"] = _datestamp()
-
-    if "fullname" not in ctx:
-        ctx["fullname"] = raw_input("Type your full name > ")
-
-    if "email" not in ctx:
-        ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
-
     ctx["repo"] = repo.as_dict()
+
     return MU.compile_template("yum-repodata.spec", ctx, tpaths)
 
 
@@ -201,6 +194,101 @@ def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1):
     """
     vopt = " --verbose" if verbose else ''
     return cfmt % (os.path.dirname(rpmspec), os.path.basename(rpmspec), vopt)
+
+
+def gen_entoropy():
+    """
+    Put a load on system and generate entropy needed to generate GPG key.
+    """
+    cmd = "find / -xdev -type f -exec sha256sum {} >/dev/null \; 2>&1"
+    return MS.run_async(cmd)
+
+
+def find_keyid(signer_name, comment):
+    """
+    """
+    try:
+        out = subprocess.check_output("gpg --list-keys", shell=True)
+        prev_line = ""
+        for line in out.splitlines():
+            if not line:
+                continue
+
+            if "%s %s" % (signer_name, comment) in line:
+                return re.match(r"^pub +[^/]+/(\w+) .*$",
+                                prev_line).groups()[0]
+            prev_line = line
+
+    except (subprocess.CalledProcessError, AttributeError):
+        return None
+
+
+_GPGKEY_CONF = """\
+Key-Type: RSA
+Key-Length: 2048
+# No subkey, RSA (sign only), to keep compatibility w/ RHEL 5 clients:
+Key-Usage: sign
+Expire-Date: 0
+Name-Real: %(signer_name)s
+Name-Comment: %(comment)s
+Passphrase: %(passphrase)s
+%no-protection
+%transient-key
+%commit
+"""
+
+_RPMMACROS_ADD = """\
+%%_signature gpg
+%%_gpg_name %s
+%%__gpg_sign_cmd %%{__gpg} \\
+gpg --force-v3-sigs --digest-algo=sha1 --batch --no-verbose --no-armor \\
+    --passphrase-fd 3 --no-secmem-warning -u "%%{_gpg_name}" \\
+    -sbo %%{__signature_filename} %%{__plaintext_filename}
+"""
+
+
+def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
+    """
+    Generate and configure GPG key to sign RPMs built.
+
+    :param ctx: Context object to instantiate the template
+    :param rpmmacros: .rpmmacros file path
+    :param compat: Keep compatibility of GPG key for older RHEL if True
+
+    :return: List of command strings to deploy built RPMs.
+    """
+    _check_vars_for_template(ctx, ["workdir"])
+    workdir = ctx["workdir"]
+
+    if passphrase is None:
+        passphrase = getpass.getpass("Passphrase for this GPG key: ")
+
+    gpgconf = os.path.join(workdir, ".gpg.conf")
+    comment = "RPM sign key"
+    c = _GPGKEY_CONF % dict(signer_name=ctx["fullname"],
+                            comment=comment, passphrase=passphrase)
+    open(gpgconf, 'w').write(c)
+
+    sproc = gen_entoropy()
+    MS.run("gpg -v --batch --gen-key " + gpgconf)
+    MS.stop_async_run(sproc)
+
+    keyid = find_keyid(ctx["fullname"], comment)
+
+    keyfiles = [os.path.join(workdir, "RPM-GPG-KEY-%s" % n) for
+                n in MU.uniq(repo.reponame for repo in ctx["repos"])]
+
+    for f in keyfiles:
+        subprocess.check_call("gpg -a --export %s > %s" % (keyid, f))
+
+    rpmmacros = os.path.expanduser("~/.rpmmacros")
+    c = _RPMMACROS_ADD % dict(keyid=keyid, )
+
+    if os.path.exists(rpmmacros):
+        m = "~/.rpmmacros already exists! Edit it manually as needed."
+        logging.warn(m)
+    else:
+        open(rpmmacros, 'w').write(c)
 
 
 def prepare_0(repo, ctx, eof=None):
@@ -307,6 +395,16 @@ def run(ctx):
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
     _check_vars_for_template(ctx, ["workdir"])
+
+    if "datestamp" not in ctx:
+        ctx["datestamp"] = _datestamp()
+
+    if "fullname" not in ctx:
+        ctx["fullname"] = raw_input("Type your full name > ")
+
+    if "email" not in ctx:
+        repo = ctx["repos"][0]
+        ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
 
     if not os.path.exists(ctx["workdir"]):
         os.makedirs(ctx["workdir"])
