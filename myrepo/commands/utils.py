@@ -68,17 +68,4 @@ def init_workdir(workdir):
     return workdir
 
 
-def print_commands_and_exit_if_dryrun(ctx, cs):
-    """
-    :param ctx: Application context object holding parameters
-    :param cs: List of command strings to run
-    """
-    if "dryrun" in ctx:
-        "commands to run:"
-        for c in cs:
-            print "# " + c
-
-        sys.exit(0)
-
-
 # vim:sw=4:ts=4:et:
