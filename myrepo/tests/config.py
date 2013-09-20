@@ -27,7 +27,7 @@ _CONF_KEYS = ("dists", "dists_full", "dist_choices", "tpaths", "workdir",
               "quiet", "verbose", "debug", "config", "profile",
               "hostname", "altname", "user", "topdir", "baseurl",
               "timeout", "genconf", "fullname", "email", "gpgkey",
-              "selfref")
+              "selfref", "repo_params")
 
 _CONF_0 = """\
 [DEFAULT]
@@ -53,6 +53,8 @@ class Test_00(unittest.TestCase):
         # This check is far from perfect but...
         for k in _CONF_KEYS:
             self.assertTrue(k in cfg)
+
+        self.assertTrue(isinstance(cfg["repo_params"], list))
 
 
 class Test_10(unittest.TestCase):
