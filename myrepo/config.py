@@ -50,12 +50,8 @@ Examples:
   %%prog deploy packagemaker-0.1-1.src.rpm
   %%prog d --dists rhel-6-x86_64,fedora-19-x86_64 packagemaker-0.1-1.src.rpm
 
-  # build SRPM and deploy RPMs and SRPMs into your yum repo.
-  #
-  # Here, fedora-19-x86_64 is base distribution and my-fedora-19-x86_64 is
-  # build target distribution:
-  #
-  %%prog d --dists fedora-17-x86_64:my-fedora-17-x86_64 myrepo-0.1-1.src.rpm\
+  # build SRPM has build time dependencies to RPMs in the yum repo:
+  %%prog b --dists fedora-19-x86_64 --selfref myrepo-0.1-1.src.rpm\
 """ % _CMDS_S
 
 
@@ -95,7 +91,7 @@ def _is_supported(dist):
     return "x86_64" in dist or "i386" in dist
 
 
-def _init_by_defaults():
+def _init_by_preset_defaults():
     """
 
     """
@@ -110,15 +106,14 @@ def _init_by_defaults():
     dists_s = ','.join(distributions)
     (bname, bversion) = E.get_distribution()  # (basename, baseversion)
 
-    cfg = dict(hostname=h, user=u, altname=h, topdir=G._SERVER_TOPDIR,
+    cfg = dict(dists=dists_s, dists_full=dists_full, dist_choices=dists_full,
+               tpaths=G._TEMPLATE_PATHS, workdir=None,  # To be initialized.
+               quiet=False, verbose=False, debug=False,
+               config=None, profile=None,
+               hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
-               dists_full=dists_full, dists=dists_s, dist_choices=dists_full,
-               basename=bname,
-               signkey=None, keydir=G._KEYDIR, keyurl=G._KEYURL,
-               genconf=True, email=E.get_email(), fullname=E.get_fullname(),
-               config=None, profile=None, tpaths=G._TEMPLATE_PATHS,
-               build_for_self=False, workdir=None,
-               verbose=False, quiet=False, debug=False)
+               genconf=True, fullname=E.get_fullname(), email=E.get_email(),
+               gpgkey="no", selfref=False)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -169,7 +164,7 @@ def init(config_path=None, profile=None):
     """
     Initialize config object.
     """
-    cfg = _init_by_defaults()
+    cfg = _init_by_preset_defaults()
     cfg.update(_init_by_config(config_path, profile))
 
     return cfg
@@ -193,18 +188,18 @@ def opt_parser(usage=_USAGE, conf=None):
     cog = optparse.OptionGroup(p, "Common options")
     cog.add_option("", "--dists",
                    help="Comma separated distribution labels including arch "
-                        "(optionally w/ build (mock) distribution label). "
-                        "Options are some of " + dist_choices +
-                        " [%default] and these combinations: e.g. "
-                        "fedora-19-x86_64, rhel-6-i386")
+                        "Options are some of " + dist_choices + " [%default] ")
+    cog.add_option("", "--reponame",
+                   help="Repository name or format string to generate name, "
+                        "e.g. %(name)s-%(server_shortaltname)-%(user)s, "
+                        "%(name)s-custom. [%default]")
     cog.add_option("-T", "--tpaths", action="append", default=[],
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
-                        "priority than default paths.")
+                        "priority than the default paths.")
     cog.add_option("-w", "--workdir",
                    help="Working directory to save results and log files. "
                         "Dynamically generated dir will be used by default.")
-
     cog.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     cog.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
     cog.add_option("-D", "--debug", action="store_true", help="Debug mode")
@@ -216,50 +211,59 @@ def opt_parser(usage=_USAGE, conf=None):
                     help="Specify configuration profile [none]")
     p.add_option_group(cfog)
 
-    sog = optparse.OptionGroup(p, "(Repo) server Options")
+    sog = optparse.OptionGroup(p, "Repo server Options")
     sog.add_option("-H", "--hostname",
-                   help="Server to provide your yum repos. Please note that "
-                        "you need to specify another server name with "
-                        "--altname option if you server has alternative name "
-                        " for clients, Localhost will be used by default")
+                   help="Server to provide your yum repos [%default]. "
+                        "Please note that you need to specify another "
+                        "server name with --altname option if your server "
+                        "has alternative name visible for clients.")
     sog.add_option("", "--altname",
                    help="Alternative hostname of the server to provide yum "
-                        "repos. Please note that this is different from "
-                        "the hostname specified with --hostname option. "
-                        "The former (--hostname) specifies the hostname of "
-                        "the server to connect from your admin host, and "
-                        "the later (--altname) specifies the hostname of "
-                        "the server yum clients access to. The hostname "
-                        "specified with --hostname will be used by default.")
+                        "repos [%default]. Please note that this may be "
+                        "different from the hostname specified with "
+                        "--hostname option. The former (--hostname) specifies "
+                        "the hostname of the server to connect from your "
+                        "admin host while transfering built RPMs, and the "
+                        "later (--altname) specifies the hostname of the "
+                        "server yum clients will access to. The hostname "
+                        "specified with --hostname will be used by default "
+                        "if not given.")
     sog.add_option("-u", "--user",
-                   help="Your username on the yum repo server [%default]")
+                   help="Your username on the yum repo server [%default].")
     sog.add_option("", "--topdir",
-                   help="Repo top dir or its format string [%default]")
+                   help="Repo top dir or its format string [%default].")
     sog.add_option("", "--baseurl",
-                   help="Repo base URL or its format string [%default]")
+                   help="Repo base URL or its format string [%default].")
     sog.add_option("", "--timeout", type="int",
                    help="Timeout to connect to the server in seconds "
-                        "[%default]")
+                        "[%default].")
     p.add_option_group(sog)
 
     iog = optparse.OptionGroup(p, "Options for 'init' and 'genconf' command")
     iog.add_option("", "--no-genconf", action="store_false", dest="genconf",
                    help="Do not generate yum repo metadata RPMs after "
-                        "initialization of yum repos.")
-    iog.add_option("", "--name",
-                   help="Base distribution name or not set (None).")
+                        "initialization of the yum repos. NOTE: If you "
+                        "specified this option, you have to generate it w/ "
+                        "'genconf' sub command of %prog later")
     iog.add_option("", "--fullname", help="Your full name [%default]")
     iog.add_option("", "--email",
                    help="Your email address or its format string [%default]")
-    #iog.add_option("", "--signkey",
-    #               help="GPG key ID if signing RPMs to deploy")
-    #iog.add_option("", "--keydir", help="GPG key store directory [%default]")
-    #iog.add_option("", "--keyurl", help="GPG key URL [%default]")
+    iog.add_option("", "--gpgkey",
+                   help="The path to GPG public key file of which key is "
+                        "used to sign RPMs deployed, or one of keywords: "
+                        "auto, no. If --gpgkey=no, RPMs deployed for this "
+                        "repo will not be signed (gpgcheck=0), and if "
+                        "--gpgkey=auto, %prog will try to generate a GPG key "
+                        "automatically to sign RPMs before deployment. "
+                        "[%default]")
     p.add_option_group(iog)
 
     bog = optparse.OptionGroup(p, "Options for 'build' and 'deploy' command")
-    bog.add_option("", "--build-for-self",
-                   help="Build srpm by refering repo itself")
+    bog.add_option("", "--selfref",
+                   help="If specified, %prog will also use the yum repo "
+                        "itself to satisfy a portion of buildtime "
+                        "dependencies to RPMs available from this repo, "
+                        "to build given target SRPM to build.")
     p.add_option_group(bog)
 
     return p

@@ -23,6 +23,12 @@ import os.path
 import unittest
 
 
+_CONF_KEYS = ("dists", "dists_full", "dist_choices", "tpaths", "workdir",
+              "quiet", "verbose", "debug", "config", "profile",
+              "hostname", "altname", "user", "topdir", "baseurl",
+              "timeout", "genconf", "fullname", "email", "gpgkey",
+              "selfref")
+
 _CONF_0 = """\
 [DEFAULT]
 # The followings are site-local convention and DO NOT EDIT:
@@ -40,17 +46,12 @@ dists: fedora-19-x86_64,fedora-19-i386,rhel-6-x86_64
 
 class Test_00(unittest.TestCase):
 
-    def test_10__init_by_defaults(self):
-        cfg = TT._init_by_defaults()
+    def test_10__init_by_preset_defaults(self):
+        cfg = TT._init_by_preset_defaults()
         self.assertTrue(isinstance(cfg, dict))
 
-        keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "basename",
-                "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
-                "config", "profile", "tpaths", "verbose",
-                "build_for_self", "workdir", "quiet", "debug")
-
-        for k in keys:
+        # This check is far from perfect but...
+        for k in _CONF_KEYS:
             self.assertTrue(k in cfg)
 
 
@@ -78,12 +79,7 @@ class Test_10(unittest.TestCase):
         cfg = TT.init(self.conf)
         self.assertTrue(isinstance(cfg, dict))
 
-        keys = ("hostname", "user", "altname", "topdir", "baseurl", "timeout",
-                "dists_full", "dists", "dist_choices", "basename",
-                "signkey", "keydir", "keyurl", "genconf", "email", "fullname",
-                "config", "profile", "tpaths", "verbose", "quiet", "debug")
-
-        for k in keys:
+        for k in _CONF_KEYS:
             self.assertTrue(k in cfg)
 
         self.assertEquals(cfg["hostname"], "yumrepos.example.local")
