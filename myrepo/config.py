@@ -113,7 +113,7 @@ def _init_by_preset_defaults():
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
                genconf=True, fullname=E.get_fullname(), email=E.get_email(),
-               gpgkey="no", selfref=False)
+               gpgkey="no", repo_params=[], selfref=False)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -256,6 +256,10 @@ def opt_parser(usage=_USAGE, conf=None):
                         "--gpgkey=auto, %prog will try to generate a GPG key "
                         "automatically to sign RPMs before deployment. "
                         "[%default]")
+    iog.add_option("", "--repo-param", action="append", dest="repo_params",
+                   help="Other .repo file parameter definitions (key=value), "
+                        "ex. '--repo-param metadata_expire=7d "
+                        "--repo-param failovermethod=priority'.")
     p.add_option_group(iog)
 
     bog = optparse.OptionGroup(p, "Options for 'build' and 'deploy' command")
