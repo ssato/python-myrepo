@@ -29,6 +29,7 @@ typecheck = U.typecheck
 is_local = U.is_local
 concat = U.concat
 uconcat = U.uconcat
+uniq = U.uniq
 
 
 def compile_template(tmpl, context={}, tpaths=G._TEMPLATE_PATHS):
