@@ -45,7 +45,24 @@ class Test_00_pure_functions(unittest.TestCase):
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
 
+        ctx = repo.as_dict()
+        ctx["gpgkey"] = "no"
+
         ref = C.readfile("result.repo.0", _CURDIR)
+        s = TT.gen_repo_file_content(repo.as_dict(), C.template_paths())
+
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+    def test_22_gen_repo_file_content(self):
+        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+
+        ctx = repo.as_dict()
+        ctx["gpgkey"] = "auto"
+        ctx["repo_params"] = ["failovermethod=priority", "metadata_expire=7d"]
+
+        ref = C.readfile("result.repo.1", _CURDIR)
         s = TT.gen_repo_file_content(repo.as_dict(), C.template_paths())
 
         self.assertEquals(s, ref, C.diff(s, ref))
@@ -76,7 +93,7 @@ class Test_00_pure_functions(unittest.TestCase):
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
                        "%(name)s-%(server_shortaltname)s")
         ctx = dict(fullname="John Doe", email="jdoe@example.com",
-                   mockcfg="fedora-19-x86_64.cfg",
+                   mockcfg="fedora-19-x86_64.cfg", gpgkey="no",
                    label="fedora-yumrepos-19-x86_64",
                    repo_file_content="REPO_FILE_CONTENT")
         workdir = "/tmp/myrepo-t-000"
@@ -103,7 +120,7 @@ class Test_00_pure_functions(unittest.TestCase):
         ctx = dict(fullname="John Doe", email="jdoe@example.com",
                    mockcfg="fedora-19-x86_64.cfg",
                    label="fedora-yumrepos-19-x86_64",
-                   repo_file_content="REPO_FILE_CONTENT",
+                   repo_file_content="REPO_FILE_CONTENT", gpgkey="no",
                    workdir="/tmp/myrepo-t-000", tpaths=C.template_paths())
 
         files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
@@ -140,7 +157,7 @@ class Test_10_effectful_functions(unittest.TestCase):
                  MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
                  MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
 
-        ctx = dict(repos=repos[:1], fullname="John Doe",
+        ctx = dict(repos=repos[:1], fullname="John Doe", gpgkey="no",
                    email="jdoe@example.com", workdir=self.workdir,
                    tpaths=C.template_paths())
 
@@ -154,7 +171,7 @@ class Test_10_effectful_functions(unittest.TestCase):
                  MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
                  MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
 
-        ctx = dict(repos=repos, fullname="John Doe",
+        ctx = dict(repos=repos, fullname="John Doe", gpgkey="no",
                    email="jdoe@example.com", workdir=self.workdir,
                    tpaths=C.template_paths())
 

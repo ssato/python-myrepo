@@ -78,9 +78,8 @@ def gen_repo_file_content(ctx, tpaths):
     :return: String represents the content of .repo file will be put in
     /etc/yum.repos.d/ :: str.
     """
-    # Other candidates: "signkey", "keyurl" and "metadata_expire"
     _check_vars_for_template(ctx, ["reponame", "server_altname", "server_user",
-                                   "baseurl", "name"])
+                                   "baseurl", "name", "gpgkey"])
 
     return MU.compile_template("repo_file", ctx, tpaths)
 
@@ -139,7 +138,9 @@ def gen_repo_files_g(repo, ctx, workdir, tpaths):
 
     :return: List of pairs of path to file to generate and its content
     """
-    rfc = gen_repo_file_content(repo.as_dict(), tpaths)
+    ctx0 = ctx
+    ctx0.update(repo.as_dict())
+    rfc = gen_repo_file_content(ctx0, tpaths)
     yield (os.path.join(workdir, "%s.repo" % repo.reponame), rfc)
 
     for d in repo.dists:
