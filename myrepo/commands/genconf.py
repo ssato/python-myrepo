@@ -206,6 +206,9 @@ def gen_entoropy():
 
 def find_keyid(signer_name, comment):
     """
+    Find out the ID of the GPG key just created to sign RPMs.
+
+    FIXME: Is there any other smarter way to find GPG key ID just created ?
     """
     try:
         out = subprocess.check_output("gpg --list-keys", shell=True)
@@ -237,9 +240,12 @@ Passphrase: %(passphrase)s
 %commit
 """
 
-_RPMMACROS_ADD = """\
+_RPMMACROS_ADD_0 = """\
 %%_signature gpg
 %%_gpg_name %s
+"""
+
+_RPMMACROS_ADD_1 = _RPMMACROS_ADD_0 + """
 %%__gpg_sign_cmd %%{__gpg} \\
 gpg --force-v3-sigs --digest-algo=sha1 --batch --no-verbose --no-armor \\
     --passphrase-fd 3 --no-secmem-warning -u "%%{_gpg_name}" \\
@@ -268,10 +274,13 @@ def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
     c = _GPGKEY_CONF % dict(signer_name=ctx["fullname"],
                             comment=comment, passphrase=passphrase)
     open(gpgconf, 'w').write(c)
+    os.chmod(gpgconf, 0600)
 
     sproc = gen_entoropy()
     MS.run("gpg -v --batch --gen-key " + gpgconf)
     MS.stop_async_run(sproc)
+
+    os.remove(gpgconf)
 
     keyid = find_keyid(ctx["fullname"], comment)
 
@@ -282,13 +291,13 @@ def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
         subprocess.check_call("gpg -a --export %s > %s" % (keyid, f))
 
     rpmmacros = os.path.expanduser("~/.rpmmacros")
-    c = _RPMMACROS_ADD % dict(keyid=keyid, )
 
     if os.path.exists(rpmmacros):
         m = "~/.rpmmacros already exists! Edit it manually as needed."
         logging.warn(m)
     else:
-        open(rpmmacros, 'w').write(c)
+        fmt = _RPMMACROS_ADD_1 if compat else _RPMMACROS_ADD_0
+        open(rpmmacros, 'w').write(fmt % dict(keyid=keyid, ))
 
 
 def prepare_0(repo, ctx, eof=None):
