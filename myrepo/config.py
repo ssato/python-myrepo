@@ -193,7 +193,7 @@ def opt_parser(usage=_USAGE, conf=None):
                    help="Repository name or format string to generate name, "
                         "e.g. %(name)s-%(server_shortaltname)-%(user)s, "
                         "%(name)s-custom. [%default]")
-    cog.add_option("", "--keyid", help="GPG key ID to sign built RPMs")
+    #cog.add_option("", "--keyid", help="GPG key ID to sign built RPMs")
     cog.add_option("-T", "--tpaths", action="append", default=[],
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
@@ -264,8 +264,8 @@ def opt_parser(usage=_USAGE, conf=None):
     p.add_option_group(iog)
 
     bog = optparse.OptionGroup(p, "Options for 'build' and 'deploy' command")
-    bog.add_option("", "--sign", action="store_true",
-                   help="Sign built RPMs. You must specify --keyid also.")
+    #bog.add_option("", "--sign", action="store_true",
+    #               help="Sign built RPMs. You must specify --keyid also.")
     bog.add_option("", "--selfref",
                    help="If specified, %prog will also use the yum repo "
                         "itself to satisfy a portion of buildtime "
