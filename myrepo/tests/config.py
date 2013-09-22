@@ -23,11 +23,11 @@ import os.path
 import unittest
 
 
-_CONF_KEYS = ("dists", "dists_full", "dist_choices", "tpaths", "workdir",
-              "quiet", "verbose", "debug", "config", "profile",
+_CONF_KEYS = ("dists", "dists_full", "dist_choices", "keyid", "tpaths",
+              "workdir", "quiet", "verbose", "debug", "config", "profile",
               "hostname", "altname", "user", "topdir", "baseurl",
               "timeout", "genconf", "fullname", "email", "gpgkey",
-              "selfref", "repo_params")
+              "repo_params", "sign", "selfref")
 
 _CONF_0 = """\
 [DEFAULT]
