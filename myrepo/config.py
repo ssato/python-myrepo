@@ -107,13 +107,13 @@ def _init_by_preset_defaults():
     (bname, bversion) = E.get_distribution()  # (basename, baseversion)
 
     cfg = dict(dists=dists_s, dists_full=dists_full, dist_choices=dists_full,
-               keyid='', tpaths=G._TEMPLATE_PATHS, workdir=None,
+               tpaths=G._TEMPLATE_PATHS, workdir=None,
                quiet=False, verbose=False, debug=False,
                config=None, profile=None,
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None,
                genconf=True, fullname=E.get_fullname(), email=E.get_email(),
-               gpgkey="no", repo_params=[], sign=False, selfref=False)
+               keyid=None, repo_params=[], sign=False, selfref=False)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -193,7 +193,6 @@ def opt_parser(usage=_USAGE, conf=None):
                    help="Repository name or format string to generate name, "
                         "e.g. %(name)s-%(server_shortaltname)-%(user)s, "
                         "%(name)s-custom. [%default]")
-    #cog.add_option("", "--keyid", help="GPG key ID to sign built RPMs")
     cog.add_option("-T", "--tpaths", action="append", default=[],
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
@@ -257,6 +256,14 @@ def opt_parser(usage=_USAGE, conf=None):
                         "--gpgkey=auto, %prog will try to generate a GPG key "
                         "automatically to sign RPMs before deployment. "
                         "[%default]")
+    #cog.add_option("", "--keyid",
+    #               help="The GPG keyid of which key is used to sign RPMs "
+    #                    "deployed, or one of keywords: auto, no. "
+    #                    "If --gpgkey=no, RPMs deployed for this "
+    #                    "repo will not be signed (gpgcheck=0), and if "
+    #                    "--gpgkey=auto, %prog will try to generate a GPG key "
+    #                    "automatically to sign RPMs before deployment. "
+    #                    "[%default]")
     iog.add_option("", "--repo-param", action="append", dest="repo_params",
                    help="Other .repo file parameter definitions (key=value), "
                         "ex. '--repo-param metadata_expire=7d "
