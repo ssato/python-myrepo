@@ -36,6 +36,7 @@ import locale
 import logging
 import os.path
 import re
+import subprocess
 import uuid
 
 
@@ -115,6 +116,7 @@ def gen_rpmspec_content(repo, ctx, tpaths):
     """
     assert_repo(repo)
     ctx["repo"] = repo.as_dict()
+    ctx = _setup_extra_template_vars(ctx)
 
     return MU.compile_template("yum-repodata.spec", ctx, tpaths)
 
@@ -226,18 +228,26 @@ def find_keyid(signer_name, comment):
         return None
 
 
+def mk_export_gpgkey_files_cmds(keyid, workdir, repos, homedir_opt=''):
+    keyfiles = [os.path.join(workdir, "RPM-GPG-KEY-%s" % n) for
+                n in MU.uniq(repo.reponame for repo in repos)]
+
+    return ["gpg %s -a --export %s > %s" % (homedir_opt, keyid, f) for
+            f in keyfiles]
+
+
 _GPGKEY_CONF = """\
 Key-Type: RSA
-Key-Length: 2048
+Key-Length: 1024
 # No subkey, RSA (sign only), to keep compatibility w/ RHEL 5 clients:
 Key-Usage: sign
 Expire-Date: 0
 Name-Real: %(signer_name)s
 Name-Comment: %(comment)s
 Passphrase: %(passphrase)s
-%no-protection
-%transient-key
-%commit
+%%no-protection
+%%transient-key
+%%commit
 """
 
 _RPMMACROS_ADD_0 = """\
@@ -253,13 +263,16 @@ gpg --force-v3-sigs --digest-algo=sha1 --batch --no-verbose --no-armor \\
 """
 
 
-def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
+def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", homedir=None, compat=True,
+               passphrase=None):
     """
     Generate and configure GPG key to sign RPMs built.
 
     :param ctx: Context object to instantiate the template
     :param rpmmacros: .rpmmacros file path
+    :param homedir: GPG's home dir (~/.gnupg by default); see also gpg(1)
     :param compat: Keep compatibility of GPG key for older RHEL if True
+    :param passphrase: Passphrase for this GPG key
 
     :return: List of command strings to deploy built RPMs.
     """
@@ -269,26 +282,28 @@ def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
     if passphrase is None:
         passphrase = getpass.getpass("Passphrase for this GPG key: ")
 
+    homedir_opt = '' if homedir is None else "--homedir " + homedir
+
     gpgconf = os.path.join(workdir, ".gpg.conf")
     comment = "RPM sign key"
     c = _GPGKEY_CONF % dict(signer_name=ctx["fullname"],
                             comment=comment, passphrase=passphrase)
+    logging.info("Generate GPG conf to generate GPG key...")
     open(gpgconf, 'w').write(c)
     os.chmod(gpgconf, 0600)
 
     sproc = gen_entoropy()
-    MS.run("gpg -v --batch --gen-key " + gpgconf)
+    logging.info("Generate GPG key...")
+    MS.run("gpg -v --batch --gen-key %s %s" % (homedir_opt, gpgconf))
     MS.stop_async_run(sproc)
-
     os.remove(gpgconf)
 
     keyid = find_keyid(ctx["fullname"], comment)
 
-    keyfiles = [os.path.join(workdir, "RPM-GPG-KEY-%s" % n) for
-                n in MU.uniq(repo.reponame for repo in ctx["repos"])]
-
-    for f in keyfiles:
-        subprocess.check_call("gpg -a --export %s > %s" % (keyid, f))
+    logging.info("Export GPG pub key files...")
+    for c in mk_export_gpgkey_files_cmds(keyid, workdir, ctx["repos"],
+                                         homedir_opt):
+        MS.run(c)
 
     rpmmacros = os.path.expanduser("~/.rpmmacros")
 
@@ -298,6 +313,7 @@ def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", compat=True, passphrase=None):
     else:
         fmt = _RPMMACROS_ADD_1 if compat else _RPMMACROS_ADD_0
         open(rpmmacros, 'w').write(fmt % dict(keyid=keyid, ))
+        logging.info("Added GPG key configurations to " + rpmmacros)
 
 
 def prepare_0(repo, ctx, eof=None):
@@ -323,6 +339,20 @@ def prepare_0(repo, ctx, eof=None):
     # NOTE: cmd to build srpm must wait for the completion of previous commands
     # to generate files; .repo file, the rpm spec and mock.cfg files:
     return ["\n".join(cs)]
+
+
+def _setup_extra_template_vars(ctx):
+    if "datestamp" not in ctx:
+        ctx["datestamp"] = _datestamp()
+
+    if "fullname" not in ctx:
+        ctx["fullname"] = raw_input("Type your full name > ")
+
+    if "email" not in ctx:
+        repo = ctx["repos"][0]
+        ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
+
+    return ctx
 
 
 def prepare(repos, ctx, eof=None):
@@ -404,16 +434,7 @@ def run(ctx):
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
     _check_vars_for_template(ctx, ["workdir"])
-
-    if "datestamp" not in ctx:
-        ctx["datestamp"] = _datestamp()
-
-    if "fullname" not in ctx:
-        ctx["fullname"] = raw_input("Type your full name > ")
-
-    if "email" not in ctx:
-        repo = ctx["repos"][0]
-        ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
+    ctx = _setup_extra_template_vars(ctx)
 
     if not os.path.exists(ctx["workdir"]):
         os.makedirs(ctx["workdir"])

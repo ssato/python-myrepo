@@ -146,8 +146,20 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        #C.cleanup_workdir(self.workdir)
-        pass
+        C.cleanup_workdir(self.workdir)
+
+    def test_70_gen_gpgkey(self):
+        return
+        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
+                       "%(name)s-%(server_shortaltname)s")
+        ctx = dict(repos=[repo, ],
+                   fullname="John Doe", email="jdoe@example.com",
+                   gpgkey="auto", label="fedora-yumrepos-19-x86_64",
+                   repo_file_content="REPO_FILE_CONTENT", workdir=self.workdir)
+
+        TT.gen_gpgkey(ctx, rpmmacros=os.path.join(self.workdir, "rpmmacros"),
+                      homedir=self.workdir, compat=True, passphrase="secret")
 
     def test_110_run(self):
         topdir = os.path.join(self.workdir, "yum")
