@@ -20,17 +20,15 @@
 from itertools import groupby
 from operator import itemgetter
 
-import myrepo.commands as CM
+import myrepo.cmds as CM
 import myrepo.config as CF
 import myrepo.globals as G
 import myrepo.parser as P
 import myrepo.repo as R
+import myrepo.srpm as SRPM
 
 import logging
-import multiprocessing
-import optparse
 import sys
-import time
 
 
 def _listify_arch(dname, dver, darch, bdist):
@@ -121,9 +119,8 @@ def mk_repos(ctx, degenerate=False):
                      "bdist=%s" % (dname, dver, archs, bdist))
 
         s = mk_repo_server(ctx)
-        yield R.Repo(dname, dver, archs, ctx["basename"], s, bdist,
-                     ctx["subdir"], ctx["signkey"], ctx["keydir"],
-                     ctx["keyurl"])
+        yield R.Repo(dname, dver, archs, s, ctx["reponame"],
+                     selfref=ctx["selfref"])
 
 
 def _assert_no_arg(cargs, cmd):
@@ -135,20 +132,18 @@ def _assert_arg(cargs, cmd):
         "'%s' command requires an argument to specify srpm[s]" % cmd
 
 
-def _to_cmd(args, cmds=G._COMMANDS):
+def _to_cmd(args, cmds=CM.LIST):
     """
     :param args: List of sub command and arguments for it.
     """
     cmd = None
     (c, cargs) = (args[0], args[1:])  # cargs may be [].
 
-    for abbrev, cmd_s, _desc, w_args in cmds:
+    for abbrev, cmd_s, _desc, func in cmds:
         if c.startswith(abbrev):
-            cmd = cmd_s
-            (_assert_arg if w_args else _assert_no_arg)(cargs, cmd)
-            break
+            return (c, func)
 
-    return cmd
+    return (c, None)
 
 
 def modmain(argv):
@@ -175,9 +170,9 @@ def modmain(argv):
         p.print_usage()
         return 1
 
-    cmd = _to_cmd(args)
+    (cmd, func) = _to_cmd(args)
 
-    if cmd is None:
+    if func is None:
         logging.error(" Unknown command '%s'" % args[0])
         return 1
 
@@ -198,16 +193,16 @@ def modmain(argv):
                              "deploy multiple SRPMs yet.")
             return 1
 
-        repos = mk_repos(ctx, CM.is_noarch(srpms[0]))
+        srpm = SRPM.Srpm(srpms[0])
+        srpm.resolve()
+
+        ctx["srpms"] = [srpm]
+        repos = mk_repos(ctx, srpm.noarch)
     else:
         repos = mk_repos(ctx, True)
 
-    for repo in repos:
-        ctx["repo"] = repo
-        if not getattr(CM, cmd)(ctx):
-            return -1
-
-    return 0
+    ctx["repos"] = repos
+    return func(ctx)
 
 
 def main(argv=sys.argv):
