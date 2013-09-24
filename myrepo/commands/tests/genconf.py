@@ -17,9 +17,11 @@
 #
 import myrepo.commands.genconf as TT
 import myrepo.repo as MR
+import myrepo.shell as MS
 import myrepo.tests.common as C
 
 import datetime
+import glob
 import itertools
 import logging
 import os.path
@@ -167,7 +169,7 @@ class Test_10_effectful_functions(unittest.TestCase):
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
-    def test_70_gen_gpgkey(self):
+    def test_070_gen_gpgkey(self):
         return
         server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
@@ -187,11 +189,28 @@ class Test_10_effectful_functions(unittest.TestCase):
 
         self.assertTrue(TT.run(ctx))
 
+        # FIXME: What should be done with the result to check its success ?
+        reposrpms = glob.glob(os.path.join(self.workdir, "*.src.rpm"))
+
+        self.assertTrue(reposrpms)
+        self.assertEquals(len(reposrpms), 1)  # A srpm should exist.
+
+        self.assertTrue(MS.run("mock -r fedora-19-x86_64 " + reposrpms[0]))
+
     def test_112_run_multi_repos(self):
         repos = mk_local_repos(os.path.join(self.workdir, "yum"))
         ctx = mk_ctx(repos)
         ctx["workdir"] = self.workdir
 
         self.assertTrue(TT.run(ctx))
+
+        # FIXME: Likewise
+        reposrpms = glob.glob(os.path.join(self.workdir, "*.src.rpm"))
+
+        self.assertTrue(reposrpms)
+        self.assertEquals(len(reposrpms), 3)  # There are 3 repos.
+
+        for srpm in reposrpms:
+            self.assertTrue(MS.run("mock -r fedora-19-x86_64 " + srpm))
 
 # vim:sw=4:ts=4:et:
