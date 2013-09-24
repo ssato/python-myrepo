@@ -108,7 +108,7 @@ def _init_by_preset_defaults():
                quiet=False, verbose=False, debug=False,
                config=None, profile=None,
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
-               baseurl=G._SERVER_BASEURL, timeout=None,
+               baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
                genconf=True, fullname=E.get_fullname(), email=E.get_email(),
                keyid=None, repo_params=[], sign=False, selfref=False)
 

@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo
+from myrepo.commands.utils import assert_repo, setup_workdir
 from myrepo.srpm import Srpm
 
 import myrepo.commands.genconf as MAG
 import myrepo.shell as MS
 import myrepo.utils as MU
 
+import logging
 import os.path
 
 
@@ -78,10 +79,7 @@ def run(ctx):
         raise RuntimeError("Failed to initialize the repo!")
 
     if ctx.get("genconf", False):
-        workdir = ctx["workdir"]
-        if not os.path.exists(workdir):
-            os.makedirs(workdir)
-
+        logging.info("Generate yum repo config SRPM...")
         return MAG.run(ctx)
     else:
         return rc

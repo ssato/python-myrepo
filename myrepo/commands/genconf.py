@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo
+from myrepo.commands.utils import assert_repo, setup_workdir
 from myrepo.srpm import Srpm
 
 import myrepo.commands.build as MAB
@@ -361,6 +361,12 @@ def _setup_extra_template_vars(ctx):
     return ctx
 
 
+def _mk_dir_if_not_exist(d):
+    if not os.path.exists(d):
+        logging.info("Create dir: " + d)
+        os.makedirs(d)
+
+
 def prepare(repos, ctx, eof=None):
     """
     Make up list of command strings to update metadata of given repos.
@@ -439,13 +445,22 @@ def run(ctx):
     :return: True if commands run successfully else False
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
-    _check_vars_for_template(ctx, ["workdir"])
+
+    if ctx.get("workdir", False):
+        _mk_dir_if_not_exist(ctx["workdir"])
+    else:
+        ctx["workdir"] = setup_workdir()
+        logging.info("Created a temporal working dir: %(workdir)s" % ctx)
+
     ctx = _setup_extra_template_vars(ctx)
 
-    if not os.path.exists(ctx["workdir"]):
-        os.makedirs(ctx["workdir"])
+    rc = all(run0(repo, ctx) for repo in ctx["repos"])
 
-    return all(run0(repo, ctx) for repo in ctx["repos"])
+    if rc:
+        logging.info("Created yum repo config SRPM in: %(workdir)s" % ctx)
+    else:
+        logging.info("Failed to create repo config SRPM in: %(workdir)s" % ctx)
 
+    return rc
 
 # vim:sw=4:ts=4:et:
