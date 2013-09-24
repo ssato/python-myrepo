@@ -82,7 +82,7 @@ def gen_repo_file_content(ctx, tpaths):
     /etc/yum.repos.d/ :: str.
     """
     _check_vars_for_template(ctx, ["reponame", "server_altname", "server_user",
-                                   "baseurl", "name", "gpgkey"])
+                                   "baseurl", "name", "keyid"])
 
     return MU.compile_template("repo_file", ctx, tpaths)
 
