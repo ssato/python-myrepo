@@ -123,29 +123,6 @@ def mk_repos(ctx, degenerate=False):
                      selfref=ctx["selfref"])
 
 
-def _assert_no_arg(cargs, cmd):
-    assert not cargs, "'%s' command requires no arguments" % cmd
-
-
-def _assert_arg(cargs, cmd):
-    assert len(cargs) > 0, \
-        "'%s' command requires an argument to specify srpm[s]" % cmd
-
-
-def _to_cmd(args, cmds=CM.LIST):
-    """
-    :param args: List of sub command and arguments for it.
-    """
-    cmd = None
-    (c, cargs) = (args[0], args[1:])  # cargs may be [].
-
-    for abbrev, cmd_s, _desc, func in cmds:
-        if c.startswith(abbrev):
-            return (c, func)
-
-    return (c, None)
-
-
 def modmain(argv):
     """
     :param argv: Argument list for the program
@@ -170,11 +147,7 @@ def modmain(argv):
         p.print_usage()
         return 1
 
-    (cmd, func) = _to_cmd(args)
-
-    if func is None:
-        logging.error(" Unknown command '%s'" % args[0])
-        return 1
+    func = CM.find_cmd(args[0])  # @throw CM.CommandNotFoundError
 
     if options.config or options.profile:
         params = CF.init(options.config, options.profile)
@@ -202,6 +175,7 @@ def modmain(argv):
         repos = mk_repos(ctx, True)
 
     ctx["repos"] = repos
+
     return func(ctx)
 
 

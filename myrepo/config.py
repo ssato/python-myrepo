@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.globals as G
+import myrepo.cmds as MC
 import myrepo.parser as P
 import rpmkit.utils as U
 import rpmkit.environ as E
@@ -28,10 +29,6 @@ import optparse
 import os
 import os.path
 
-
-# _COMMANDS = [('i', "init", "Initialize yum repo"),
-_CMDS_S = '\n'.join("  %s[%s]\t%s" % (a, c.split(a, 1)[-1], d)
-                    for a, c, d, _r in G._COMMANDS)
 
 _USAGE = """\
 %%prog COMMAND [OPTION ...] [SRPM]
@@ -52,7 +49,7 @@ Examples:
 
   # build SRPM has build time dependencies to RPMs in the yum repo:
   %%prog b --dists fedora-19-x86_64 --selfref myrepo-0.1-1.src.rpm\
-""" % _CMDS_S
+""" % MC.mk_cmd_helps_text()
 
 
 def _get_timeout(config):
@@ -179,7 +176,6 @@ def opt_parser(usage=_USAGE, conf=None):
     True
     """
     defaults = init(conf)
-
     dist_choices = defaults["dist_choices"]
 
     p = optparse.OptionParser(usage)
@@ -248,14 +244,6 @@ def opt_parser(usage=_USAGE, conf=None):
     iog.add_option("", "--fullname", help="Your full name [%default]")
     iog.add_option("", "--email",
                    help="Your email address or its format string [%default]")
-    iog.add_option("", "--gpgkey",
-                   help="The path to GPG public key file of which key is "
-                        "used to sign RPMs deployed, or one of keywords: "
-                        "auto, no. If --gpgkey=no, RPMs deployed for this "
-                        "repo will not be signed (gpgcheck=0), and if "
-                        "--gpgkey=auto, %prog will try to generate a GPG key "
-                        "automatically to sign RPMs before deployment. "
-                        "[%default]")
     #cog.add_option("", "--keyid",
     #               help="The GPG keyid of which key is used to sign RPMs "
     #                    "deployed, or one of keywords: auto, no. "
