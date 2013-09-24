@@ -158,7 +158,7 @@ def modmain(argv):
 
     # Hack:
     ctx = options.__dict__.copy()
-    ctx["srpms"] = srpms = args[1:]  # List of srpm paths or []
+    srpms = args[1:]  # List of srpm paths or []
 
     if srpms:
         if len(srpms) > 1:
