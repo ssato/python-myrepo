@@ -62,6 +62,12 @@ def _check_vars_for_template(ctx, vars=[]):
     """
     :param ctx: Context object to instantiate the template
     :param vars: Context object to instantiate the template
+
+    >>> _check_vars_for_template({'a': 1, 'b': 2}, ['a','b'])
+    >>> _check_vars_for_template({}, ['a', ])
+    Traceback (most recent call last):
+        ...
+    AssertionError: Template variable 'a' is missing!
     """
     for vn in vars:
         assert vn in ctx, "Template variable '%s' is missing!" % vn
@@ -79,7 +85,7 @@ def gen_repo_file_content(ctx, tpaths):
     :param tpaths: Template path list :: [str]
 
     :return: String represents the content of .repo file will be put in
-    /etc/yum.repos.d/ :: str.
+        /etc/yum.repos.d/ :: str.
     """
     _check_vars_for_template(ctx, ["reponame", "server_altname", "server_user",
                                    "baseurl", "name", "keyid"])
