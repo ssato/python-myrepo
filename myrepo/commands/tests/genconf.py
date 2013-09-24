@@ -29,58 +29,88 @@ import unittest
 _CURDIR = os.path.dirname(__file__)
 
 
+def mk_remote_repo():
+    server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
+    repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
+                   "%(name)s-%(server_shortaltname)s")
+    return repo
+
+
+def mk_local_repos(topdir="/tmp"):
+    server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
+    reponame = "%(name)s-%(server_shortaltname)s"
+
+    return [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
+            MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
+            MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
+
+
+def mk_ctx(repos=[], nrepos=1, remote=True, topdir="/tmp"):
+    if not repos:
+        if remote:
+            repos = [mk_remote_repo()]
+        else:
+            repos = mk_local_repos(topdir)[:nrepos]
+
+    return dict(repos=repos, fullname="John Doe", email="jdoe@example.com",
+                mockcfg="fedora-19-x86_64.cfg", keyid=None,
+                label="fedora-yumrepos-19-x86_64",
+                repo_file_content="REPO_FILE_CONTENT",
+                tpaths=C.template_paths(), workdir="/tmp/myrepo-t-000")
+
+
 class Test_00_pure_functions(unittest.TestCase):
 
     def test_00__datestamp_w_arg(self):
         d = datetime.datetime(2013, 7, 31)
-        self.assertEquals(TT._datestamp(d), 'Wed Jul 31 2013')
+        self.assertEquals(TT._datestamp(d), "Wed Jul 31 2013")
 
     def test_10__check_vars_for_template(self):
         TT._check_vars_for_template({'a', 1}, ['a'])
+
         with self.assertRaises(AssertionError):
             TT._check_vars_for_template({}, ['a'])
 
     def test_20_gen_repo_file_content(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-
-        ctx = repo.as_dict()
-        ctx["gpgkey"] = "no"
+        ctx = mk_ctx()
+        ctx.update(ctx["repos"][0].as_dict())
 
         ref = C.readfile("result.repo.0", _CURDIR)
-        s = TT.gen_repo_file_content(repo.as_dict(), C.template_paths())
+        s = TT.gen_repo_file_content(ctx, C.template_paths())
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_22_gen_repo_file_content(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
+    def test_22_gen_repo_file_content__w_keyid_and_repo_params(self):
+        ctx = mk_ctx()
+        ctx.update(ctx["repos"][0].as_dict())
 
-        ctx = repo.as_dict()
-        ctx["gpgkey"] = "auto"
+        # Override it:
+        ctx["keyid"] = "dummykey001"
         ctx["repo_params"] = ["failovermethod=priority", "metadata_expire=7d"]
 
         ref = C.readfile("result.repo.1", _CURDIR)
-        s = TT.gen_repo_file_content(repo.as_dict(), C.template_paths())
+        s = TT.gen_repo_file_content(ctx, C.template_paths())
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
     def test_30_gen_mock_cfg_content(self):
+        ctx = mk_ctx()
         ref = C.readfile("result.mock.cfg.0", _CURDIR)
-        ctx = dict(mockcfg="fedora-19-x86_64.cfg",
-                   label="fedora-custom-19-x86_64",
-                   repo_file_content="REPO_FILE_CONTENT")
+
+        s = TT.gen_mock_cfg_content(ctx, C.template_paths())
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+    def test_32_gen_mock_cfg_content(self):
+        ctx = mk_ctx()
+        ctx["label"] = "fedora-custom-19-x86_64"
+        ref = C.readfile("result.mock.cfg.1", _CURDIR)
 
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
         self.assertEquals(s, ref, C.diff(s, ref))
 
     def test_40_gen_rpmspec_content(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(fullname="John Doe", email="jdoe@example.com")
+        repo = mk_remote_repo()
+        ctx = mk_ctx([repo])
 
         ref = C.readfile("result.yum-repodata.spec.0", _CURDIR).strip()
         ref = ref.replace("DATESTAMP", TT._datestamp())
@@ -89,15 +119,10 @@ class Test_00_pure_functions(unittest.TestCase):
         self.assertEquals(s, ref, C.diff(s, ref))
 
     def test_50_gen_repo_files_g(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(fullname="John Doe", email="jdoe@example.com",
-                   mockcfg="fedora-19-x86_64.cfg", gpgkey="no",
-                   label="fedora-yumrepos-19-x86_64",
-                   repo_file_content="REPO_FILE_CONTENT")
-        workdir = "/tmp/myrepo-t-000"
+        repo = mk_remote_repo()
+        ctx = mk_ctx([repo])
 
+        workdir = ctx["workdir"]
         files = list(TT.gen_repo_files_g(repo, ctx, workdir,
                                          C.template_paths()))
 
@@ -114,14 +139,8 @@ class Test_00_pure_functions(unittest.TestCase):
                           os.path.join(workdir, "fedora-yumrepos-19.spec"))
 
     def test_100_prepare(self):
-        server = MR.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server,
-                       "%(name)s-%(server_shortaltname)s")
-        ctx = dict(fullname="John Doe", email="jdoe@example.com",
-                   mockcfg="fedora-19-x86_64.cfg",
-                   label="fedora-yumrepos-19-x86_64",
-                   repo_file_content="REPO_FILE_CONTENT", gpgkey="no",
-                   workdir="/tmp/myrepo-t-000", tpaths=C.template_paths())
+        repo = mk_remote_repo()
+        ctx = mk_ctx([repo])
 
         files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
                                          C.template_paths()))
@@ -162,30 +181,16 @@ class Test_10_effectful_functions(unittest.TestCase):
                       homedir=self.workdir, compat=True, passphrase="secret")
 
     def test_110_run(self):
-        topdir = os.path.join(self.workdir, "yum")
-        server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
-        reponame = "%(name)s-%(server_shortaltname)s"
-        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
-                 MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
-                 MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
-
-        ctx = dict(repos=repos[:1], fullname="John Doe", gpgkey="no",
-                   email="jdoe@example.com", workdir=self.workdir,
-                   tpaths=C.template_paths())
+        repos = mk_local_repos(os.path.join(self.workdir, "yum"))
+        ctx = mk_ctx(repos[:1])
+        ctx["workdir"] = self.workdir
 
         self.assertTrue(TT.run(ctx))
 
     def test_112_run_multi_repos(self):
-        topdir = os.path.join(self.workdir, "yum")
-        server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
-        reponame = "%(name)s-%(server_shortaltname)s"
-        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server, reponame),
-                 MR.Repo("fedora", 19, ["x86_64", "i386"], server, reponame),
-                 MR.Repo("rhel", 6, ["x86_64", ], server, reponame)]
-
-        ctx = dict(repos=repos, fullname="John Doe", gpgkey="no",
-                   email="jdoe@example.com", workdir=self.workdir,
-                   tpaths=C.template_paths())
+        repos = mk_local_repos(os.path.join(self.workdir, "yum"))
+        ctx = mk_ctx(repos)
+        ctx["workdir"] = self.workdir
 
         self.assertTrue(TT.run(ctx))
 
