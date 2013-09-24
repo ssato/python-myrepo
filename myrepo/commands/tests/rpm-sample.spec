@@ -15,7 +15,7 @@ Sample RPM package
 
 
 %prep
-%setup -T -c %{name}-%{version}
+%setup -T -c -n %{name}-%{version}
 cp %{SOURCE0} ./
 
 
@@ -23,11 +23,9 @@ cp %{SOURCE0} ./
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
 
 
 %clean
-rm -rf $RPM_BUILD_ROOT
 
 
 %files
