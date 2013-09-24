@@ -15,13 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.commands.deploy_built_rpms as TT
+import myrepo.commands.deploy as TT
 import myrepo.repo as MR
 import myrepo.srpm as MS
 import myrepo.utils as MU
 import myrepo.tests.common as C
 
-import itertools
 import os.path
 import unittest
 
@@ -50,10 +49,7 @@ class Test_00_pure_functions(unittest.TestCase):
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
 
         cs_expected = [c0, "%s && %s" % (c1, c2)]
-        cs = TT.prepare_0(repo, srpm)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_02_prepare_0__localhost_noarch_single_arch_repo(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
@@ -73,10 +69,7 @@ class Test_00_pure_functions(unittest.TestCase):
                   "/tmp/yum/fedora/19/x86_64")
 
         cs_expected = [c0, c1]
-        cs = TT.prepare_0(repo, srpm)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_04_prepare_0__localhost(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
@@ -97,10 +90,7 @@ class Test_00_pure_functions(unittest.TestCase):
                   "/tmp/yum/fedora/19/i386")
 
         cs_expected = [c0, c1, c2]
-        cs = TT.prepare_0(repo, srpm)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_10_prepare__localhost_noarch(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
@@ -146,10 +136,7 @@ class Test_00_pure_functions(unittest.TestCase):
         cs_expected.append(c0)
         cs_expected.append(c1)
 
-        cs = TT.prepare(repos, srpm)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(TT.prepare(repos, srpm), cs_expected)
 
 
 class Test_10_effecful_functions(unittest.TestCase):
