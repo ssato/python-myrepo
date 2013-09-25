@@ -106,6 +106,9 @@ class Server(object):
 
         self.is_local = SH.is_local(self.name)
 
+    def __repr__(self):
+        return repr(self.__dict__)
+
     def _mk_shortname(self, name, sep='.'):
         return name.split(sep)[0] if sep in name else name
 
@@ -157,6 +160,9 @@ class Dist(object):
 
         self.label = "%s-%s" % (dist, arch)
         self.mockcfg = "%s.cfg" % self.label
+
+    def __repr__(self):
+        return repr(self.__dict__)
 
     def rpmdir(self):
         """Dir to save built RPMs.
@@ -297,6 +303,8 @@ class Repo(object):
                                self.name, self.version)
         self.dists = [Dist(self.dist, a) for a in self.archs]
         self.primary_dist = self.dists[0]
+
+        assert '%' not in self.reponame, self.as_dict()
 
     def __repr__(self):
         return repr(self.as_dict())
