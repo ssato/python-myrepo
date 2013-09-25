@@ -30,7 +30,7 @@ def init(*args, **kwargs):
 
 
 def get_module(name="00_plugin", mdir=TC.selfdir()):
-    return P._load_module(name, mdir)
+    return P._load_module(name, os.path.join(mdir, "../plugins/tests"))
 
 
 class Test_00_find_hook(unittest.TestCase):
