@@ -51,14 +51,4 @@ _REPONAME = "%(name)s-%(server_shortaltname)s-%(server_user)s"
 _KEYDIR = "/etc/pki/rpm-gpg"
 _KEYURL = "file://%(keydir)s/RPM-GPG-KEY-%(name)s-%(version)s"
 
-
-# Commands:  [(abbrev, command, description, require_args?)]
-_COMMANDS = [('i', "init", "Initialize yum repo", False),
-             ('genc', "genconf",
-              "Generate .repo and mock.cfg RPMs for yum repos", False),
-             ('u', "update", "Update the meta data of yum repos", False),
-             ('b', "build", "Build given SRPMs for the yum repos", True),
-             ('d', "deploy",
-              "Build and deploy given SRPMs for the yum repos", True)]
-
 # vim:sw=4:ts=4:et:
