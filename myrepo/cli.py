@@ -93,7 +93,7 @@ def mk_repo_server(ctx):
                     ctx["topdir"], ctx["baseurl"], ctx["timeout"])
 
 
-def mk_repos(ctx, degenerate=False):
+def mk_repos(ctx, degenerate=True):
     """
     :param ctx: Configuration parameters :: dict
     :param degenerate:  Is the dists to be degenerated?
@@ -113,13 +113,12 @@ def mk_repos(ctx, degenerate=False):
         dists = (_listify_arch(*d) for d in dists)
 
     for dist in dists:
-        (dname, dver, archs, bdist) = dist
+        (name, ver, archs, _bdist) = dist
 
-        logging.info("Creating repo: dname=%s, dver=%s, archs=%s, "
-                     "bdist=%s" % (dname, dver, archs, bdist))
+        logging.info("Create repo: name=%s, ver=%s, archs=%s" % dist[:3])
 
         s = mk_repo_server(ctx)
-        yield R.Repo(dname, dver, archs, s, ctx["reponame"],
+        yield R.Repo(name, ver, archs, s, ctx["reponame"],
                      selfref=ctx["selfref"])
 
 
@@ -168,13 +167,9 @@ def modmain(argv):
 
         srpm = SRPM.Srpm(srpms[0])
         srpm.resolve()
-
         ctx["srpms"] = [srpm]
-        repos = mk_repos(ctx, srpm.noarch)
-    else:
-        repos = mk_repos(ctx, True)
 
-    ctx["repos"] = repos
+    ctx["repos"] = repos = list(mk_repos(ctx))
 
     return func(ctx)
 
