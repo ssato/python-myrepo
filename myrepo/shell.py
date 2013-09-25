@@ -333,27 +333,4 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, rc_expected=0,
     return stop_async_run(proc, timeout, stop_on_error)
 
 
-def prun_async(list_of_args):
-    """
-    Run commands in parallel asyncronously.
-
-    :param list_of_args: List of arguments (:: [([arg], dict(kwarg=...))]) for
-        each job will be passed to ``run_async`` function.
-
-    :return: List of multiprocessing.Process instances
-    """
-    return [run_async(*args, **kwargs) for args, kwargs in list_of_args]
-
-
-def prun(list_of_args):
-    """
-    Run commands in parallel.
-
-    :param list_of_args: List of arguments (:: [([arg], dict(kwarg=...))]) for
-        each job will be passed to ``run_async`` function.
-
-    :return: List of status of each job :: [bool]
-    """
-    return [run(*args, **kwargs) for args, kwargs in list_of_args]
-
 # vim:sw=4:ts=4:et:

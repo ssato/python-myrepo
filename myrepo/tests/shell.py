@@ -117,23 +117,4 @@ class Test_10_run(unittest.TestCase):
         self.assertFalse(TT.stop_async_run(proc))
 
 
-class Test_20_prun(unittest.TestCase):
-
-    def setUp(self):
-        self.workdir = C.setup_workdir()
-
-    def tearDown(self):
-        C.cleanup_workdir(self.workdir)
-
-    def test_00_prun_async__simplest_case(self):
-        pass
-
-    def test_01_run_async__simplest_case(self):
-        pass
-
-    def test_10_run__simplest_case(self):
-        rcs = TT.prun([(["true"], dict(workdir=self.workdir))])
-        for rc in rcs:
-            self.assertTrue(rc)
-
 # vim:sw=4 ts=4 et:
