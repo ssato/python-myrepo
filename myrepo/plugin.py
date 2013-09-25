@@ -59,13 +59,12 @@ def list_plugin_modules(plugdir=None, pattern=PLUGINS_FILENAME_PATTERN):
     if not plugdir:
         plugdir = pluginsdir()
 
-    return [
-        _mname(f) for f in sorted(glob.glob(os.path.join(plugdir, pattern)))
-    ]
+    return [_mname(f) for f in
+            sorted(glob.glob(os.path.join(plugdir, pattern)))]
 
 
 def import_plugin_modules(plugdir=None, prefix=PLUGINS_PREFIX,
-        pattern=PLUGINS_FILENAME_PATTERN):
+                          pattern=PLUGINS_FILENAME_PATTERN):
     """
     Effecful version of function to load modules in plugdir.
 
@@ -74,10 +73,8 @@ def import_plugin_modules(plugdir=None, prefix=PLUGINS_PREFIX,
     NOTE: plugin modules are imported and visible in top level environment
     after called this.
     """
-    ms = [
-        "%s.%s" % (prefix, m) for m in
-            list_plugin_modules(plugdir, prefix, pattern)
-    ]
+    ms = ["%s.%s" % (prefix, m) for m in
+          list_plugin_modules(plugdir, prefix, pattern)]
     for m in ms:
         __import__(m)
 
@@ -110,10 +107,7 @@ def load_plugin_modules(plugdir=None, pattern=PLUGINS_FILENAME_PATTERN):
     if not plugdir:
         plugdir = pluginsdir()
 
-    return [
-        _load_module(m, plugdir) for m in
-            list_plugin_modules(plugdir, pattern)
-    ]
-
+    return [_load_module(m, plugdir) for m in
+            list_plugin_modules(plugdir, pattern)]
 
 # vim:sw=4:ts=4:et:
