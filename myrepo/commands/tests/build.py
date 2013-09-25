@@ -113,6 +113,10 @@ class Test_10_effecful_functions(unittest.TestCase):
         (repo, srpm) = (self.repo, self.srpm)
         ctx = dict(repos=[repo], srpm=srpm)
 
+        ctx2 = ctx.copy()
+        ctx2["dryrun"] = True
+
+        self.assertTrue(TT.run(ctx2))
         self.assertTrue(TT.run(ctx))
 
 
