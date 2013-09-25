@@ -16,9 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.cli as TT
+import myrepo.config as MC
+import myrepo.repo as MR
 import myrepo.tests.common as C
 
+import itertools
 import os.path
+import os
+import pprint
 import shlex
 import unittest
 
@@ -26,24 +31,22 @@ import unittest
 class Test_00_functions(unittest.TestCase):
 
     def test_10_mk_repos(self):
-        """TODO: Implement test cases for mk_repos"""
-        pass
+        ctx = MC._init_by_preset_defaults()
+        repos = list(TT.mk_repos(ctx))
 
-    def test_20__assert_no_arg(self):
-        TT._assert_no_arg([], None)  # Exp not raised.
-        self.assertRaises(AssertionError, TT._assert_no_arg,
-                          ["extra_arg_0"], "cmd")
+        ctx2 = ctx.copy()
+        ctx2["dists"] = "fedora-19-x86_64,fedora-19-i386"
 
-    def test_30__assert_arg(self):
-        TT._assert_arg(["arg1"], None)
-        self.assertRaises(AssertionError, TT._assert_arg, [], "cmd")
+        expected = [MR.Repo("fedora", "19", ["x86_64", "i386"],
+                            TT.mk_repo_server(ctx2),
+                            ctx2["reponame"], selfref=ctx2["selfref"])]
 
-    def test_40__to_cmd(self):
-        self.assertEquals(TT._to_cmd(['i']), "init")
-        self.assertEquals(TT._to_cmd(["genc"]), "genconf")
-        self.assertEquals(TT._to_cmd(['b', "dummy.src.rpm"]), "build")
-        self.assertEquals(TT._to_cmd(['d', "dummy.src.rpm"]), "deploy")
-        self.assertEquals(TT._to_cmd(['abc']), None)
+        self.assertTrue(repos)
+        self.assertEquals(len(repos), len(expected))
+
+        f = pprint.pformat
+        for r, e in itertools.izip_longest(repos, expected):
+            self.assertEquals(r, e, C.diff(f(r), f(e)))
 
 
 _CONF_0 = """[DEFAULT]
@@ -55,23 +58,45 @@ baseurl: file://%(workdir)s
 dists: fedora-19-x86_64,fedora-19-i386,rhel-6-x86_64
 """
 
+_LOCALHOST_CONF_0 = """\
+[DEFAULT]
+dists: fedora-19-x86_64,fedora-19-i386
+hostname: localhost
+altname: localhost
+user: jdoe
+baseurl: "file:///tmp"
+reponame: "%%(name)s-%%(server_user)s"
+fullname: Jone Doe
+email: jdoe@localhost.localdomain
 
-class Test_10_modmain(unittest.TestCase):
+# The following parameters are substituted before writing this config to files:
+workdir: %(workdir)s
+topdir: %(topdir)s
+
+# The following parameters are specified w/ corresponding options later:
+#tpaths:
+"""
+
+_CURDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+class Test_10_modmain__localhost(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
+        self.conf = os.path.join(self.workdir, "00_localhost.conf")
+
+        ctx = dict(workdir=self.workdir,
+                   topdir=os.path.join(self.workdir, "yum"))
+
+        open(self.conf, 'w').write(_LOCALHOST_CONF_0 % ctx)
+        self.cfmt = "myrepo -v --config %s --tpaths %s %s %s"
 
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
     def test_10_init__w_no_genconf(self):
-        """FIXME: Implement test codes for myrepo.cli.modmain"""
-        return
-
-        conf = os.path.join(self.workdir, "00_localhost.conf")
-        open(conf, 'w').write(_CONF_0 % {"workdir": self.workdir})
-
-        c = "myrepo init --config %s --no-genconf" % conf
+        c = self.cfmt % (self.conf, _CURDIR, "--no-genconf", "init")
         cs = shlex.split(c)
 
         self.assertEquals(TT.modmain(cs), 0)
