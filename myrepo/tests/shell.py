@@ -17,9 +17,10 @@
 import myrepo.shell as TT
 import myrepo.tests.common as C
 
+import itertools
 import logging
-import os
 import os.path
+import os
 import signal
 import sys
 import unittest
@@ -77,44 +78,64 @@ class Test_10_run(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
+        self.logfile = os.path.join(self.workdir, "%d.log" % os.getpid())
+        self.kwargs = dict(workdir=self.workdir, logfile=self.logfile)
 
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
     def test_00_run_async__simplest_case(self):
-        logfile = os.path.join(self.workdir, "true.log")
-        proc = TT.run_async("true", workdir=self.workdir, logfile=logfile)
+        proc = TT.run_async("true", **self.kwargs)
 
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertTrue(TT.stop_async_run(proc))
-        self.assertTrue(os.path.exists(logfile))
+        self.assertTrue(os.path.exists(self.logfile))
 
     def test_01_run_async__simplest_case(self):
-        proc = TT.run_async("false", workdir=self.workdir, logfile=True)
+        proc = TT.run_async("false", **self.kwargs)
+
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertFalse(TT.stop_async_run(proc))
+        self.assertTrue(os.path.exists(self.logfile))
 
     def test_02_run_async__simplest_case(self):
-        proc = TT.run_async("sleep 5 && true", workdir=self.workdir,
-                            logfile=True)
+        proc = TT.run_async("sleep 5 && true", **self.kwargs)
+
         self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
         self.assertFalse(TT.stop_async_run(proc, 2))
+        self.assertTrue(os.path.exists(self.logfile))
 
     def test_10_run__simplest_case(self):
-        self.assertTrue(TT.run("true", workdir=self.workdir, logfile=True))
-        self.assertFalse(TT.run("false", workdir=self.workdir, logfile=True))
+        self.assertTrue(TT.run("true", **self.kwargs))
+        self.assertFalse(TT.run("false", **self.kwargs))
+        self.assertTrue(os.path.exists(self.logfile))
 
     def test_20_run__if_timeout(self):
         self.assertRaises(RuntimeError, TT.run,
-                          "sleep 100", workdir=self.workdir, logfile=True,
-                          timeout=1, stop_on_error=True)
+                          "sleep 100", workdir=self.workdir,
+                          logfile=self.logfile, timeout=1, stop_on_error=True)
 
     def test_30_run__if_interrupted(self):
-        proc = TT.run_async("sleep 20", workdir=self.workdir, logfile=True)
+        proc = TT.run_async("sleep 20", **self.kwargs)
         interrupter = TT.run_async("sleep 3 && kill -s INT %d" % proc.pid,
-                                   logfile=False)
+                                   **self.kwargs)
 
         self.assertFalse(TT.stop_async_run(proc))
+
+    def test_50_prun_async__simplest_case(self):
+        cntr = itertools.count()
+        logfile = lambda: os.path.join(self.workdir,
+                                       "%d.%d.log" % (os.getpid(),
+                                                      cntr.next()))
+
+        ps = TT.prun_async(["sleep 5 && true" for _ in range(5)],
+                           workdir=self.workdir, logfile=logfile())
+
+        for proc in ps:
+            self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
+            #self.assertFalse(TT.stop_async_run(proc, 2))
+
+        #self.assertTrue(os.path.exists(self.logfile))
 
 
 # vim:sw=4 ts=4 et:

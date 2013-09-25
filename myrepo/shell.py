@@ -333,4 +333,34 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, rc_expected=0,
     return stop_async_run(proc, timeout, stop_on_error)
 
 
+def pstop_async_run(ps, timeout=_RUN_TO, stop_on_error=False):
+    """
+    Stop the given processes ``ps`` spawned from function ``run_async`` or
+    ``prun_async``.
+
+    :param ps: List of multiprocessing.Process instances previously started
+    :param timeout: Command execution timeout in seconds or None
+    :param stop_on_error: Stop and raise exception if any error occurs
+
+    :return: List of result codes
+    """
+    return [stop_async_run(p, timeout, stop_on_error) for p in ps]
+
+
+def prun_async(cs, **kwargs):
+    """
+    :param cs: List of command strings
+    :return: List of multiprocessing.Process instances
+    """
+    return [run_async(c, **kwargs) for c in cs]
+
+
+def prun(cs, **kwargs):
+    """
+    :param cs: List of command strings
+    :return: List of result code of run commands
+    """
+    return pstop_async_run(prun_async(cs, **kwargs))
+
+
 # vim:sw=4:ts=4:et:
