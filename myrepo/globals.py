@@ -45,7 +45,7 @@ _SERVER_BASEURL = "http://%(altname)s/~%(user)s/yum"  # Base URL of yum repos.
 
 # Repo defaults:
 #   alternatives: "custom-%(name)s"
-_REPONAME = "%(name)s-%(server_shortaltname)-%(server_user)s"
+_REPONAME = "%(name)s-%(server_shortaltname)s-%(server_user)s"
 
 # parameters needed for the 'init' / 'genconf' commands:
 _KEYDIR = "/etc/pki/rpm-gpg"
