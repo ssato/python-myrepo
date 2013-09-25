@@ -110,7 +110,8 @@ def _init_by_preset_defaults():
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
                genconf=True, fullname=E.get_fullname(), email=E.get_email(),
-               keyid=None, repo_params=[], sign=False, selfref=False)
+               keyid=None, repo_params=[], sign=False, selfref=False,
+               build=True)
 
     # Overwrite some parameters:
     cfg["timeout"] = _get_timeout(cfg)
@@ -267,6 +268,12 @@ def opt_parser(usage=_USAGE, conf=None):
                         "dependencies to RPMs available from this repo, "
                         "to build given target SRPM to build.")
     p.add_option_group(bog)
+
+    dog = optparse.OptionGroup(p, "Options for 'deploy' command")
+    iog.add_option("", "--no-build", action="store_false", dest="build",
+                   help="Do not build given srpm, i.e., the srpm was already "
+                        "built and just deploy it")
+    p.add_option_group(dog)
 
     return p
 
