@@ -109,6 +109,9 @@ class Server(object):
     def __repr__(self):
         return repr(self.__dict__)
 
+    def __eq__(self, other):
+        return repr(self) == repr(other)
+
     def _mk_shortname(self, name, sep='.'):
         return name.split(sep)[0] if sep in name else name
 
@@ -163,6 +166,9 @@ class Dist(object):
 
     def __repr__(self):
         return repr(self.__dict__)
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     def rpmdir(self):
         """Dir to save built RPMs.
@@ -308,6 +314,9 @@ class Repo(object):
 
     def __repr__(self):
         return repr(self.as_dict())
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     def as_dict(self):
         return self.__dict__
