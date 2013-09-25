@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+import myrepo.commands.build as MCB
 import myrepo.commands.utils as MAU
 
 import myrepo.shell as MS
@@ -30,17 +31,21 @@ for arch in %(other_archs_s)s; do \
 ln -sf $f ./; done)); done"""
 
 
-def prepare_0(repo, srpm):
+def prepare_0(repo, srpm, build=False):
     """
     Make up list of command strings to deploy built RPMs.
 
     :param repo: myrepo.repo.Repo instance
     :param srpm: myrepo.srpm.Srpm instance
+    :param build: Build given srpm before deployment
 
     :return: List of command strings to deploy built RPMs.
     """
     MAU.assert_repo(repo)
     MAU.assert_srpm(srpm)
+
+    if build:
+        bcs = MCB.prepare_0(repo, srpm)
 
     dcmd = repo.server.deploy_cmd
     rpmdirs = repo.mockdirs(srpm)
@@ -65,26 +70,33 @@ def prepare_0(repo, srpm):
             bc = dcmd(os.path.join(rpmdirs[0], noarch_rpms),
                       os.path.join(repo.destdir, repo.primary_arch))
 
-        cs = [c0, bc]
+        cs = [" && ".join([bcs[0], c0, bc])] if build else [c0, bc]
     else:
         das = itertools.izip(rpmdirs, repo.archs)
-        cs = [c0] + [dcmd(os.path.join(d, rpmname_pre + "*.%s.rpm" % a),
-                          os.path.join(repo.destdir, a)) for d, a in das]
+        cs = [dcmd(os.path.join(d, rpmname_pre + "*.%s.rpm" % a),
+              os.path.join(repo.destdir, a)) for d, a in das]
+
+        if build:
+            cs = [MS.bind(bc, c)[0] for bc, c in itertools.izip(bcs, cs)]
+            cs[0] = MS.bind(cs[0], c0)
+        else:
+            cs = [c0] + cs
 
     return cs
 
 
-def prepare(repos, srpm):
+def prepare(repos, srpm, build=False):
     """
     Make up list of command strings to update metadata of given repos.
     It's similar to above ``prepare_0`` but applicable to multiple repos.
 
     :param repos: List of Repo instances
     :param srpm: myrepo.srpm.Srpm instance
+    :param build: Build given srpm before deployment
 
     :return: List of command strings to deploy built RPMs.
     """
-    return MU.concat(prepare_0(repo, srpm) for repo in repos)
+    return MU.concat(prepare_0(repo, srpm, build) for repo in repos)
 
 
 def run(ctx):
@@ -97,7 +109,7 @@ def run(ctx):
     assert "srpm" in ctx, "No srpm defined in given ctx!"
 
     ps = [MS.run_async(c, logfile=False) for c in
-          prepare(ctx["repos"], ctx["srpm"])]
+          prepare(ctx["repos"], ctx["srpm"], ctx.get("build", False))]
     return all(MS.stop_async_run(p) for p in ps)
 
 
