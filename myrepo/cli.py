@@ -171,6 +171,7 @@ def modmain(argv):
         srpm = SRPM.Srpm(srpms[0])
         srpm.resolve()
         ctx["srpms"] = [srpm]
+        ctx["srpm"] = srpm
 
     ctx["repos"] = repos = list(mk_repos(ctx))
 
