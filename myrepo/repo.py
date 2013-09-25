@@ -298,6 +298,9 @@ class Repo(object):
         self.dists = [Dist(self.dist, a) for a in self.archs]
         self.primary_dist = self.dists[0]
 
+    def __repr__(self):
+        return repr(self.as_dict())
+
     def as_dict(self):
         return self.__dict__
 
