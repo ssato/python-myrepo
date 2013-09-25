@@ -78,15 +78,22 @@ def prepare(repos, srpm, level=logging.getLogger().level):
 
 def run(ctx):
     """
-    :param repos: List of Repo instances
+    :param ctx: Application context
 
     :return: True if commands run successfully else False
     """
     assert "repos" in ctx, "No repos defined in given ctx!"
     assert "srpm" in ctx, "No srpm defined in given ctx!"
 
-    ps = [MS.run_async(c, logfile=False) for c in
-          prepare(ctx["repos"], ctx["srpm"])]
+    cs = prepare(ctx["repos"], ctx["srpm"])
+
+    if ctx.get("dryrun", False):
+        for c in cs:
+            print c
+
+        return True
+
+    ps = [MS.run_async(c, logfile=False) for c in cs]
     return all(MS.stop_async_run(p) for p in ps)
 
 
