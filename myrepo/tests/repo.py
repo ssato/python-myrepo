@@ -30,6 +30,8 @@ class Test_30_classes(unittest.TestCase):
         self.assertEquals(s.shortaltname, "localhost")
         self.assertEquals(s.user, "jdoe")
         self.assertEquals(s.baseurl, "file:///tmp")
+        self.assertFalse('%s' in s.topdir)
+        self.assertFalse('%s' in s.baseurl)
 
         self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
                           "cp -a /tmp/a /b/c/d")
@@ -45,6 +47,8 @@ class Test_30_classes(unittest.TestCase):
         self.assertFalse('%' in s.baseurl)
         self.assertEquals(s.baseurl,
                           "http://yumrepos-1.local/~%s/yum" % s.user)
+        self.assertFalse('%s' in s.topdir)
+        self.assertFalse('%s' in s.baseurl)
 
         self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
                           "scp -p /tmp/a %s@yumrepos-1.local:/b/c/d" % s.user)
@@ -58,6 +62,8 @@ class Test_30_classes(unittest.TestCase):
         self.assertEquals(s.shortaltname, "yumrepos")
         self.assertEquals(s.user, "jdoe")
         self.assertEquals(s.baseurl, "http://yumrepos.example.com/~jdoe/yum")
+        self.assertFalse('%s' in s.topdir)
+        self.assertFalse('%s' in s.baseurl)
 
         self.assertEquals(s.deploy_cmd("/tmp/a", "/b/c/d"),
                           "scp -p /tmp/a jdoe@yumrepos-1.local:/b/c/d")
@@ -99,6 +105,7 @@ class Test_30_classes(unittest.TestCase):
                            "~jdoe/public_html/yum/fedora/19/x86_64",
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.reponame, TT.G._REPONAME % repo.as_dict())
+        self.assertFalse('%s' in repo.reponame)
 
     def test_32__Repo__init__(self):
         server = TT.Server("yumrepos-1.local", "jdoe", "yumrepos.example.com")
@@ -127,6 +134,7 @@ class Test_30_classes(unittest.TestCase):
                            "~jdoe/public_html/yum/fedora/19/x86_64",
                            "~jdoe/public_html/yum/fedora/19/i386"])
         self.assertEquals(repo.reponame, "fedora-yumrepos")
+        self.assertFalse('%s' in repo.reponame)
 
 
 # vim:sw=4:ts=4:et:
