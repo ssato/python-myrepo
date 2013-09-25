@@ -155,6 +155,9 @@ def modmain(argv):
         # re-parse to overwrite configurations with given options.
         (options, args) = p.parse_args()
 
+    if not options.tpaths:
+        options.tpaths = G._TEMPLATE_PATHS
+
     # Hack:
     ctx = options.__dict__.copy()
     srpms = args[1:]  # List of srpm paths or []
@@ -171,11 +174,11 @@ def modmain(argv):
 
     ctx["repos"] = repos = list(mk_repos(ctx))
 
-    return func(ctx)
+    return func(ctx)  # :: bool
 
 
 def main(argv=sys.argv):
-    sys.exit(modmain(argv))
+    sys.exit(0 if modmain(argv) else -1)
 
 
 if __name__ == '__main__':

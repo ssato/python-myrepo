@@ -104,7 +104,7 @@ def _init_by_preset_defaults():
     (bname, bversion) = E.get_distribution()  # (basename, baseversion)
 
     cfg = dict(dists=dists_s, dists_full=dists_full, dist_choices=dists_full,
-               tpaths=G._TEMPLATE_PATHS, workdir=None,
+               tpaths=[], workdir=None,
                quiet=False, verbose=False, debug=False,
                config=None, profile=None,
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
