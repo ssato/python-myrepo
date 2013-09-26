@@ -413,11 +413,13 @@ def prun_async(cs, **kwargs):
     return [run_async(c, **kwargs) for c in cs]
 
 
-def prun(cs, safer=True, **kwargs):
+def prun(cs, safer=True, kwargs1={}, kwargs2={}):
     """
     :param cs: List of command strings
     :param safer: Do not use pstop_async_run if True (it would be slower but
         safer I guess).
+    :param kwargs1: Keyword arguments passed to prun_async (run_async)
+    :param kwargs2: Keyword arguments passed to stop_async_run
 
     :return: List of result code of run commands
 
@@ -425,9 +427,10 @@ def prun(cs, safer=True, **kwargs):
     [True, True, True]
     """
     if safer:
-        return [stop_async_run(p) for p in prun_async(cs, **kwargs)]
+        return [stop_async_run(p, **kwargs2) for p in
+                prun_async(cs, **kwargs1)]
     else:
-        return pstop_async_run(prun_async(cs, **kwargs))
+        return pstop_async_run(prun_async(cs, **kwargs1), **kwargs2)
 
 
 # vim:sw=4:ts=4:et:
