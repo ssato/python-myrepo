@@ -15,11 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.commands.utils as MAU
-
+import myrepo.commands.utils as MCU
 import myrepo.shell as MS
 import myrepo.utils as MU
-
 import itertools
 import logging
 import os.path
@@ -55,8 +53,8 @@ def prepare_0(repo, srpm, level=logging.getLogger().level):
 
     :return: List of command strings to deploy built RPMs.
     """
-    MAU.assert_repo(repo)
-    MAU.assert_srpm(srpm)
+    MCU.assert_repo(repo)
+    MCU.assert_srpm(srpm)
 
     f = lambda b: "mock -r %s %s%s" % (b, srpm.path, _log_opt(level))
 
@@ -82,8 +80,7 @@ def run(ctx):
 
     :return: True if commands run successfully else False
     """
-    assert "repos" in ctx, "No repos defined in given ctx!"
-    assert "srpm" in ctx, "No srpm defined in given ctx!"
+    MCU.assert_ctx_has_keys(ctx, ("repos", "srpm"))
 
     cs = prepare(ctx["repos"], ctx["srpm"])
 
