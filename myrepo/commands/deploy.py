@@ -72,13 +72,13 @@ def prepare_0(repo, srpm, build=False):
 
         cs = [" && ".join([bcs[0], c0, bc])] if build else [c0, bc]
     else:
-        das = itertools.izip(rpmdirs, repo.archs)
         cs = [dcmd(os.path.join(d, rpmname_pre + "*.%s.rpm" % a),
-              os.path.join(repo.destdir, a)) for d, a in das]
+              os.path.join(repo.destdir, a)) for d, a
+              in itertools.izip(rpmdirs, repo.archs)]
 
         if build:
             cs = [MS.bind(bc, c)[0] for bc, c in itertools.izip(bcs, cs)]
-            cs[0] = MS.bind(cs[0], c0)
+            cs[0] = MS.bind(cs[0], c0)[0]
         else:
             cs = [c0] + cs
 
