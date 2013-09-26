@@ -213,6 +213,18 @@ def bind(cmd1, cmd2, workdir1=os.curdir, workdir2=os.curdir):
         return ("%s && cd %s && %s" % (cmd1, workdir2, cmd2), workdir1)
 
 
+def join(*cs):
+    """
+    :param cs: List of command strings.
+
+    NOTE: workdir is same in all comamnds.
+
+    >>> join("true", "false", "cd /tmp && yes")
+    'true && false && cd /tmp && yes'
+    """
+    return " && ".join(cs)
+
+
 def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
               rc_expected=0, logfile=False, conn_timeout=_CONN_TO,
               **kwargs):
