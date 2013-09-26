@@ -77,4 +77,16 @@ def run(ctx):
     return all(MS.prun(cs, dict(logfile=False, )))
 
 
+def runall(ctx):
+    """
+    Initialize yum repos, generate and deploy repo metadata RPMs.
+
+    TBD...
+
+    :param ctx: Application context
+    :return: True if commands run successfully else False
+    """
+    rc = run(ctx)
+
+
 # vim:sw=4:ts=4:et:
