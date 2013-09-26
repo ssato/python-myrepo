@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.commands.build as MCB
-import myrepo.commands.utils as MAU
+import myrepo.commands.utils as MCU
 
 import myrepo.shell as MS
 import myrepo.utils as MU
@@ -41,8 +41,8 @@ def prepare_0(repo, srpm, build=False):
 
     :return: List of command strings to deploy built RPMs.
     """
-    MAU.assert_repo(repo)
-    MAU.assert_srpm(srpm)
+    MCU.assert_repo(repo)
+    MCU.assert_srpm(srpm)
 
     if build:
         bcs = MCB.prepare_0(repo, srpm)
