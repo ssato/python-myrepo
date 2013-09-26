@@ -27,33 +27,32 @@ import unittest
 
 class Test_00_pure_functions(unittest.TestCase):
 
+    def setUp(self):
+        self.server = MR.Server("localhost", topdir="/tmp/yum",
+                                baseurl="file:///tmp/yum")
+
     def test_00_prepare_0__localhost(self):
-        server = MR.Server("localhost", topdir="yum", baseurl="file:///tmp")
-        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server)
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], self.server)
+        subdirs = repo.archs + ["sources"]
 
         cs_expected = ["cd %s && %s" % (os.path.join(repo.destdir, a),
-                                        TT._CMD_TEMPLATE) for a in repo.archs]
+                                        TT._CMD_TEMPLATE) for a in subdirs]
         cs = TT.prepare_0(repo)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(cs, cs_expected)
 
     def test_10_prepare__localhost(self):
-        server = MR.Server("localhost", topdir="/tmp/yum",
-                           baseurl="file:///tmp")
-        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
-                 MR.Repo("fedora", 19, ["x86_64", "i386"], server),
-                 MR.Repo("rhel", 6, ["x86_64", ], server)]
+        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], self.server),
+                 MR.Repo("fedora", 19, ["x86_64", "i386"], self.server),
+                 MR.Repo("rhel", 6, ["x86_64", ], self.server)]
 
         def cs_expected_gen(repo):
+            subdirs = repo.archs + ["sources"]
             return ["cd %s && %s" % (os.path.join(repo.destdir, a),
-                                     TT._CMD_TEMPLATE) for a in repo.archs]
+                                     TT._CMD_TEMPLATE) for a in subdirs]
 
         cs_expected = MU.concat(cs_expected_gen(repo) for repo in repos)
         cs = TT.prepare(repos)
-
-        for c, exp in itertools.izip(cs, cs_expected):
-            self.assertEquals(c, exp)
+        self.assertListEqual(cs, cs_expected)
 
 
 class Test_10_effecful_functions(unittest.TestCase):
@@ -73,7 +72,8 @@ class Test_10_effecful_functions(unittest.TestCase):
         ctx = dict(repos=repos)
 
         repos_destdirs = MU.concat([os.path.join(repo.destdir, a) for a in
-                                    repo.archs] for repo in repos)
+                                    repo.archs + ["sources"]] for repo in
+                                   repos)
 
         for d in repos_destdirs:
             os.makedirs(d)  # Create repo dirs instead of initialization.
