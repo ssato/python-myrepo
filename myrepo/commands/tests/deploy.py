@@ -267,7 +267,7 @@ class Test_10_effecful_functions(unittest.TestCase):
         C.cleanup_workdir(self.workdir)
 
     def test_20_run__localhost(self):
-        """FIXME: Add test cases for myrepo.commands.deploy_built_rpms.run.
+        """FIXME: Add test cases for myrepo.commands.deploy.run.
         """
         return
 
