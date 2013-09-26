@@ -39,7 +39,7 @@ def prepare_0(repo, ctmpl=_CMD_TEMPLATE):
     MCU.assert_repo(repo)
 
     return [c for c, _d in (repo.mk_cmd(ctmpl, os.path.join(repo.destdir, a))
-            for a in repo.archs + ["sources"])]
+            for a in ["sources"] + repo.archs)]
 
 
 def prepare(repos, ctmpl=_CMD_TEMPLATE):

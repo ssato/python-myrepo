@@ -33,7 +33,7 @@ class Test_00_pure_functions(unittest.TestCase):
 
     def test_00_prepare_0__localhost(self):
         repo = MR.Repo("fedora", 19, ["x86_64", "i386"], self.server)
-        subdirs = repo.archs + ["sources"]
+        subdirs = ["sources"] + repo.archs
 
         cs_expected = ["cd %s && %s" % (os.path.join(repo.destdir, a),
                                         TT._CMD_TEMPLATE) for a in subdirs]
@@ -46,7 +46,7 @@ class Test_00_pure_functions(unittest.TestCase):
                  MR.Repo("rhel", 6, ["x86_64", ], self.server)]
 
         def cs_expected_gen(repo):
-            subdirs = repo.archs + ["sources"]
+            subdirs = ["sources"] + repo.archs
             return ["cd %s && %s" % (os.path.join(repo.destdir, a),
                                      TT._CMD_TEMPLATE) for a in subdirs]
 
@@ -72,7 +72,7 @@ class Test_10_effecful_functions(unittest.TestCase):
         ctx = dict(repos=repos)
 
         repos_destdirs = MU.concat([os.path.join(repo.destdir, a) for a in
-                                    repo.archs + ["sources"]] for repo in
+                                    ["sources"] + repo.archs] for repo in
                                    repos)
 
         for d in repos_destdirs:
