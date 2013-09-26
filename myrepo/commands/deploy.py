@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo, assert_srpm
+from myrepo.commands.utils import assert_repo, assert_srpm, \
+    assert_ctx_has_keys
 
 import myrepo.commands.build as MCB
 import myrepo.commands.update as MCU
@@ -111,11 +112,16 @@ def run(ctx):
     :param ctx: Application context
     :return: True if commands run successfully else False
     """
-    assert "repos" in ctx, "No repos defined in given ctx!"
-    assert "srpm" in ctx, "No srpm defined in given ctx!"
+    assert_ctx_has_keys(ctx, ("repos", "srpm"))
 
     cs = [c for c in prepare(ctx["repos"], ctx["srpm"],
                              ctx.get("build", False))]
+
+    if ctx.get("dryrun", False):
+        for c in cs:
+            print c
+
+        return True
 
     return all(MS.prun(cs, dict(logfile=False, )))
 
