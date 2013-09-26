@@ -17,6 +17,7 @@
 #
 import myrepo.commands.deploy as TT
 import myrepo.commands.build as MCB
+import myrepo.commands.update as MCU
 import myrepo.repo as MR
 import myrepo.srpm as MS
 import myrepo.utils as MU
@@ -44,8 +45,9 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.version = "1.0"
         srpm.noarch = True
 
-        dcmd = repo.server.deploy_cmd
+        ucs = MCU.prepare_0(repo)
 
+        dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
         c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
@@ -55,7 +57,7 @@ class Test_00_pure_functions(unittest.TestCase):
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
 
-        cs_expected = [c0, "%s && %s" % (c1, c2)]
+        cs_expected = [_join(c0, ucs[0]), _join(c1, c2, *ucs[1:])]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_01_prepare_0__localhost_noarch_multi_archs_repo_w_build(self):
@@ -69,6 +71,7 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.noarch = True
 
         bcmds = MCB.prepare_0(repo, srpm)
+        ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
@@ -80,7 +83,7 @@ class Test_00_pure_functions(unittest.TestCase):
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
 
-        cs_expected = [_join(bcmds[0], c0, c1, c2)]
+        cs_expected = [_join(bcmds[0], c0, c1, c2, *ucs)]
         self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
 
     def test_02_prepare_0__localhost_noarch_single_arch_repo(self):
@@ -93,13 +96,15 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.version = "1.0"
         srpm.noarch = True
 
+        ucs = MCU.prepare_0(repo)
+
         dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
         c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
-        cs_expected = [c0, c1]
+        cs_expected = [_join(c0, ucs[0]), _join(c1, *ucs[1:])]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_03_prepare_0__localhost_noarch_single_arch_repo_w_build(self):
@@ -113,6 +118,7 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.noarch = True
 
         bcmds = MCB.prepare_0(repo, srpm)
+        ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
@@ -120,7 +126,7 @@ class Test_00_pure_functions(unittest.TestCase):
         c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
-        cs_expected = [_join(bcmds[0], c0, c1)]
+        cs_expected = [_join(bcmds[0], c0, c1, *ucs)]
         self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
 
     def test_04_prepare_0__localhost(self):
@@ -133,6 +139,8 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.version = "1.0"
         srpm.noarch = False
 
+        ucs = MCU.prepare_0(repo)
+
         dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
@@ -141,7 +149,7 @@ class Test_00_pure_functions(unittest.TestCase):
         c2 = dcmd("/var/lib/mock/fedora-19-i386/result/foo-1.0-*.i386.rpm",
                   "/tmp/yum/fedora/19/i386")
 
-        cs_expected = [c0, c1, c2]
+        cs_expected = [_join(c0, ucs[0]), _join(c1, ucs[1]), _join(c2, ucs[2])]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
     def test_05_prepare_0__localhost_w_build(self):
@@ -155,6 +163,7 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.noarch = False
 
         bcs = MCB.prepare_0(repo, srpm)
+        ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
@@ -164,7 +173,8 @@ class Test_00_pure_functions(unittest.TestCase):
         c2 = dcmd("/var/lib/mock/fedora-19-i386/result/foo-1.0-*.i386.rpm",
                   "/tmp/yum/fedora/19/i386")
 
-        cs_expected = [_join(bcs[0], c1, c0), _join(bcs[1], c2)]
+        cs_expected = [_join(bcs[0], c1, ucs[1], c0, ucs[0]),
+                       _join(bcs[1], c2, ucs[2])]
         self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
 
     def test_10_prepare__localhost_noarch(self):
@@ -181,6 +191,7 @@ class Test_00_pure_functions(unittest.TestCase):
 
         cs_expected = []
 
+        ucs = MCU.prepare_0(repos[0])
         dcmd = repos[0].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/18/sources")
@@ -189,9 +200,10 @@ class Test_00_pure_functions(unittest.TestCase):
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
-        cs_expected.append(c0)
-        cs_expected.append("%s && %s" % (c1, c2))
+        cs_expected.append(_join(c0, ucs[0]))
+        cs_expected.append(_join(c1, c2, *ucs[1:]))
 
+        ucs = MCU.prepare_0(repos[1])
         dcmd = repos[1].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
@@ -200,16 +212,17 @@ class Test_00_pure_functions(unittest.TestCase):
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
-        cs_expected.append(c0)
-        cs_expected.append("%s && %s" % (c1, c2))
+        cs_expected.append(_join(c0, ucs[0]))
+        cs_expected.append(_join(c1, c2, *ucs[1:]))
 
+        ucs = MCU.prepare_0(repos[2])
         dcmd = repos[2].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/rhel/6/sources")
         c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
                   "/tmp/yum/rhel/6/x86_64")
-        cs_expected.append(c0)
-        cs_expected.append(c1)
+        cs_expected.append(_join(c0, ucs[0]))
+        cs_expected.append(_join(c1, *ucs[1:]))
 
         self.assertListEqual(TT.prepare(repos, srpm), cs_expected)
 
@@ -227,6 +240,7 @@ class Test_00_pure_functions(unittest.TestCase):
 
         cs_expected = []
 
+        ucs = MCU.prepare_0(repos[0])
         bcs = MCB.prepare_0(repos[0], srpm)  # ['mock -r fedora-18-x86_64 ...']
         dcmd = repos[0].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
@@ -236,8 +250,9 @@ class Test_00_pure_functions(unittest.TestCase):
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
-        cs_expected.append(_join(bcs[0], c0, c1, c2))
+        cs_expected.append(_join(bcs[0], c0, c1, c2, *ucs))
 
+        ucs = MCU.prepare_0(repos[1])
         bcs = MCB.prepare_0(repos[1], srpm)  # ['mock -r fedora-19-x86_64 ...']
         dcmd = repos[1].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
@@ -247,15 +262,16 @@ class Test_00_pure_functions(unittest.TestCase):
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
                    noarch_rpms="foo-1.0-*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
-        cs_expected.append(_join(bcs[0], c0, c1, c2))
+        cs_expected.append(_join(bcs[0], c0, c1, c2, *ucs))
 
+        ucs = MCU.prepare_0(repos[2])
         bcs = MCB.prepare_0(repos[2], srpm)  # ['mock -r rhel-6-x86_64 ...']
         dcmd = repos[2].server.deploy_cmd
         c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/rhel/6/sources")
         c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
                   "/tmp/yum/rhel/6/x86_64")
-        cs_expected.append(_join(bcs[0], c0, c1))
+        cs_expected.append(_join(bcs[0], c0, c1, *ucs))
 
         self.assertListEqual(TT.prepare(repos, srpm, True), cs_expected)
 
@@ -277,18 +293,16 @@ class Test_10_effecful_functions(unittest.TestCase):
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
-    def test_20_run__localhost_w_build(self):
+    def test_20_run__localhost_noarch_w_build(self):
         topdir = os.path.join(self.workdir, "yum")
         server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
         repos = [MR.Repo("fedora", 19, ["x86_64", "i386"], server), ]
 
         ctx = dict(repos=repos, srpm=self.srpm, build=True)
 
-        repos_destdirs = MU.uconcat([os.path.join(repo.destdir, a) for a in
-                                    repo.archs] for repo in repos)
-
-        for d in repos_destdirs:
-            os.makedirs(d)  # Create repo dirs instead of initialization.
+        # Create repo dirs instead of initialization:
+        for a in ["x86_64", "i386", "sources"]:
+            os.makedirs(os.path.join(topdir, "fedora", "19", a))
 
         self.assertTrue(TT.run(ctx))
 

@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.commands.build as MCB
-import myrepo.commands.utils as MCU
+from myrepo.commands.utils import assert_repo, assert_srpm
 
+import myrepo.commands.build as MCB
+import myrepo.commands.update as MCU
 import myrepo.shell as MS
 import myrepo.utils as MU
-
 import itertools
 import os.path
 
@@ -41,11 +41,13 @@ def prepare_0(repo, srpm, build=False):
 
     :return: List of command strings to deploy built RPMs.
     """
-    MCU.assert_repo(repo)
-    MCU.assert_srpm(srpm)
+    assert_repo(repo)
+    assert_srpm(srpm)
 
     if build:
         bcs = MCB.prepare_0(repo, srpm)
+
+    ucs = MCU.prepare_0(repo)
 
     dcmd = repo.server.deploy_cmd
     rpmdirs = repo.mockdirs(srpm)
@@ -70,7 +72,10 @@ def prepare_0(repo, srpm, build=False):
             bc = dcmd(os.path.join(rpmdirs[0], noarch_rpms),
                       os.path.join(repo.destdir, repo.primary_arch))
 
-        cs = [" && ".join([bcs[0], c0, bc])] if build else [c0, bc]
+        if build:
+            cs = [MS.join(bcs[0], c0, bc, *ucs)]
+        else:
+            cs = [MS.join(c0, ucs[0]), MS.join(bc, *ucs[1:])]
     else:
         cs = [dcmd(os.path.join(d, rpmname_pre + "*.%s.rpm" % a),
               os.path.join(repo.destdir, a)) for d, a
@@ -78,9 +83,11 @@ def prepare_0(repo, srpm, build=False):
 
         if build:
             cs = [MS.bind(bc, c)[0] for bc, c in itertools.izip(bcs, cs)]
-            cs[0] = MS.bind(cs[0], c0)[0]
+            cs = [MS.join(c, uc) for c, uc in itertools.izip(cs, ucs[1:])]
+            cs[0] = MS.join(cs[0], c0, ucs[0])
         else:
-            cs = [c0] + cs
+            cs = [MS.join(c0, ucs[0])] + \
+                 [MS.join(c, uc) for c, uc in itertools.izip(cs, ucs[1:])]
 
     return cs
 
