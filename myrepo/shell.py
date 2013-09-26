@@ -413,13 +413,13 @@ def prun_async(cs, **kwargs):
     return [run_async(c, **kwargs) for c in cs]
 
 
-def prun(cs, safer=True, kwargs1={}, kwargs2={}):
+def prun(cs, kwargs1={}, kwargs2={}, safer=True):
     """
     :param cs: List of command strings
-    :param safer: Do not use pstop_async_run if True (it would be slower but
-        safer I guess).
     :param kwargs1: Keyword arguments passed to prun_async (run_async)
     :param kwargs2: Keyword arguments passed to stop_async_run
+    :param safer: Do not use pstop_async_run if True (it would be slower but
+        safer I guess).
 
     :return: List of result code of run commands
 
