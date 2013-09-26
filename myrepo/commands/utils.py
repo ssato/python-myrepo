@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+from pprint import pformat
+
 import myrepo.repo as MR
 import myrepo.srpm as MS
-
 import logging
 import os.path
 import os
@@ -34,6 +35,16 @@ def assert_repo(repo):
 
 def assert_srpm(srpm):
     assert isinstance(srpm, MS.Srpm), "Wrong arg srpm of type " + repr(srpm)
+
+
+def assert_ctx_has_key(ctx, key):
+    assert key in ctx, "No '%s' is defined in given ctx! ctx=%s" % \
+        (key, pformat(ctx))
+
+
+def assert_ctx_has_keys(ctx, keys):
+    for k in keys:
+        assert k in ctx, "No '%s' is defined in given ctx!" % k
 
 
 def setup_workdir(prefix="myrepo-workdir-", topdir=_TMPDIR):
