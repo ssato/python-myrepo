@@ -15,18 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo, setup_workdir
-from myrepo.srpm import Srpm
-
+import myrepo.commands.utils as MCU
 import myrepo.commands.genconf as MAG
 import myrepo.shell as MS
 import myrepo.utils as MU
 
 import logging
 import os.path
-
-
-_CMD_TEMPLATE_0 = "test -d %s || mkdir -p %s"
 
 
 def _join_dirs(prefix, dirs):
@@ -42,10 +37,9 @@ def prepare_0(repo):
     Make up list of command strings to initialize repo.
 
     :param repo: myrepo.repo.Repo instance
-
     :return: List of command strings to deploy built RPMs.
     """
-    assert_repo(repo)
+    MCU.assert_repo(repo)
 
     dirs_s = _join_dirs(repo.destdir, repo.archs + ["sources"])
     return [repo.mk_cmd("mkdir -p " + dirs_s)[0]]
@@ -57,7 +51,6 @@ def prepare(repos):
     It's similar to above ``prepare_0`` but applicable to multiple repos.
 
     :param repos: List of Repo instances
-    :param srpm: myrepo.srpm.Srpm instance
 
     :return: List of command strings to deploy built RPMs.
     """
@@ -66,23 +59,22 @@ def prepare(repos):
 
 def run(ctx):
     """
-    :param repos: List of Repo instances
+    Initialize yum repos.
 
+    :param ctx: Application context
     :return: True if commands run successfully else False
     """
-    assert "repos" in ctx, "No repos defined in given ctx!"
+    MCU.assert_ctx_has_key(ctx, "repos")
 
-    ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"])]
-    rc = all(MS.stop_async_run(p) for p in ps)
+    cs = prepare(ctx["repos"])
 
-    if not rc:
-        raise RuntimeError("Failed to initialize the repo!")
+    if ctx.get("dryrun", False):
+        for c in cs:
+            print c
 
-    if ctx.get("genconf", False):
-        logging.info("Generate yum repo config SRPM...")
-        return MAG.run(ctx)
-    else:
-        return rc
+        return True
+
+    return all(MS.prun(cs, dict(logfile=False, )))
 
 
 # vim:sw=4:ts=4:et:
