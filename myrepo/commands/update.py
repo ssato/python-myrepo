@@ -15,11 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.commands.utils as MAU
-
+import myrepo.commands.utils as MCU
 import myrepo.shell as MS
 import myrepo.utils as MU
-
 import os.path
 
 
@@ -31,14 +29,14 @@ test -d repodata \
 
 def prepare_0(repo, ctmpl=_CMD_TEMPLATE):
     """
-    Make up list of command strings to update metadata of given repo.
+    Make up a list of command strings to update metadata of given repo.
 
     :param repo: Repo instance
     :param ctmpl: Command string template
 
     :return: List of commands to update metadata of ``repo``
     """
-    MAU.assert_repo(repo)
+    MCU.assert_repo(repo)
 
     return [c for c, _d in (repo.mk_cmd(ctmpl, os.path.join(repo.destdir, a))
             for a in repo.archs)]
@@ -46,8 +44,8 @@ def prepare_0(repo, ctmpl=_CMD_TEMPLATE):
 
 def prepare(repos, ctmpl=_CMD_TEMPLATE):
     """
-    Make up list of command strings to update metadata of given repos.
-    It's similar to above ``prepare_0`` but applicable to multiple repos.
+    Make up a list of command strings to update metadata of given repos. It's
+    similar to above ``prepare_0`` but will be applied to multiple repos.
 
     :param repos: List of Repo instances
     :param ctmpl: Command string template
@@ -63,10 +61,17 @@ def run(ctx, ctmpl=_CMD_TEMPLATE):
 
     :return: True if commands run successfully else False
     """
-    assert "repos" in ctx, "No repos defined in given ctx!"
+    MCU.assert_ctx_has_key(ctx, "repos")
 
-    ps = [MS.run_async(c, logfile=False) for c in prepare(ctx["repos"], ctmpl)]
-    return all(MS.stop_async_run(p) for p in ps)
+    cs = prepare(ctx["repos"])
+
+    if ctx.get("dryrun", False):
+        for c in cs:
+            print c
+
+        return True
+
+    return all(MS.prun(cs, dict(logfile=False, )))
 
 
 # vim:sw=4:ts=4:et:
