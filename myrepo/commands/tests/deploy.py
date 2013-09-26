@@ -22,7 +22,9 @@ import myrepo.srpm as MS
 import myrepo.utils as MU
 import myrepo.tests.common as C
 
+import glob
 import os.path
+import subprocess
 import unittest
 
 
@@ -258,25 +260,29 @@ class Test_00_pure_functions(unittest.TestCase):
         self.assertListEqual(TT.prepare(repos, srpm, True), cs_expected)
 
 
+CURDIR = os.path.dirname(__file__)
+
+
 class Test_10_effecful_functions(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
 
+        rpm_builder_sh = os.path.join(CURDIR, "rpm-sample-build.sh")
+        subprocess.check_call("bash -x " + rpm_builder_sh, shell=True)
+
+        self.srpm = MS.Srpm(glob.glob(os.path.join(CURDIR, "*.src.rpm"))[0])
+        self.srpm.resolve()
+
     def tearDown(self):
         C.cleanup_workdir(self.workdir)
 
-    def test_20_run__localhost(self):
-        """FIXME: Add test cases for myrepo.commands.deploy.run.
-        """
-        return
-
+    def test_20_run__localhost_w_build(self):
         topdir = os.path.join(self.workdir, "yum")
         server = MR.Server("localhost", topdir=topdir, baseurl="file:///tmp")
-        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
-                 MR.Repo("fedora", 19, ["x86_64", "i386"], server),
-                 MR.Repo("rhel", 6, ["x86_64", ], server)]
-        ctx = dict(repos=repos)
+        repos = [MR.Repo("fedora", 19, ["x86_64", "i386"], server), ]
+
+        ctx = dict(repos=repos, srpm=self.srpm, build=True)
 
         repos_destdirs = MU.uconcat([os.path.join(repo.destdir, a) for a in
                                     repo.archs] for repo in repos)
@@ -285,10 +291,6 @@ class Test_10_effecful_functions(unittest.TestCase):
             os.makedirs(d)  # Create repo dirs instead of initialization.
 
         self.assertTrue(TT.run(ctx))
-
-        for d in repos_destdirs:
-            self.assertTrue(os.path.exists(os.path.join(d, "repodata")),
-                            "Failed to create %s/repodata !" % d)
 
 
 # vim:sw=4:ts=4:et:
