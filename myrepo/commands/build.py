@@ -93,8 +93,7 @@ def run(ctx):
 
         return True
 
-    ps = [MS.run_async(c, logfile=False) for c in cs]
-    return all(MS.stop_async_run(p) for p in ps)
+    return all(MS.prun(cs, dict(logfile=False, )))
 
 
 # vim:sw=4:ts=4:et:
