@@ -254,7 +254,17 @@ def _force_stop_proc(proc, val0=True, val1=False):
         and then killed.
 
     :return: val0 or val1 according to conditions (see above).
+
+    >>> p = run_async("true")
+    >>> import time; time.sleep(2)  # wait for the completion of the above.
+    >>> _force_stop_proc(p)
+    True
+    >>> _force_stop_proc(run_async("sleep 10"))
+    False
     """
+    if not proc.is_alive():
+        return val0  # TODO: Nothing to do but what it should return ?
+
     proc.terminate()
     if not proc.is_alive():
         return val0
@@ -289,7 +299,7 @@ def stop_async_run(proc, timeout=_RUN_TO, stop_on_error=False):
 
             reason = "other"
 
-    except KeyboardInterrupt as e:
+    except (KeyboardInterrupt, SystemExit) as e:
         reason = _force_stop_proc(proc, "interrupted", "interrupt-and-killed")
 
     m = "Failed (%s): %s" % (reason, proc.cmd)
@@ -333,6 +343,49 @@ def run(cmd, user=None, host="localhost", workdir=os.curdir, rc_expected=0,
     return stop_async_run(proc, timeout, stop_on_error)
 
 
+_NPROC = multiprocessing.cpu_count() * 2
+
+
+def pmap(f, largs, nproc=_NPROC):
+    """
+    multiprocessing.Pool.map wrapper.
+
+    FIXME: How to handle signals like KeyboardInterrupt exception (INT) ?
+
+    :param f: Function to run in parallel
+    :param largs: List of arguments passed to f. BTW, the arity of ``f`` must
+        be 1 due to the restriction of the implementation of
+        multiprocessing.Pool.map.
+    :param nproc: Number of process to run in the pool
+
+    :return: List of results of processes
+
+    >>> import operator
+    >>> pmap(operator.abs, [0, -1, 2, -3, -4], 3)
+    [0, 1, 2, 3, 4]
+    """
+    assert callable(f), "``f`` must be any callable object!"
+    return multiprocessing.Pool(processes=nproc).map(f, largs)
+
+
+def _stop_async_run(pts):
+    """
+    Just an wrapper for ``stop_async_run`` to make it work w/
+    multiprocessing.Pool.map.
+
+    :param pts: A tuple of (proc, **kwargs) where kwargs is keyword arguments
+        for ``stop_async_run``
+    :return: Same as ``stop_async_run``
+
+    >>> _stop_async_run((run_async("true"), dict(timeout=2, )))
+    True
+    >>> _stop_async_run((run_async("sleep 10"), dict(timeout=1, )))
+    False
+    """
+    (proc, kwargs) = pts if len(pts) > 1 else (pts[0], {})
+    return stop_async_run(proc, **kwargs)
+
+
 def pstop_async_run(ps, timeout=_RUN_TO, stop_on_error=False):
     """
     Stop the given processes ``ps`` spawned from function ``run_async`` or
@@ -343,8 +396,13 @@ def pstop_async_run(ps, timeout=_RUN_TO, stop_on_error=False):
     :param stop_on_error: Stop and raise exception if any error occurs
 
     :return: List of result codes
+
+    # TODO:
+    #>>> pstop_async_run([run_async("true") for _ in range(4)], 2)
+    #[True, True]
     """
-    return [stop_async_run(p, timeout, stop_on_error) for p in ps]
+    kwargs = dict(timeout=timeout, stop_on_error=stop_on_error)
+    return pmap(_stop_async_run, ((p, kwargs) for p in ps))
 
 
 def prun_async(cs, **kwargs):
@@ -355,12 +413,21 @@ def prun_async(cs, **kwargs):
     return [run_async(c, **kwargs) for c in cs]
 
 
-def prun(cs, **kwargs):
+def prun(cs, safer=True, **kwargs):
     """
     :param cs: List of command strings
+    :param safer: Do not use pstop_async_run if True (it would be slower but
+        safer I guess).
+
     :return: List of result code of run commands
+
+    >>> prun(["true" for _ in range(3)], safer=True)
+    [True, True, True]
     """
-    return pstop_async_run(prun_async(cs, **kwargs))
+    if safer:
+        return [stop_async_run(p) for p in prun_async(cs, **kwargs)]
+    else:
+        return pstop_async_run(prun_async(cs, **kwargs))
 
 
 # vim:sw=4:ts=4:et:
