@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import myrepo.commands.deploy as TT
+import myrepo.commands.build as MCB
 import myrepo.repo as MR
 import myrepo.srpm as MS
 import myrepo.utils as MU
@@ -23,6 +24,10 @@ import myrepo.tests.common as C
 
 import os.path
 import unittest
+
+
+def _join(*cs):
+    return " && ".join(cs)
 
 
 class Test_00_pure_functions(unittest.TestCase):
@@ -51,6 +56,31 @@ class Test_00_pure_functions(unittest.TestCase):
         cs_expected = [c0, "%s && %s" % (c1, c2)]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
 
+    def test_01_prepare_0__localhost_noarch_multi_archs_repo_w_build(self):
+        server = MR.Server("localhost", topdir="/tmp/yum",
+                           baseurl="file:///tmp")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server)
+
+        srpm = MS.Srpm("/a/b/c/dummy.src.rpm")
+        srpm.name = "foo"
+        srpm.version = "1.0"
+        srpm.noarch = True
+
+        bcmds = MCB.prepare_0(repo, srpm)
+
+        dcmd = repo.server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/19/sources")
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/19/x86_64")
+
+        ctx = dict(other_archs_s="i386", primary_arch="x86_64",
+                   noarch_rpms="foo-1.0-*.noarch.rpm")
+        c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
+
+        cs_expected = [_join(bcmds[0], c0, c1, c2)]
+        self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
+
     def test_02_prepare_0__localhost_noarch_single_arch_repo(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
                            baseurl="file:///tmp")
@@ -62,7 +92,6 @@ class Test_00_pure_functions(unittest.TestCase):
         srpm.noarch = True
 
         dcmd = repo.server.deploy_cmd
-
         c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
         c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
@@ -70,6 +99,27 @@ class Test_00_pure_functions(unittest.TestCase):
 
         cs_expected = [c0, c1]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
+
+    def test_03_prepare_0__localhost_noarch_single_arch_repo_w_build(self):
+        server = MR.Server("localhost", topdir="/tmp/yum",
+                           baseurl="file:///tmp")
+        repo = MR.Repo("fedora", 19, ["x86_64"], server)
+
+        srpm = MS.Srpm("/a/b/c/dummy.src.rpm")
+        srpm.name = "foo"
+        srpm.version = "1.0"
+        srpm.noarch = True
+
+        bcmds = MCB.prepare_0(repo, srpm)
+
+        dcmd = repo.server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/19/sources")
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/19/x86_64")
+
+        cs_expected = [_join(bcmds[0], c0, c1)]
+        self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
 
     def test_04_prepare_0__localhost(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
@@ -91,6 +141,29 @@ class Test_00_pure_functions(unittest.TestCase):
 
         cs_expected = [c0, c1, c2]
         self.assertListEqual(TT.prepare_0(repo, srpm), cs_expected)
+
+    def test_05_prepare_0__localhost_w_build(self):
+        server = MR.Server("localhost", topdir="/tmp/yum",
+                           baseurl="file:///tmp")
+        repo = MR.Repo("fedora", 19, ["x86_64", "i386"], server)
+
+        srpm = MS.Srpm("/a/b/c/dummy.src.rpm")
+        srpm.name = "foo"
+        srpm.version = "1.0"
+        srpm.noarch = False
+
+        bcs = MCB.prepare_0(repo, srpm)
+
+        dcmd = repo.server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/19/sources")
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.x86_64.rpm",
+                  "/tmp/yum/fedora/19/x86_64")
+        c2 = dcmd("/var/lib/mock/fedora-19-i386/result/foo-1.0-*.i386.rpm",
+                  "/tmp/yum/fedora/19/i386")
+
+        cs_expected = [_join(bcs[0], c1, c0), _join(bcs[1], c2)]
+        self.assertListEqual(TT.prepare_0(repo, srpm, True), cs_expected)
 
     def test_10_prepare__localhost_noarch(self):
         server = MR.Server("localhost", topdir="/tmp/yum",
@@ -137,6 +210,52 @@ class Test_00_pure_functions(unittest.TestCase):
         cs_expected.append(c1)
 
         self.assertListEqual(TT.prepare(repos, srpm), cs_expected)
+
+    def test_12_prepare__localhost_noarch_w_build(self):
+        server = MR.Server("localhost", topdir="/tmp/yum",
+                           baseurl="file:///tmp")
+        repos = [MR.Repo("fedora", 18, ["x86_64", "i386"], server),
+                 MR.Repo("fedora", 19, ["x86_64", "i386"], server),
+                 MR.Repo("rhel", 6, ["x86_64", ], server)]
+
+        srpm = MS.Srpm("/a/b/c/dummy.src.rpm")
+        srpm.name = "foo"
+        srpm.version = "1.0"
+        srpm.noarch = True
+
+        cs_expected = []
+
+        bcs = MCB.prepare_0(repos[0], srpm)  # ['mock -r fedora-18-x86_64 ...']
+        dcmd = repos[0].server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/18/sources")
+        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/18/x86_64")
+        ctx = dict(other_archs_s="i386", primary_arch="x86_64",
+                   noarch_rpms="foo-1.0-*.noarch.rpm")
+        c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
+        cs_expected.append(_join(bcs[0], c0, c1, c2))
+
+        bcs = MCB.prepare_0(repos[1], srpm)  # ['mock -r fedora-19-x86_64 ...']
+        dcmd = repos[1].server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/fedora/19/sources")
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/fedora/19/x86_64")
+        ctx = dict(other_archs_s="i386", primary_arch="x86_64",
+                   noarch_rpms="foo-1.0-*.noarch.rpm")
+        c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
+        cs_expected.append(_join(bcs[0], c0, c1, c2))
+
+        bcs = MCB.prepare_0(repos[2], srpm)  # ['mock -r rhel-6-x86_64 ...']
+        dcmd = repos[2].server.deploy_cmd
+        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
+                  "/tmp/yum/rhel/6/sources")
+        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
+                  "/tmp/yum/rhel/6/x86_64")
+        cs_expected.append(_join(bcs[0], c0, c1))
+
+        self.assertListEqual(TT.prepare(repos, srpm, True), cs_expected)
 
 
 class Test_10_effecful_functions(unittest.TestCase):
