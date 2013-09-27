@@ -52,7 +52,10 @@ def prepare_0(repo, srpm, build=False):
 
     dcmd = repo.server.deploy_cmd
     rpmdirs = repo.mockdirs(srpm)
-    rpmname_pre = "%s-%s-" % (srpm.name, srpm.version)
+
+    # TODO: Sub RPM packages may have completely different names.
+    #rpmname_pre = "%s-%s-" % (srpm.name, srpm.version)
+    rpmname_pre = ''
     c0 = dcmd(os.path.join(rpmdirs[0], rpmname_pre + "*.src.rpm"),
               os.path.join(repo.destdir, "sources"))
 

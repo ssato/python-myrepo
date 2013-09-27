@@ -15,11 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-import myrepo.commands.utils as MCU
-import myrepo.commands.genconf as MAG
+from myrepo.commands.utils import assert_repo, assert_ctx_has_key, \
+    setup_workdir
+
+import myrepo.commands.genconf as MCG
 import myrepo.shell as MS
 import myrepo.utils as MU
-
+import glob
 import logging
 import os.path
 
@@ -39,7 +41,7 @@ def prepare_0(repo):
     :param repo: myrepo.repo.Repo instance
     :return: List of command strings to deploy built RPMs.
     """
-    MCU.assert_repo(repo)
+    assert_repo(repo)
 
     dirs_s = _join_dirs(repo.destdir, repo.archs + ["sources"])
     return [repo.mk_cmd("mkdir -p " + dirs_s)[0]]
@@ -64,7 +66,7 @@ def run(ctx):
     :param ctx: Application context
     :return: True if commands run successfully else False
     """
-    MCU.assert_ctx_has_key(ctx, "repos")
+    assert_ctx_has_key(ctx, "repos")
 
     cs = prepare(ctx["repos"])
 
@@ -74,19 +76,13 @@ def run(ctx):
 
         return True
 
-    return all(MS.prun(cs, dict(logfile=False, )))
-
-
-def runall(ctx):
-    """
-    Initialize yum repos, generate and deploy repo metadata RPMs.
-
-    TBD...
-
-    :param ctx: Application context
-    :return: True if commands run successfully else False
-    """
-    rc = run(ctx)
+    if all(MS.prun(cs, dict(logfile=False, ))):
+        if ctx.get("genconf", False):
+            return MCG.run(ctx)
+        else:
+            return True
+    else:
+        RuntimeError("Could not initialize the yum repos")
 
 
 # vim:sw=4:ts=4:et:

@@ -17,14 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo, setup_workdir, \
-    assert_ctx_has_key
+from myrepo.commands.utils import assert_repo, assert_ctx_has_keys, \
+    setup_workdir
 from myrepo.srpm import Srpm
 
-import myrepo.commands.build as MAB
-import myrepo.commands.deploy as MAD
-import myrepo.commands.update as MAU
-
+import myrepo.commands.deploy as MCD
 import myrepo.repo as MR
 import myrepo.shell as MS
 import myrepo.utils as MU
@@ -36,9 +33,13 @@ import glob
 import locale
 import logging
 import os.path
+import os
 import re
 import subprocess
 import uuid
+
+
+_RPM_DIST = ".myrepo"
 
 
 def gen_eof():
@@ -182,12 +183,15 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     return cfmt % (eof, path, content, eof)
 
 
+# NOTE: It will override some macros to fix the dir to build srpm, name of
+# built srpm and so on.
 _CMD_TEMPLATE_1 = """\
 cd %s && rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' \
---define '_buildroot .' -bs %s%s"""
+--define '_buildroot .' --define 'dist %s' -bs %s%s"""
 
 
-def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1):
+def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1,
+                      dist=_RPM_DIST):
     """
     :param rpmspec: Path to the RPM SPEC file to build srpm
     :param verbose: Verbosity level
@@ -196,13 +200,13 @@ def mk_build_srpm_cmd(rpmspec, verbose=False, cfmt=_CMD_TEMPLATE_1):
 
     >>> ref = "cd /a/b && "
     >>> ref += "rpmbuild --define '_srcrpmdir .' --define '_sourcedir .' "
-    >>> ref += "--define '_buildroot .' -bs c.spec"
+    >>> ref += "--define '_buildroot .' --define 'dist .myrepo' -bs c.spec"
 
     >>> s = mk_build_srpm_cmd("/a/b/c.spec")
     >>> assert s == ref, s
     """
-    vopt = " --verbose" if verbose else ''
-    return cfmt % (os.path.dirname(rpmspec), os.path.basename(rpmspec), vopt)
+    return cfmt % (os.path.dirname(rpmspec), dist, os.path.basename(rpmspec),
+                   " --verbose" if verbose else '')
 
 
 def gen_entoropy():
@@ -323,12 +327,46 @@ def gen_gpgkey(ctx, rpmmacros="~/.rpmmacros", homedir=None, compat=True,
         logging.info("Added GPG key configurations to " + rpmmacros)
 
 
-def prepare_0(repo, ctx, eof=None):
+def _repo_metadata_srpm_name(repo):
+    """
+    >>> class Repo(object):
+    ...     def __init__(self, reponame):
+    ...         self.reponame = reponame
+    >>> repo = Repo("fedora-localhost-jdoe")
+    >>> _repo_metadata_srpm_name(repo)
+    'fedora-localhost-jdoe-release'
+    """
+    return "%s-release" % repo.reponame
+
+
+def _repo_metadata_srpm_path(repo, workdir, dist=_RPM_DIST):
+    """
+    >>> class Repo(object):
+    ...     def __init__(self, reponame, version):
+    ...         self.reponame = reponame
+    ...         self.version = version
+    >>> repo = Repo("fedora-localhost-jdoe", "19")
+    >>> _repo_metadata_srpm_path(repo, "/a/b/c")
+    '/a/b/c/fedora-localhost-jdoe-release-19-1.myrepo.src.rpm'
+    """
+    fn = "%s-%s-1%s.src.rpm" % (_repo_metadata_srpm_name(repo), repo.version,
+                                dist)
+    return os.path.join(workdir, fn)
+
+
+def _mk_repo_metadata_srpm_obj(repo, workdir, dist=_RPM_DIST):
+    return Srpm(_repo_metadata_srpm_path(repo, workdir, dist),
+                _repo_metadata_srpm_name(repo), repo.version,
+                release="1", noarch=True, is_srpm=True, resolved=True)
+
+
+def prepare_0(repo, ctx, deploy=False, eof=None):
     """
     Make up list of command strings to generate repo's metadata rpms.
 
     :param repo: myrepo.repo.Repo instance
     :param ctx: Context object to instantiate the template
+    :param deploy: Deploy generated yum repo metadata RPMs also if True
     :param eof: The function to generate EOF marker strings for here docuemnts
         or None, that is, it will be generated automatically.
 
@@ -345,7 +383,34 @@ def prepare_0(repo, ctx, eof=None):
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands
     # to generate files; .repo file, the rpm spec and mock.cfg files:
-    return ["\n".join(cs)]
+    c = "\n".join(cs)
+
+    if not deploy:
+        return [c]
+
+    srpm = _mk_repo_metadata_srpm_obj(repo, ctx["workdir"])
+    dcs = MCD.prepare_0(repo, srpm, build=True)
+
+    assert len(dcs) == 1, \
+        "Deploy commands not matched w/ expected: \n" + str(dcs)
+
+    return [MS.join(c, *dcs)]
+
+
+def prepare(repos, ctx, deploy=False, eof=None):
+    """
+    Make up list of command strings to update metadata of given repos.
+    It's similar to above ``prepare_0`` but applicable to multiple repos.
+
+    :param repos: List of Repo instances
+    :param ctx: Context object to instantiate the template
+    :param deploy: Deploy generated yum repo metadata RPMs also if True
+    :param eof: The function to generate EOF marker strings for here docuemnts
+        or None, that is, it will be generated automatically.
+
+    :return: List of command strings to deploy built RPMs.
+    """
+    return MU.concat(prepare_0(repo, ctx, deploy, eof) for repo in repos)
 
 
 def _setup_extra_template_vars(ctx):
@@ -368,96 +433,40 @@ def _mk_dir_if_not_exist(d):
         os.makedirs(d)
 
 
-def prepare(repos, ctx, eof=None):
-    """
-    Make up list of command strings to update metadata of given repos.
-    It's similar to above ``prepare_0`` but applicable to multiple repos.
-
-    :param repos: List of Repo instances
-    :param ctx: Context object to instantiate the template
-    :param eof: The function to generate EOF marker strings for here docuemnts
-        or None, that is, it will be generated automatically.
-
-    :return: List of command strings to deploy built RPMs.
-    """
-    return MU.concat(prepare_0(repo, ctx, eof) for repo in repos)
-
-
-def run0(repo, ctx, experimental=False):
-    """
-    Make up and build repo metadata srpm and deploy built rpms.
-
-    :param repos: List of Repo instances
-    :param ctx: Context object to instantiate the template
-    :param experimental: Run experimental code if True
-
-    :return: True if success else False
-    """
-    workdir = ctx["workdir"]
-    reponame = "%s-%s" % (repo.reponame, repo.version)
-
-    c = prepare_0(repo, ctx)
-    logfile = os.path.join(workdir, "genconf.%s.log" % reponame)
-
-    if not MS.run(c, logfile=logfile):
-        raise RuntimeError("Failed to make metadata srpm: " + reponame)
-
-    name = "%s-release-%s" % (repo.reponame, repo.version)
-
-    srpmreg = os.path.join(workdir, "%s-*.src.rpm" % name)
-    srpms = glob.glob(srpmreg)
-    if srpms and not experimental:
-        print "Built repo metadata srpm: " + srpms[0]
-        return True
-    else:
-        m = "Failed to find repo metadata srpm, pattern=" + srpmreg
-        raise RuntimeError(m)
-
-    srpm = Srpm(srpms[0])
-    srpm.resolve()  # Effectful; It will access the srpm.
-
-    # build srpm, deploy built rpms and update the repo data.
-    cs = MAB.prepare_0(repo, srpm)
-    assert len(cs) == 1, str(cs)
-
-    logfile = os.path.join(workdir, "build.%s.log" % reponame)
-    if not MS.run(cs[0], logfile=logfile):
-        raise RuntimeError("Failed to build srpm: " + srpm.path)
-
-    ctx2 = ctx
-    ctx2["repos"] = [repo]
-    ctx2["srpm"] = srpm
-
-    logfile = os.path.join(workdir, "deploy.%s.log" % reponame)
-    if not MAD.run(ctx2):
-        raise RuntimeError("Failed to deploy repo metadata rpms")
-
-    logfile = os.path.join(workdir, "update.%s.log" % reponame)
-    if not MAU.run(ctx2):
-        raise RuntimeError("Failed to update the initialized repo")
-
-    return True
+def _mk_temporary_workdir():
+    workdir = setup_workdir()
+    logging.info("Create a temporary workdir: " + workdir)
+    return workdir
 
 
 def run(ctx):
     """
-    :param repos: List of Repo instances
-
+    :param ctx: Application context
     :return: True if commands run successfully else False
     """
-    assert_ctx_has_key(ctx, "repos")
+    assert_ctx_has_keys(ctx, ["repos", "workdir"])
 
-    if ctx.get("workdir", False):
-        _mk_dir_if_not_exist(ctx["workdir"])
+    workdir = ctx.get("workdir", False)
+    if workdir:
+        _mk_dir_if_not_exist(workdir)
     else:
-        ctx["workdir"] = setup_workdir()
-        logging.info("Created a temporal working dir: %(workdir)s" % ctx)
+        ctx["workdir"] = workdir = _mk_temporary_workdir()
 
     ctx = _setup_extra_template_vars(ctx)
-    rc = all(run0(repo, ctx) for repo in ctx["repos"])
+    cs = [c for c in prepare(ctx["repos"], ctx, ctx.get("deploy", False))]
 
-    prefix = "Created " if rc else "Failed to create "
-    logging.info(prefix + "yum repo config SRPM in: %(workdir)s" % ctx)
+    if ctx.get("dryrun", False):
+        for c in cs:
+            print c
+
+        return True
+
+    _logfile = lambda: os.path.join(workdir, "%d.log" % os.getpid())
+    rc = all(MS.prun(cs, dict(logfile=_logfile, )))
+
+    if not ctx.get("deploy", False):
+        prefix = "Created and deployed" if rc else "Failed to create "
+        logging.info(prefix + "yum repo config SRPM in: %(workdir)s" % ctx)
 
     return rc
 
