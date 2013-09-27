@@ -17,7 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-from myrepo.commands.utils import assert_repo, setup_workdir
+from myrepo.commands.utils import assert_repo, setup_workdir, \
+    assert_ctx_has_key
 from myrepo.srpm import Srpm
 
 import myrepo.commands.build as MAB
@@ -444,7 +445,7 @@ def run(ctx):
 
     :return: True if commands run successfully else False
     """
-    assert "repos" in ctx, "No repos defined in given ctx!"
+    assert_ctx_has_key(ctx, "repos")
 
     if ctx.get("workdir", False):
         _mk_dir_if_not_exist(ctx["workdir"])
@@ -453,13 +454,10 @@ def run(ctx):
         logging.info("Created a temporal working dir: %(workdir)s" % ctx)
 
     ctx = _setup_extra_template_vars(ctx)
-
     rc = all(run0(repo, ctx) for repo in ctx["repos"])
 
-    if rc:
-        logging.info("Created yum repo config SRPM in: %(workdir)s" % ctx)
-    else:
-        logging.info("Failed to create repo config SRPM in: %(workdir)s" % ctx)
+    prefix = "Created " if rc else "Failed to create "
+    logging.info(prefix + "yum repo config SRPM in: %(workdir)s" % ctx)
 
     return rc
 
