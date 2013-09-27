@@ -378,7 +378,8 @@ def prepare_0(repo, ctx, deploy=False, eof=None):
     files = list(gen_repo_files_g(repo, ctx, ctx["workdir"], ctx["tpaths"]))
     rpmspec = files[-1][0]  # FIXME: Ugly hack! (see ``gen_repo_files_g``)
 
-    cs = [mk_write_file_cmd(p, c, eof) for p, c in files] + \
+    cs = ["mkdir -p " + ctx["workdir"]] + \
+         [mk_write_file_cmd(p, c, eof) for p, c in files] + \
          [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands

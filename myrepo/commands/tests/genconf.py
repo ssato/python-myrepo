@@ -154,7 +154,8 @@ class Test_00_pure_functions(unittest.TestCase):
         counter2 = itertools.count()
         eof2 = lambda: "EOF_%d" % counter2.next()
 
-        rcs = [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
+        rcs = ["mkdir -p " + ctx["workdir"]] + \
+              [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
 
         expected = '\n'.join(rcs)
