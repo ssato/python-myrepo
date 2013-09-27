@@ -1,24 +1,25 @@
 [DEFAULT]
-hostname: yumrepo.example.com
-email: %(user)s@example.com
-reponame: %(distname)s-example-%(user)s
+hostname: yumrepo-0.m2.local
+altname: yumrepo.example.com
 topdir: /var/www/html/pub/yum/fedora/19
+baseurl: http://%(server_altname)s/yum/fedora/19
 
 fullname: John Doe
-dists: fedora-19-x86_64,fedora-19-i386
+user: jdoe
+email: %(server_user)s@example.com
 
-baseurl: http://%(server_altname)s/yum/fedora/19
+reponame: %(name)s-example-%(server_user)s
+dists: fedora-19-x86_64,fedora-19-i386
 
 
 [test-local]
 hostname: localhost
+topdir: /tmp/%(server_user)s/yum/
+baseurl: file:///tmp/%(server_user)s/yum/fedora/19
 
+fullname: John Doe
 user: foo
 email: foo@example.com
 
 reponame: fedora-local
-topdir: /tmp/%(server_user)s/yum/
-
-baseurl: file:///tmp/%(server_user)s/yum/fedora/19
-
 dists: fedora-19-x86_64
