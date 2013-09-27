@@ -423,6 +423,9 @@ def _setup_extra_template_vars(ctx):
     if "email" not in ctx:
         repo = ctx["repos"][0]
         ctx["email"] = "%s@%s" % (repo.server_user, repo.server_altname)
+    else:
+        if '%' in ctx["email"]:
+            ctx["email"] = ctx["email"] % ctx
 
     return ctx
 
