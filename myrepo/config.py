@@ -277,7 +277,7 @@ def opt_parser(usage=_USAGE, conf=None):
     p.add_option_group(bog)
 
     dog = optparse.OptionGroup(p, "Options for 'deploy' command")
-    iog.add_option("", "--no-build", action="store_false", dest="build",
+    dog.add_option("", "--no-build", action="store_false", dest="build",
                    help="Do not build given srpm, i.e., the srpm was already "
                         "built and just deploy it")
     p.add_option_group(dog)
