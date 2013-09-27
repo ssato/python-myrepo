@@ -107,7 +107,7 @@ def _init_by_preset_defaults():
                tpaths=[], workdir=None,
                dryrun=False, quiet=False, verbose=False, debug=False,
                config=None, profile=None,
-               hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
+               hostname=h, altname=None, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
                genconf=True, deploy=True,
                fullname=E.get_fullname(), email=E.get_email(),
@@ -269,7 +269,7 @@ def opt_parser(usage=_USAGE, conf=None):
     bog = optparse.OptionGroup(p, "Options for 'build' and 'deploy' command")
     #bog.add_option("", "--sign", action="store_true",
     #               help="Sign built RPMs. You must specify --keyid also.")
-    bog.add_option("", "--selfref",
+    bog.add_option("", "--selfref", action="store_true",
                    help="If specified, %prog will also use the yum repo "
                         "itself to satisfy a portion of buildtime "
                         "dependencies to RPMs available from this repo, "

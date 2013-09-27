@@ -160,6 +160,9 @@ def modmain(argv):
     if not options.tpaths:
         options.tpaths = G._TEMPLATE_PATHS
 
+    if options.altname is None:
+        options.altname = options.hostname
+
     # Hack:
     ctx = options.__dict__.copy()
     srpms = args[1:]  # List of srpm paths or []
