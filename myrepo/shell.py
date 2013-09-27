@@ -185,7 +185,7 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=None,
                 workdir = os.path.expanduser(workdir)
 
             cmd = "cd %s && %s" % (workdir, cmd)
-            logging.debug("Rewrote cmd to " + cmd)
+            logging.debug("Rewrote cmd to: " + cmd)
 
         workdir = os.curdir
     else:
@@ -194,7 +194,7 @@ def adjust_cmd(cmd, user=None, host="localhost", workdir=None,
         w = '' if workdir in (os.curdir, None) else "cd %s && " % workdir
 
         cmd = "ssh %s %s '%s%s'" % (top, h, w, cmd)
-        logging.debug("Remote host. Rewrote cmd to " + cmd)
+        logging.debug("Remote host. Rewrote cmd to: " + cmd)
 
         workdir = os.curdir
 
@@ -247,7 +247,7 @@ def run_async(cmd, user=None, host="localhost", workdir=os.curdir,
     _validate_timeout(conn_timeout)
     (cmd, workdir) = adjust_cmd(cmd, user, host, workdir, conn_timeout)
 
-    logging.debug("Run: cmd=%s, cwd=%s" % (cmd, workdir))
+    logging.debug("Run: cmd=%s, cwd=%s" % (cmd[:100], workdir))
     proc = _spawn(cmd, workdir, rc_expected, logfile, **kwargs)
     proc.start()
 
