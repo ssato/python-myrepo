@@ -111,7 +111,7 @@ def _init_by_preset_defaults():
                baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
                genconf=True, deploy=True,
                fullname=E.get_fullname(), email=E.get_email(),
-               keyid=None, repo_params=[], sign=False, selfref=False,
+               keyid=False, repo_params=[], sign=False, selfref=False,
                build=True)
 
     # Overwrite some parameters:
@@ -252,14 +252,7 @@ def opt_parser(usage=_USAGE, conf=None):
     iog.add_option("", "--fullname", help="Your full name [%default]")
     iog.add_option("", "--email",
                    help="Your email address or its format string [%default]")
-    #cog.add_option("", "--keyid",
-    #               help="The GPG keyid of which key is used to sign RPMs "
-    #                    "deployed, or one of keywords: auto, no. "
-    #                    "If --gpgkey=no, RPMs deployed for this "
-    #                    "repo will not be signed (gpgcheck=0), and if "
-    #                    "--gpgkey=auto, %prog will try to generate a GPG key "
-    #                    "automatically to sign RPMs before deployment. "
-    #                    "[%default]")
+    iog.add_option("", "--keyid", help="Specify the GPG keyid to sign RPMs")
     iog.add_option("", "--repo-param", action="append", dest="repo_params",
                    help="Other .repo file parameter definitions (key=value), "
                         "ex. '--repo-param metadata_expire=7d "
