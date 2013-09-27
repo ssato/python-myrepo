@@ -105,6 +105,20 @@ class Test_10_run(unittest.TestCase):
         self.assertFalse(TT.stop_async_run(proc, 2))
         self.assertTrue(os.path.exists(self.logfile))
 
+    def test_04_run_async__simplest_case_w_callable_logfile(self):
+        def logfile():
+            return os.path.join(self.workdir, "dynamic_logfile.log")
+
+        kwargs = self.kwargs
+        logfile_path = logfile()
+        kwargs["logfile"] = logfile  # It's callable object.
+
+        proc = TT.run_async("sleep 5 && true", **kwargs)
+
+        self.assertTrue(isinstance(proc, TT.multiprocessing.Process))
+        self.assertFalse(TT.stop_async_run(proc, 2))
+        self.assertTrue(os.path.exists(logfile_path))
+
     def test_10_run__simplest_case(self):
         self.assertTrue(TT.run("true", **self.kwargs))
         self.assertFalse(TT.run("false", **self.kwargs))

@@ -79,7 +79,8 @@ def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
     :param cmd: Command string
     :param workdir: Working dir
     :param rc_expected: Expected return code of the command run
-    :param logfile: Dump log file if True or log file path is specified
+    :param logfile: Dump log file if True or log file path is specified or
+        logfile is callable which generate log filename.
     :param kwargs: Extra keyword arguments for subprocess.Popen
     """
     assert os.path.exists(workdir), "Working dir %s does not exist!" % workdir
@@ -99,6 +100,8 @@ def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
         if logfile:
             if isinstance(logfile, bool):
                 logfile = os.path.join(workdir, "%d.log" % proc.pid)
+            elif callable(logfile):
+                logfile = logfile()
 
             if not os.path.exists(logfile):
                 with open(logfile, 'w') as f:
@@ -432,6 +435,8 @@ def prun(cs, kwargs1={}, kwargs2={}, safer=True):
     :param kwargs2: Keyword arguments passed to stop_async_run
     :param safer: Do not use pstop_async_run if True (it would be slower but
         safer I guess).
+    :param logdir: Logging dir. Each process will dump log files with
+        dynamically generated filenames.
 
     :return: List of result code of run commands
 
