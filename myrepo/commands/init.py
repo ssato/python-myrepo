@@ -74,13 +74,13 @@ def run(ctx):
         for c in cs:
             print c
 
+        if ctx.get("genconf", False):
+            return MCG.run(ctx)
+
         return True
 
     if all(MS.prun(cs, dict(logfile=False, ))):
-        if ctx.get("genconf", False):
-            return MCG.run(ctx)
-        else:
-            return True
+        return MCG.run(ctx) if ctx.get("genconf", False) else True
     else:
         RuntimeError("Could not initialize the yum repos")
 
