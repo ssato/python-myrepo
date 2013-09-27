@@ -2,8 +2,8 @@
 name=Custom yum repository on {{ server_altname }} by {{ server_user }}
 baseurl={{ baseurl }}/{{ name }}/$releasever/$basearch/
 enabled=1
-{% if keyid is defined and keyid != none %}gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-{{ reponame }}-$releasever-$basearch{% else %}gpgcheck=0{% endif %}
+{% if keyid is defined and keyid != false %}gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-{{ reponame }}-$releasever{% else %}gpgcheck=0{% endif %}
 {% for param in repo_params %}{{ param }}
 {% endfor %}
 
