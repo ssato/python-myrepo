@@ -105,11 +105,12 @@ def _init_by_preset_defaults():
 
     cfg = dict(dists=dists_s, dists_full=dists_full, dist_choices=dists_full,
                tpaths=[], workdir=None,
-               quiet=False, verbose=False, debug=False,
+               dryrun=False, quiet=False, verbose=False, debug=False,
                config=None, profile=None,
                hostname=h, altname=h, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
-               genconf=True, fullname=E.get_fullname(), email=E.get_email(),
+               genconf=True, deploy=True,
+               fullname=E.get_fullname(), email=E.get_email(),
                keyid=None, repo_params=[], sign=False, selfref=False,
                build=True)
 
@@ -197,6 +198,7 @@ def opt_parser(usage=_USAGE, conf=None):
     cog.add_option("-w", "--workdir",
                    help="Working directory to save results and log files. "
                         "Dynamically generated dir will be used by default.")
+    cog.add_option("", "--dryrun", action="store_true", help="Dryrun mode")
     cog.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
     cog.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
     cog.add_option("-D", "--debug", action="store_true", help="Debug mode")
@@ -242,6 +244,11 @@ def opt_parser(usage=_USAGE, conf=None):
                         "initialization of the yum repos. NOTE: If you "
                         "specified this option, you have to generate it w/ "
                         "'genconf' sub command of %prog later")
+    iog.add_option("", "--no-deploy", action="store_false", dest="deploy",
+                   help="Deploy generated yum repo metadata RPMs after "
+                        "initialization of the yum repos. This option "
+                        "with the above --no-genconf option and must not be "
+                        "specified both options at once!")
     iog.add_option("", "--fullname", help="Your full name [%default]")
     iog.add_option("", "--email",
                    help="Your email address or its format string [%default]")
