@@ -169,8 +169,7 @@ class Test_10_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        #C.cleanup_workdir(self.workdir)
-        pass
+        C.cleanup_workdir(self.workdir)
 
     def test_070_gen_gpgkey(self):
         return
