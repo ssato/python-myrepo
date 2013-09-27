@@ -25,7 +25,6 @@ import myrepo.commands.deploy as MCD
 import myrepo.repo as MR
 import myrepo.shell as MS
 import myrepo.utils as MU
-import rpmkit.rpmutils as RU
 
 import datetime
 import getpass
@@ -159,9 +158,10 @@ def gen_repo_files_g(repo, ctx, workdir, tpaths):
            gen_rpmspec_content(repo, ctx, tpaths))
 
 
-_CMD_TEMPLATE_0 = """cat << "%s" > %s
+_CMD_TEMPLATE_0 = """(cat << "%s" > %s
 %s
-%s"""
+%s
+)"""
 
 
 def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
@@ -174,10 +174,10 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     >>> c = "abc"
     >>> eof = const = lambda: "EOF_123"
     >>> print mk_write_file_cmd("/a/b/c/f.txt", c, eof)
-    cat << "EOF_123" > /a/b/c/f.txt
+    (cat << "EOF_123" > /a/b/c/f.txt
     abc
     EOF_123
-    >>>
+    )
     """
     eof = gen_eof() if eof is None or not callable(eof) else eof()
     return cfmt % (eof, path, content, eof)
@@ -239,12 +239,26 @@ def find_keyid(signer_name, comment):
         return None
 
 
-def mk_export_gpgkey_files_cmds(keyid, workdir, repos, homedir_opt=''):
-    keyfiles = [os.path.join(workdir, "RPM-GPG-KEY-%s" % n) for
-                n in MU.uniq(repo.reponame for repo in repos)]
+def mk_export_gpgkey_cmd(keyid, workdir, repo, homedir_opt=''):
+    """
+    Export GPG key to sign RPMs.
 
-    return ["gpg %s -a --export %s > %s" % (homedir_opt, keyid, f) for
-            f in keyfiles]
+    >>> class Repo(object):
+    ...     def __init__(self, reponame, version):
+    ...          self.reponame = reponame
+    ...          self.version = version
+    >>> repo = Repo("fedora-custom", "19")
+    >>> mk_export_gpgkey_cmd("5E50846F", "/tmp/abc",  repo)
+    'gpg  -a --export 5E50846F > /tmp/abc/RPM-GPG-KEY-fedora-custom-19'
+    """
+    f = os.path.join(workdir, "RPM-GPG-KEY-%s-%s" % (repo.reponame,
+                                                     repo.version))
+    return "gpg %s -a --export %s > %s" % (homedir_opt, keyid, f)
+
+
+def mk_export_gpgkey_files_cmds(keyid, workdir, repos, homedir_opt=''):
+    return [mk_export_gpgkey_cmd(keyid, workdir, repo, homedir_opt) for repo
+            in repos]
 
 
 _GPGKEY_CONF = """\
@@ -378,13 +392,18 @@ def prepare_0(repo, ctx, deploy=False, eof=None):
     files = list(gen_repo_files_g(repo, ctx, ctx["workdir"], ctx["tpaths"]))
     rpmspec = files[-1][0]  # FIXME: Ugly hack! (see ``gen_repo_files_g``)
 
-    cs = ["mkdir -p " + ctx["workdir"]] + \
-         [mk_write_file_cmd(p, c, eof) for p, c in files] + \
-         [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
+    cs = ["mkdir -p " + ctx["workdir"]]
+
+    keyid = ctx.get("keyid", False)
+    if keyid:
+        cs.append(mk_export_gpgkey_cmd(keyid, ctx["workdir"], repo))
+
+    cs += [mk_write_file_cmd(p, c, eof) for p, c in files] + \
+          [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands
     # to generate files; .repo file, the rpm spec and mock.cfg files:
-    c = "\n".join(cs)
+    c = MS.join(*cs)
 
     if not deploy:
         return [c]

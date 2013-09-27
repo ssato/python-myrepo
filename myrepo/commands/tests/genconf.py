@@ -27,6 +27,8 @@ import glob
 import itertools
 import logging
 import os.path
+import random
+import subprocess
 import unittest
 
 
@@ -57,10 +59,19 @@ def mk_ctx(repos=[], nrepos=1, remote=True, topdir="/tmp"):
             repos = mk_local_repos(topdir)[:nrepos]
 
     return dict(repos=repos, fullname="John Doe", email="jdoe@example.com",
-                mockcfg="fedora-19-x86_64.cfg", keyid=None,
+                mockcfg="fedora-19-x86_64.cfg", keyid=False,
                 label="fedora-yumrepos-19-x86_64",
                 repo_file_content="REPO_FILE_CONTENT",
                 tpaths=C.template_paths(), workdir="/tmp/myrepo-t-000")
+
+
+def _find_gpg_keyids():
+    output = subprocess.check_output("gpg --list-keys | grep -E '^pub'",
+                                     shell=True)
+    if output:
+        return [l.split()[1].split('/') for l in output.splitlines()]
+    else:
+        return []
 
 
 class Test_00_pure_functions(unittest.TestCase):
@@ -158,13 +169,33 @@ class Test_00_pure_functions(unittest.TestCase):
               [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
 
-        expected = '\n'.join(rcs)
+        expected = " && ".join(rcs)
         s = TT.prepare_0(repo, ctx, eof=eof2)[0]
 
         self.assertEquals(s, expected, C.diff(expected, s))
 
 
 class Test_10_effectful_functions(unittest.TestCase):
+
+    def test_42_gen_rpmspec_content__w_keyid(self):
+        repo = mk_remote_repo()
+        ctx = mk_ctx([repo])
+
+        keyids = _find_gpg_keyids()
+        if keyids:
+            ctx["keyid"] = keyid = random.choice(keyids)
+        else:
+            sys.stderr.write("No GPG keyid was found. Skip this test...\n")
+            return
+
+        ref = C.readfile("result.yum-repodata.spec.1", _CURDIR).strip()
+        ref = ref.replace("DATESTAMP", TT._datestamp())
+
+        s = TT.gen_rpmspec_content(repo, ctx, C.template_paths()).strip()
+        self.assertEquals(s, ref, C.diff(s, ref))
+
+
+class Test_20_effectful_functions(unittest.TestCase):
 
     def setUp(self):
         self.workdir = C.setup_workdir()
