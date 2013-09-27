@@ -28,6 +28,8 @@ import myrepo.repo as R
 import myrepo.srpm as SRPM
 
 import logging
+import os.path
+import os
 import sys
 
 
@@ -167,6 +169,14 @@ def modmain(argv):
             sys.stdout.write("Sorry, myrepo does not support build and/or "
                              "deploy multiple SRPMs yet.")
             return 1
+
+        if not os.path.exists(srpms[0]):
+            logging.error("Could not find given srpm: " + srpms[0])
+            return False
+
+        if not os.access(srpms[0], os.R_OK):
+            logging.error("Could not read given srpm: " + srpms[0])
+            return False
 
         srpm = SRPM.Srpm(srpms[0])
         srpm.resolve()
