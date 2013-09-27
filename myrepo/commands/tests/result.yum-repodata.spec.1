@@ -1,5 +1,5 @@
 %define distname fedora-yumrepos-19
-
+%define gpgkey RPM-GPG-KEY-fedora-yumrepos-19
 
 Name:           fedora-yumrepos-release
 Version:        19
@@ -15,7 +15,7 @@ Requires:       yum
 Source0:        fedora-yumrepos.repo
 Source1:        %{distname}-x86_64.cfg
 Source2:        %{distname}-i386.cfg
-
+Source100:      %{gpgkey}
 
 %description
 Yum repo and related config files of fedora-yumrepos.
@@ -40,7 +40,7 @@ This package contains mock.cfg file.
 cp %{SOURCE0} ./
 cp %{SOURCE1} ./
 cp %{SOURCE2} ./
-
+cp %{SOURCE100} ./
 
 %build
 
@@ -52,7 +52,8 @@ mkdir -p $RPM_BUILD_ROOT/etc/yum.repos.d
 mkdir -p $RPM_BUILD_ROOT/etc/mock
 install -m 644 fedora-yumrepos.repo $RPM_BUILD_ROOT/etc/yum.repos.d
 for f in %{distname}-*.cfg; do install -m 644 $f $RPM_BUILD_ROOT/etc/mock; done
-
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg
+for f in RPM-GPG-KEY-*; do install -m 644 $f $RPM_BUILD_ROOT%{_sysconfdir}/pki/rpm-gpg; done
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -61,7 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %config %{_sysconfdir}/yum.repos.d/*.repo
-
+%{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-*
 
 %files -n       %{distname}-mockbuild-data
 %defattr(-,root,root,-)

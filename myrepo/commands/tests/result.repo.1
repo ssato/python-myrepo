@@ -3,7 +3,7 @@ name=Custom yum repository on yumrepos.example.com by jdoe
 baseurl=http://yumrepos.example.com/~jdoe/yum/fedora/$releasever/$basearch/
 enabled=1
 gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-yumrepos
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-yumrepos-$releasever
 failovermethod=priority
 metadata_expire=7d
 
