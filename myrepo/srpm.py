@@ -20,18 +20,22 @@ import rpmkit.rpmutils as RU
 
 class Srpm(object):
 
-    def __init__(self, path):
+    def __init__(self, path, name=None, version=None, release=None,
+                 noarch=None, is_srpm=None, resolved=False):
         self.path = path
 
-        self.name = None
-        self.version = None
-        self.release = None
-        self.noarch = None
+        self.name = name
+        self.version = version
+        self.release = release
+        self.noarch = noarch
 
-        self.is_srpm = None
-        self.resolved = False
+        self.is_srpm = is_srpm
+        self.resolved = resolved
 
     def resolve(self):
+        if self.resolved:
+            return  # Nothing to do.
+
         try:
             h = RU.rpm_header_from_rpmfile(self.path)
 

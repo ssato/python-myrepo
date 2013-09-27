@@ -58,6 +58,13 @@ class Test_00_Srpm(unittest.TestCase):
 
         self.assertTrue(isinstance(srpm, TT.Srpm))
 
+    def test_02___init___w_resolved(self):
+        path = "/path/to/dummy/src.rpm"
+        srpm = TT.Srpm(path, "foo", "1.0", "1", True, True, True)
+
+        self.assertTrue(isinstance(srpm, TT.Srpm))
+        self.assertTrue(srpm.resolved)
+
     def test_10_resolve__srpm_ok(self):
         path = random.choice(list_found_rpms())
         srpm = TT.Srpm(path)
