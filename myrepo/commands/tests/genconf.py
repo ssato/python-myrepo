@@ -201,7 +201,8 @@ class Test_20_effectful_functions(unittest.TestCase):
         self.workdir = C.setup_workdir()
 
     def tearDown(self):
-        C.cleanup_workdir(self.workdir)
+        #C.cleanup_workdir(self.workdir)
+        pass
 
     def test_070_gen_gpgkey(self):
         return
@@ -246,6 +247,27 @@ class Test_20_effectful_functions(unittest.TestCase):
         #for srpm in reposrpms:
         #    self.assertTrue(MS.run("mock -r fedora-19-x86_64 " + srpm))
 
+    def test_120_run__w_gpgkey(self):
+        repos = mk_local_repos(os.path.join(self.workdir, "yum"))
+        ctx = mk_ctx(repos[:1])
+        ctx["workdir"] = self.workdir
+
+        keyids = _find_gpg_keyids()
+        if keyids:
+            ctx["keyid"] = keyid = random.choice(keyids)
+        else:
+            sys.stderr.write("No GPG keyid was found. Skip this test...\n")
+            return
+
+        self.assertTrue(TT.run(ctx))
+
+        # FIXME: What should be done with the result to check its success ?
+        reposrpms = glob.glob(os.path.join(self.workdir, "*.src.rpm"))
+
+        self.assertTrue(reposrpms)
+        self.assertEquals(len(reposrpms), 1)  # A srpm should exist.
+        #self.assertTrue(MS.run("mock -r fedora-19-x86_64 " + reposrpms[0]))
+
     def test_200_run__deploy(self):
         topdir = os.path.join(self.workdir, "yum")
         repos = mk_local_repos(topdir)
@@ -277,5 +299,42 @@ class Test_20_effectful_functions(unittest.TestCase):
             rpms = _list_rpms(d, "*.rpm")
             self.assertTrue(rpms)
 
+    def test_202_run__deploy_w_gpgkey(self):
+        topdir = os.path.join(self.workdir, "yum")
+        repos = mk_local_repos(topdir)
+        ctx = mk_ctx(repos[:1])
+        ctx["workdir"] = self.workdir
+        ctx["deploy"] = True
+
+        repo = repos[0]
+
+        # ensure dirs to deploy rpms exists:
+        rpmdirs = [os.path.join(repo.destdir, a) for a
+                   in repo.archs + ["sources"]]
+
+        for d in rpmdirs:
+            os.makedirs(d)
+
+        keyids = _find_gpg_keyids()
+        if keyids:
+            ctx["keyid"] = keyid = random.choice(keyids)
+        else:
+            sys.stderr.write("No GPG keyid was found. Skip this test...\n")
+            return
+
+        self.assertTrue(TT.run(ctx))
+
+        def _list_rpms(d, pat="*.src.rpm"):
+            return glob.glob(os.path.join(d, pat))
+
+        srpms = _list_rpms(self.workdir)
+        self.assertTrue(srpms)
+        self.assertEquals(len(srpms), 1)  # A srpm should exist.
+        srpm = Srpm(srpms[0])
+        srpm.resolve()
+
+        for d in rpmdirs:
+            rpms = _list_rpms(d, "*.rpm")
+            self.assertTrue(rpms)
 
 # vim:sw=4:ts=4:et:
