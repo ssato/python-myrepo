@@ -69,7 +69,7 @@ def _find_gpg_keyids():
     output = subprocess.check_output("gpg --list-keys | grep -E '^pub'",
                                      shell=True)
     if output:
-        return [l.split()[1].split('/') for l in output.splitlines()]
+        return [l.split()[1].split('/')[1] for l in output.splitlines()]
     else:
         return []
 
