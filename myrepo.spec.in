@@ -60,7 +60,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Wed Sep 25 2013 Satoru SATOH <ssato@redhat.com> - 0.2.12.999-1
+* Sun Sep 29 2013 Satoru SATOH <ssato@redhat.com> - 0.2.99-1
 - A lot of refactoring, fixes and enhancements
 - Migrated to multiprocessing based job handling code
 - Cleanup old tenjin-based templates not used any more
