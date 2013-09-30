@@ -47,11 +47,13 @@ How to use
 
    sudo usermod -a -G mock <mock_user>
 
-4. Initialize your custom repositories w/ myrepo::
+4. Confirm you can ssh to your server w/o password or passphrase.
+
+5. Initialize your custom repositories w/ myrepo::
 
    myrepo i [options ...]
 
-5. Now ready to go. Build and deploy SRPMs you want such like::
+6. Now ready to go. Build and deploy SRPMs you want such like::
 
    myrepo -v d /path/to/foo-x.y.z-1.src.rpm
 
