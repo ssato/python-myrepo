@@ -1,0 +1,11 @@
+cat /etc/mock/fedora-19-x86_64.cfg > /tmp/myrepo-t-000/fedora-yumrepos-19-x86_64.cfg && \
+cat << "EOF" >> /tmp/myrepo-t-000/fedora-yumrepos-19-x86_64.cfg
+
+# End copy from /etc/mock/fedora-19-x86_64.cfg
+config_opts["root"] = "fedora-yumrepos-19-x86_64"  # e.g. fedora-custom-19-x86_64
+config_opts["yum.conf"] += """
+
+REPO_FILE_CONTENT
+"""
+EOF
+)
