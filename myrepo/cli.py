@@ -33,14 +33,6 @@ import os
 import sys
 
 
-def _listify_arch(dname, dver, darch, bdist):
-    """
-    >>> _listify_arch('fedora', '16', 'x86_64', 'fedora-16')
-    ['fedora', '16', ['x86_64'], 'fedora-16']
-    """
-    return [dname, dver, [darch], bdist]
-
-
 def _degenerate_dists_g(dists):
     """
     Degenerate dists by bdist. (It is needed to avoid building noarch srpms
@@ -102,25 +94,14 @@ def mk_repos(ctx, degenerate=True):
 
     see also: myrepo.parser.parse_dists_option
     """
-    dists_s = ctx["dists"]
-    logging.debug("ctx['dists']=" + dists_s)
-
-    # dists :: [(dist_name, dist_ver, dist_arch, bdist)]
-    dists = P.parse_dists_option(dists_s)
-    logging.debug("dists: " + str(dists))
-
-    if degenerate:
-        dists = _degenerate_dists_g(dists)
-    else:
-        dists = (_listify_arch(*d) for d in dists)
+    dists = _degenerate_dists_g(P.parse_dists_option(ctx["dists"]))
+    logging.debug("(degenerated) dists: " + str(dists))
 
     for dist in dists:
         (name, ver, archs, _bdist) = dist
+        logging.debug("repo base dist: name=%s, ver=%s, archs=%s" % dist[:3])
 
-        logging.info("Create repo: name=%s, ver=%s, archs=%s" % dist[:3])
-
-        s = mk_repo_server(ctx)
-        yield R.Repo(name, ver, archs, s, ctx["reponame"],
+        yield R.Repo(name, ver, archs, mk_repo_server(ctx), ctx["reponame"],
                      selfref=ctx["selfref"])
 
 
@@ -197,6 +178,5 @@ def main(argv=sys.argv):
 
 if __name__ == '__main__':
     main(sys.argv)
-
 
 # vim:sw=4:ts=4:et:
