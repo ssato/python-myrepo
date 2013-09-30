@@ -144,16 +144,6 @@ def gen_repo_files_g(repo, ctx, workdir, tpaths):
     ctx0.update(repo.as_dict())
     rfc = gen_repo_file_content(ctx0, tpaths)
     yield (os.path.join(workdir, "%s.repo" % repo.reponame), rfc)
-
-    for d in repo.dists:
-        label = "%s-%s-%s" % (repo.reponame, repo.version, d.arch)
-        rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
-                                                                d.arch)
-        ctx2 = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
-
-        yield (os.path.join(workdir, "%s.cfg" % label),
-               gen_mock_cfg_content(ctx2, tpaths))
-
     yield (os.path.join(workdir, "%s-%s.spec" % (repo.reponame, repo.version)),
            gen_rpmspec_content(repo, ctx, tpaths))
 
@@ -181,6 +171,45 @@ def mk_write_file_cmd(path, content, eof=None, cfmt=_CMD_TEMPLATE_0):
     """
     eof = gen_eof() if eof is None or not callable(eof) else eof()
     return cfmt % (eof, path, content, eof)
+
+
+_CMD_TEMPLATE_0_1 = """(cat /etc/mock/%(base_mockcfg)s > %(mockcfg)s && \
+cat << "%(eof)s" >> %(mockcfg)s
+%(content)s
+%(eof)s
+)"""
+
+
+def gen_mockcfg_files_cmd_g(repo, ctx, workdir, tpaths, eof=None):
+    """
+    Generate .repo, mock.cfg files and the RPM SPEC file for given ``repo`` and
+    return list of pairs of the path and the content of each files.
+
+    :param repo: Repo object
+    :param ctx: Context object to instantiate the template
+    :param workdir: Working dir to build RPMs
+    :param tpaths: Template path list :: [str]
+
+    :return: List of pairs of path to file to generate and its content
+    """
+    ctx0 = ctx
+    ctx0.update(repo.as_dict())
+    rfc = gen_repo_file_content(ctx0, tpaths)
+
+    for d in repo.dists:
+        label = "%s-%s-%s" % (repo.reponame, repo.version, d.arch)
+        rfc2 = rfc.replace("$releasever", repo.version).replace("$basearch",
+                                                                d.arch)
+        ctx2 = dict(mockcfg=d.mockcfg, label=label, repo_file_content=rfc2)
+        content = gen_mock_cfg_content(ctx2, tpaths)
+
+        eof = gen_eof() if eof is None or not callable(eof) else eof()
+
+        path = os.path.join(workdir, "%s.cfg" % label)
+        ctx3 = dict(base_mockcfg=d.mockcfg, mockcfg=path, eof=eof,
+                    content=content)
+
+        yield _CMD_TEMPLATE_0_1 % ctx3
 
 
 # NOTE: It will override some macros to fix the dir to build srpm, name of
@@ -392,6 +421,9 @@ def prepare_0(repo, ctx, deploy=False, eof=None):
     files = list(gen_repo_files_g(repo, ctx, ctx["workdir"], ctx["tpaths"]))
     rpmspec = files[-1][0]  # FIXME: Ugly hack! (see ``gen_repo_files_g``)
 
+    mockcfg_gen_cmds = list(gen_mockcfg_files_cmd_g(repo, ctx, ctx["workdir"],
+                                                    ctx["tpaths"], eof))
+
     cs = ["mkdir -p " + ctx["workdir"]]
 
     keyid = ctx.get("keyid", False)
@@ -399,6 +431,7 @@ def prepare_0(repo, ctx, deploy=False, eof=None):
         cs.append(mk_export_gpgkey_cmd(keyid, ctx["workdir"], repo))
 
     cs += [mk_write_file_cmd(p, c, eof) for p, c in files] + \
+          mockcfg_gen_cmds + \
           [mk_build_srpm_cmd(rpmspec, ctx.get("verbose", False))]
 
     # NOTE: cmd to build srpm must wait for the completion of previous commands
