@@ -161,6 +161,11 @@ def modmain(argv):
 
         srpm = SRPM.Srpm(srpms[0])
         srpm.resolve()
+
+        if not srpm.is_srpm:
+            logging.error("It does not look srpm: " + srpms[0])
+            return False
+
         ctx["srpms"] = [srpm]
         ctx["srpm"] = srpm
 
