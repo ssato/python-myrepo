@@ -94,10 +94,7 @@ def mk_repos(ctx, degenerate=True):
 
     see also: myrepo.parser.parse_dists_option
     """
-    dists = _degenerate_dists_g(P.parse_dists_option(ctx["dists"]))
-    logging.debug("(degenerated) dists: " + str(dists))
-
-    for dist in dists:
+    for dist in _degenerate_dists_g(P.parse_dists_option(ctx["dists"])):
         (name, ver, archs, _bdist) = dist
         logging.debug("repo base dist: name=%s, ver=%s, archs=%s" % dist[:3])
 
