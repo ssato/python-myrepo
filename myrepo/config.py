@@ -189,8 +189,8 @@ def opt_parser(usage=_USAGE, conf=None):
                         "Options are some of " + dist_choices + " [%default] ")
     cog.add_option("", "--reponame",
                    help="Repository name or format string to generate name, "
-                        "e.g. %(name)s-%(server_shortaltname)-%(server_user)s, "
-                        "%(name)s-custom. [%default]")
+                        "e.g. %(name)s-%(server_shortaltname)-%(server_user)s,"
+                        " %(name)s-custom. [%default]")
     cog.add_option("-T", "--tpaths", action="append", default=[],
                    help="Specify additional template path one "
                         "by one. These paths will have higher "
