@@ -1,9 +1,15 @@
-python-myrepo
+About
 ==============
 
-A tool to manage custom yum repositories: Initialize your custom yum
-repositories, update meta data of yum repositories, build and deploy source
-rpms to yum repositories, etc
+Myrepo is a tool to help custom yum repositories management tasks such as:
+
+* Initialize your custom yum repositories and generate config files (.repo,
+  mock.cfg): myrepo init ...
+
+* Build and deploy srpm and rpm files to yum repositories:
+  myrepo deploy ... SRPM_PATH
+
+It may be used as poor man's koji, I guess.
 
 How to install
 ================
@@ -41,7 +47,6 @@ How to use
 
    sudo usermod -a -G mock <mock_user>
 
-
 4. Initialize your custom repositories w/ myrepo::
 
    myrepo i [options ...]
@@ -49,6 +54,21 @@ How to use
 5. Now ready to go. Build and deploy SRPMs you want such like::
 
    myrepo -v d /path/to/foo-x.y.z-1.src.rpm
+
+
+Hacking
+=========
+
+* Every module must passes PEP8 tests.
+* Every time modifications made to myrepo modules (myrepo/\*\*/\*.py),
+  corresponding tests should be run for them, e.g.::
+
+    ./aux/runtest.sh myrepo/config.py
+    ./aux/runtest.sh myrepo/tests/config.py
+
+  and run application level tests::
+
+    bash -x ./tests/driver.sh 2>&1 | tee /tmp/test.log
 
 Meta
 ======
