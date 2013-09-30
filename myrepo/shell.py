@@ -21,6 +21,7 @@ import os
 import os.path
 import signal
 import subprocess
+import sys
 
 
 def is_local(fqdn_or_hostname):
@@ -109,6 +110,9 @@ def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
             with open(logfile, flag) as f:
                 for line in iter(proc.stdout.readline, b''):
                     f.write(line)
+        else:
+            for line in iter(proc.stdout.readline, b''):
+                sys.stdout.write(line)
 
         if proc.wait() == rc_expected:
             return
