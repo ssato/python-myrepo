@@ -90,6 +90,7 @@ def run(ctx):
 
         return True
 
+    logging.info("Run myrepo.commands.build.run...")
     return all(MS.prun(cs, dict(logfile=False, )))
 
 

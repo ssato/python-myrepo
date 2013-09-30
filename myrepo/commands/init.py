@@ -79,6 +79,7 @@ def run(ctx):
 
         return True
 
+    logging.info("Run myrepo.commands.init.run...")
     if all(MS.prun(cs, dict(logfile=False, ))):
         return MCG.run(ctx) if ctx.get("genconf", False) else True
     else:

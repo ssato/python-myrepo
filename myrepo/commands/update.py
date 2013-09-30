@@ -18,6 +18,7 @@
 import myrepo.commands.utils as MCU
 import myrepo.shell as MS
 import myrepo.utils as MU
+import logging
 import os.path
 
 
@@ -71,6 +72,7 @@ def run(ctx, ctmpl=_CMD_TEMPLATE):
 
         return True
 
+    logging.info("Run myrepo.commands.update.run...")
     return all(MS.prun(cs, dict(logfile=False, )))
 
 

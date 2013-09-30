@@ -23,6 +23,7 @@ import myrepo.commands.update as MCU
 import myrepo.shell as MS
 import myrepo.utils as MU
 import itertools
+import logging
 import os.path
 
 
@@ -126,6 +127,7 @@ def run(ctx):
 
         return True
 
+    logging.info("Run myrepo.commands.deploy.run...")
     return all(MS.prun(cs, dict(logfile=False, )))
 
 

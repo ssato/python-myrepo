@@ -484,6 +484,7 @@ def run(ctx):
 
         return True
 
+    logging.info("Run myrepo.commands.genconf.run...")
     _logfile = lambda: os.path.join(workdir, "%d.log" % os.getpid())
     rc = all(MS.prun(cs, dict(logfile=_logfile, )))
 
