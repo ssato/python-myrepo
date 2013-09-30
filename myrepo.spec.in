@@ -60,6 +60,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Sep 30 2013 Satoru SATOH <ssato@redhat.com> - 0.2.99.2-1
+- minor bug fixes since the previous release
+- fixes around mock.cfg generation code to make it work
+
 * Mon Sep 30 2013 Satoru SATOH <ssato@redhat.com> - 0.2.99.1-1
 - minor bug fixes since the previous release
 - fixes and tunes around logging and myrepo.shell
