@@ -35,6 +35,7 @@ import os.path
 import os
 import re
 import subprocess
+import sys
 import uuid
 
 
@@ -522,8 +523,8 @@ def run(ctx):
     rc = all(MS.prun(cs, dict(logfile=_logfile, )))
 
     if not ctx.get("deploy", False):
-        prefix = "Created and deployed" if rc else "Failed to create "
-        logging.info(prefix + "yum repo config SRPM in: %(workdir)s" % ctx)
+        prefix = "Created " if rc else "Failed to create "
+        sys.stdout.write(prefix + "yum repo config SRPM in: %(workdir)s\n" % ctx)
 
     return rc
 
