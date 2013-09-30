@@ -33,9 +33,11 @@ def _log_opt(level=None):
 
     >>> _log_opt(logging.INFO)
     ''
+    >>> _log_opt(logging.DEBUG)
+    ''
     >>> _log_opt(logging.WARN)
     ' > /dev/null 2> /dev/null'
-    >>> _log_opt(logging.DEBUG)
+    >>> _log_opt(0)  # logging.NOTSET < logging.DEBUG < logging.INFO < ...
     ' -v'
     """
     if level is None:
@@ -44,7 +46,7 @@ def _log_opt(level=None):
     if level >= logging.WARN:
         return " > /dev/null 2> /dev/null"
     else:
-        return " -v" if level < logging.INFO else ''
+        return " -v" if level <= 0 else ''
 
 
 def prepare_0(repo, srpm, level=None):
