@@ -103,10 +103,12 @@ def _run(cmd, workdir, rc_expected=0, logfile=False, **kwargs):
             elif callable(logfile):
                 logfile = logfile()
 
-            if not os.path.exists(logfile):
-                with open(logfile, 'w') as f:
-                    for line in iter(proc.stdout.readline, b''):
-                        f.write(line)
+            logging.debug("cmd=%s, logfile=%s" % (cmd[:100], logfile))
+
+            flag = 'a' if os.path.exists(logfile) else 'w'
+            with open(logfile, flag) as f:
+                for line in iter(proc.stdout.readline, b''):
+                    f.write(line)
 
         if proc.wait() == rc_expected:
             return
