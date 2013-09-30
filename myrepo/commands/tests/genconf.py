@@ -28,6 +28,7 @@ import itertools
 import logging
 import os.path
 import random
+import re
 import subprocess
 import unittest
 
@@ -76,17 +77,17 @@ def _find_gpg_keyids():
 
 class Test_00_pure_functions(unittest.TestCase):
 
-    def test_00__datestamp_w_arg(self):
+    def test_000__datestamp_w_arg(self):
         d = datetime.datetime(2013, 7, 31)
         self.assertEquals(TT._datestamp(d), "Wed Jul 31 2013")
 
-    def test_10__check_vars_for_template(self):
+    def test_010__check_vars_for_template(self):
         TT._check_vars_for_template({'a', 1}, ['a'])
 
         with self.assertRaises(AssertionError):
             TT._check_vars_for_template({}, ['a'])
 
-    def test_20_gen_repo_file_content(self):
+    def test_020_gen_repo_file_content(self):
         ctx = mk_ctx()
         ctx.update(ctx["repos"][0].as_dict())
 
@@ -95,7 +96,7 @@ class Test_00_pure_functions(unittest.TestCase):
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_22_gen_repo_file_content__w_keyid_and_repo_params(self):
+    def test_022_gen_repo_file_content__w_keyid_and_repo_params(self):
         ctx = mk_ctx()
         ctx.update(ctx["repos"][0].as_dict())
 
@@ -108,14 +109,14 @@ class Test_00_pure_functions(unittest.TestCase):
 
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_30_gen_mock_cfg_content(self):
+    def test_030_gen_mock_cfg_content(self):
         ctx = mk_ctx()
         ref = C.readfile("result.mock.cfg.0", _CURDIR)
 
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_32_gen_mock_cfg_content(self):
+    def test_032_gen_mock_cfg_content(self):
         ctx = mk_ctx()
         ctx["label"] = "fedora-custom-19-x86_64"
         ref = C.readfile("result.mock.cfg.1", _CURDIR)
@@ -123,7 +124,7 @@ class Test_00_pure_functions(unittest.TestCase):
         s = TT.gen_mock_cfg_content(ctx, C.template_paths())
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_40_gen_rpmspec_content(self):
+    def test_040_gen_rpmspec_content(self):
         repo = mk_remote_repo()
         ctx = mk_ctx([repo])
 
@@ -133,25 +134,33 @@ class Test_00_pure_functions(unittest.TestCase):
         s = TT.gen_rpmspec_content(repo, ctx, C.template_paths()).strip()
         self.assertEquals(s, ref, C.diff(s, ref))
 
-    def test_50_gen_repo_files_g(self):
+    def test_050_gen_repo_files_g(self):
         repo = mk_remote_repo()
         ctx = mk_ctx([repo])
 
         workdir = ctx["workdir"]
         files = list(TT.gen_repo_files_g(repo, ctx, workdir,
                                          C.template_paths()))
-
         self.assertTrue(files)
         self.assertEquals(files[0][0],
                           os.path.join(workdir, "fedora-yumrepos.repo"))
-        self.assertEquals(files[1][0],
-                          os.path.join(workdir,
-                                       "fedora-yumrepos-19-x86_64.cfg"))
-        self.assertEquals(files[2][0],
-                          os.path.join(workdir,
-                                       "fedora-yumrepos-19-i386.cfg"))
-        self.assertEquals(files[3][0],
+        self.assertEquals(files[-1][0],
                           os.path.join(workdir, "fedora-yumrepos-19.spec"))
+
+    def test_060_gen_mockcfg_files_cmd_g(self):
+        """
+        FIXME: test code for myrepo.commands.genconf.gen_mockcfg_files_cmd_g
+        """
+        repo = mk_remote_repo()
+        ctx = mk_ctx([repo])
+
+        eof = lambda: "EOF"
+        workdir = ctx["workdir"]
+        cmds = list(TT.gen_mockcfg_files_cmd_g(repo, ctx, workdir,
+                                               C.template_paths(), eof))
+        self.assertTrue(cmds)
+        #self.assertEquals(cmds[0], ...)
+        #self.assertEquals(cmds[1], ...)
 
     def test_100_prepare(self):
         repo = mk_remote_repo()
@@ -159,18 +168,20 @@ class Test_00_pure_functions(unittest.TestCase):
 
         files = list(TT.gen_repo_files_g(repo, ctx, ctx["workdir"],
                                          C.template_paths()))
-        counter = itertools.count()
-        eof = lambda: "EOF_%d" % counter.next()
-
-        counter2 = itertools.count()
-        eof2 = lambda: "EOF_%d" % counter2.next()
+        gmcs = TT.gen_mockcfg_files_cmd_g(repo, ctx, ctx["workdir"],
+                                          C.template_paths())
 
         rcs = ["mkdir -p " + ctx["workdir"]] + \
-              [TT.mk_write_file_cmd(p, c, eof) for p, c in files] + \
+              [TT.mk_write_file_cmd(p, c) for p, c in files] + \
+              list(gmcs) + \
               [TT.mk_build_srpm_cmd(files[-1][0], False)]
 
         expected = " && ".join(rcs)
-        s = TT.prepare_0(repo, ctx, eof=eof2)[0]
+        s = TT.prepare_0(repo, ctx)[0]
+
+        # Normalize 'EOF_....' lines:
+        expected = re.sub(r"EOF_\S+", "EOF", expected)
+        s = re.sub(r"EOF_\S+", "EOF", s)
 
         self.assertEquals(s, expected, C.diff(expected, s))
 
