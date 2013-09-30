@@ -48,13 +48,13 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
 
         cs_expected = [_join(c0, ucs[0]), _join(c1, c2, *ucs[1:])]
@@ -74,13 +74,13 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
 
         cs_expected = [_join(bcmds[0], c0, c1, c2, *ucs)]
@@ -99,9 +99,9 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
         cs_expected = [_join(c0, ucs[0]), _join(c1, *ucs[1:])]
@@ -121,9 +121,9 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
 
         cs_expected = [_join(bcmds[0], c0, c1, *ucs)]
@@ -142,11 +142,11 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.x86_64.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.x86_64.rpm",
                   "/tmp/yum/fedora/19/x86_64")
-        c2 = dcmd("/var/lib/mock/fedora-19-i386/result/foo-1.0-*.i386.rpm",
+        c2 = dcmd("/var/lib/mock/fedora-19-i386/result/*.i386.rpm",
                   "/tmp/yum/fedora/19/i386")
 
         cs_expected = [_join(c0, ucs[0]), _join(c1, ucs[1]), _join(c2, ucs[2])]
@@ -166,11 +166,11 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repo)
 
         dcmd = repo.server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.x86_64.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.x86_64.rpm",
                   "/tmp/yum/fedora/19/x86_64")
-        c2 = dcmd("/var/lib/mock/fedora-19-i386/result/foo-1.0-*.i386.rpm",
+        c2 = dcmd("/var/lib/mock/fedora-19-i386/result/*.i386.rpm",
                   "/tmp/yum/fedora/19/i386")
 
         cs_expected = [_join(bcs[0], c1, ucs[1], c0, ucs[0]),
@@ -193,33 +193,33 @@ class Test_00_pure_functions(unittest.TestCase):
 
         ucs = MCU.prepare_0(repos[0])
         dcmd = repos[0].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/18/sources")
-        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/18/x86_64")
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
         cs_expected.append(_join(c0, ucs[0]))
         cs_expected.append(_join(c1, c2, *ucs[1:]))
 
         ucs = MCU.prepare_0(repos[1])
         dcmd = repos[1].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
         cs_expected.append(_join(c0, ucs[0]))
         cs_expected.append(_join(c1, c2, *ucs[1:]))
 
         ucs = MCU.prepare_0(repos[2])
         dcmd = repos[2].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/*.src.rpm",
                   "/tmp/yum/rhel/6/sources")
-        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/rhel/6/x86_64")
         cs_expected.append(_join(c0, ucs[0]))
         cs_expected.append(_join(c1, *ucs[1:]))
@@ -243,33 +243,33 @@ class Test_00_pure_functions(unittest.TestCase):
         ucs = MCU.prepare_0(repos[0])
         bcs = MCB.prepare_0(repos[0], srpm)  # ['mock -r fedora-18-x86_64 ...']
         dcmd = repos[0].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-18-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/18/sources")
-        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-18-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/18/x86_64")
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/18 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
         cs_expected.append(_join(bcs[0], c0, c1, c2, *ucs))
 
         ucs = MCU.prepare_0(repos[1])
         bcs = MCB.prepare_0(repos[1], srpm)  # ['mock -r fedora-19-x86_64 ...']
         dcmd = repos[1].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.src.rpm",
                   "/tmp/yum/fedora/19/sources")
-        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/fedora-19-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/fedora/19/x86_64")
         ctx = dict(other_archs_s="i386", primary_arch="x86_64",
-                   noarch_rpms="foo-1.0-*.noarch.rpm")
+                   noarch_rpms="*.noarch.rpm")
         c2 = "cd /tmp/yum/fedora/19 && " + TT._MK_SYMLINKS_TO_NOARCH_RPM % ctx
         cs_expected.append(_join(bcs[0], c0, c1, c2, *ucs))
 
         ucs = MCU.prepare_0(repos[2])
         bcs = MCB.prepare_0(repos[2], srpm)  # ['mock -r rhel-6-x86_64 ...']
         dcmd = repos[2].server.deploy_cmd
-        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.src.rpm",
+        c0 = dcmd("/var/lib/mock/rhel-6-x86_64/result/*.src.rpm",
                   "/tmp/yum/rhel/6/sources")
-        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/foo-1.0-*.noarch.rpm",
+        c1 = dcmd("/var/lib/mock/rhel-6-x86_64/result/*.noarch.rpm",
                   "/tmp/yum/rhel/6/x86_64")
         cs_expected.append(_join(bcs[0], c0, c1, *ucs))
 
