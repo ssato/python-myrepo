@@ -524,7 +524,7 @@ def run(ctx):
 
     if not ctx.get("deploy", False):
         prefix = "Created " if rc else "Failed to create "
-        sys.stdout.write(prefix + "yum repo config SRPM in: %(workdir)s\n" % ctx)
+        sys.stderr.write(prefix + "yum repo config SRPM in: %(workdir)s\n" % ctx)
 
     return rc
 
