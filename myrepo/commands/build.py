@@ -23,10 +23,13 @@ import logging
 import os.path
 
 
-def _log_opt(level=logging.getLogger().level):
+def _log_opt(level=None):
     """
     Compute logging option string append to the tail of the command string
     later, to tune command execution verbosity level.
+
+   :param level: Logging level
+   :return: Log option string for mock
 
     >>> _log_opt(logging.INFO)
     ''
@@ -34,16 +37,17 @@ def _log_opt(level=logging.getLogger().level):
     ' > /dev/null 2> /dev/null'
     >>> _log_opt(logging.DEBUG)
     ' -v'
-
-   :param level: Logging level
     """
+    if level is None:
+        level = logging.getLogger().level
+
     if level >= logging.WARN:
         return " > /dev/null 2> /dev/null"
     else:
         return " -v" if level < logging.INFO else ''
 
 
-def prepare_0(repo, srpm, level=logging.getLogger().level):
+def prepare_0(repo, srpm, level=None):
     """
     Make up list of command strings to deploy built RPMs.
 
@@ -61,7 +65,7 @@ def prepare_0(repo, srpm, level=logging.getLogger().level):
     return [f(b) for b in repo.list_build_labels(srpm)]
 
 
-def prepare(repos, srpm, level=logging.getLogger().level):
+def prepare(repos, srpm, level=None):
     """
     Make up list of command strings to update metadata of given repos.
     It's similar to above ``prepare_0`` but applicable to multiple repos.
@@ -82,7 +86,7 @@ def run(ctx):
     """
     MCU.assert_ctx_has_keys(ctx, ("repos", "srpm"))
 
-    cs = prepare(ctx["repos"], ctx["srpm"])
+    cs = prepare(ctx["repos"], ctx["srpm"], logging.getLogger().level)
 
     if ctx.get("dryrun", False):
         for c in cs:
