@@ -120,7 +120,8 @@ def modmain(argv):
     func = CM.find_cmd(args[0])  # @throw CM.CommandNotFoundError
 
     if options.config or options.profile:
-        params = CF.init(options.config, options.profile)
+        params = options.__dict__.copy()
+        params.update(CF.init(options.config, options.profile))
         p.set_defaults(**params)
 
         # re-parse to overwrite configurations with given options.
