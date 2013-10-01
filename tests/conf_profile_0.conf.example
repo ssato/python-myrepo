@@ -1,0 +1,14 @@
+[LOCAL]
+hostname: localhost
+reponame: %(name)s-%(server_user)s
+
+baseurl: http://%(altname)s/%(user)s/yum
+#topdir: ~/public_html/yum
+
+fullname: John_Doe
+email: jdoe@localhost.localdomain
+
+#
+# Enabled and customize the followings as needed:
+#
+dists: fedora-19-x86_64,fedora-19-i386
