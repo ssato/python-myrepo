@@ -75,6 +75,17 @@ class Test_10(unittest.TestCase):
         for k in ("hostname", "email", "reponame", "dists"):
             self.assertTrue(k in cfg, "k=" + k)
 
+    def test_12__init_by_config__w_config_files_in_dir(self):
+        confdir = os.path.join(self.workdir, "conf.d")
+        os.makedirs(confdir)
+        open(os.path.join(confdir, "00.conf"), 'w').write(_CONF_0)
+
+        cfg = TT._init_by_config(confdir)
+        self.assertTrue(isinstance(cfg, dict))
+
+        for k in ("hostname", "email", "reponame", "dists"):
+            self.assertTrue(k in cfg, "k=" + k)
+
     def test_20_init___w_config_file(self):
         open(self.conf, 'w').write(_CONF_0)
 

@@ -123,18 +123,22 @@ def _init_by_config(config=None, profile=None):
     """
     Initialize default values for options by config files loaded.
 
-    :param config: Config file's path :: str
+    :param config: Config file's path or dir name :: str
     :param profile: Custom profile as needed :: str
     """
     if config is None:
         # Is there case that $HOME is empty?
         home = os.environ.get("HOME", os.curdir)
+        confdir = os.environ.get("MYREPO_CONF_PATH", "/etc/myrepo.d")
 
         confs = ["/etc/myreporc"]
-        confs += sorted(glob.glob("/etc/myrepo.d/*.conf"))
+        confs += sorted(glob.glob(os.path.join(confdir, "*.conf")))
         confs += [os.environ.get("MYREPORC", os.path.join(home, ".myreporc"))]
     else:
-        confs = (config, )
+        if os.path.isdir(config):
+            confs = sorted(glob.glob(os.path.join(config, "*.conf")))
+        else:
+            confs = (config, )
 
     cparser = configparser.SafeConfigParser()
     loaded = False
@@ -205,7 +209,8 @@ def opt_parser(usage=_USAGE, conf=None):
     p.add_option_group(cog)
 
     cfog = optparse.OptionGroup(p, "Configuration options")
-    cfog.add_option("-C", "--config", help="Configuration file")
+    cfog.add_option("-C", "--config",
+                    help="Configuration file or dir in which config files are")
     cfog.add_option("-P", "--profile",
                     help="Specify configuration profile [none]")
     p.add_option_group(cfog)
