@@ -24,7 +24,7 @@ import unittest
 
 
 _CONF_KEYS = ("dists", "dists_full", "dist_choices", "tpaths",
-              "workdir", "quiet", "verbose", "debug", "config", "profile",
+              "workdir", "verbosity", "config", "profile",
               "hostname", "altname", "user", "topdir", "baseurl",
               "timeout", "genconf", "fullname", "email", "keyid",
               "repo_params", "sign", "selfref")
