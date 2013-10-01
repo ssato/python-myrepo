@@ -104,8 +104,7 @@ def _init_by_preset_defaults():
     (bname, bversion) = E.get_distribution()  # (basename, baseversion)
 
     cfg = dict(dists=dists_s, dists_full=dists_full, dist_choices=dists_full,
-               tpaths=[], workdir=None,
-               dryrun=False, quiet=False, verbose=False, debug=False,
+               tpaths=[], workdir=None, dryrun=False, verbosity=1,
                config=None, profile=None,
                hostname=h, altname=None, user=u, topdir=G._SERVER_TOPDIR,
                baseurl=G._SERVER_BASEURL, timeout=None, reponame=G._REPONAME,
@@ -199,9 +198,10 @@ def opt_parser(usage=_USAGE, conf=None):
                    help="Working directory to save results and log files. "
                         "Dynamically generated dir will be used by default.")
     cog.add_option("", "--dryrun", action="store_true", help="Dryrun mode")
-    cog.add_option("-q", "--quiet", action="store_true", help="Quiet mode")
-    cog.add_option("-v", "--verbose", action="store_true", help="Verbose mode")
-    cog.add_option("-D", "--debug", action="store_true", help="Debug mode")
+    cog.add_option("-q", "--quiet", action="store_const", dest="verbosity",
+                   const=0, help="Quiet mode")
+    cog.add_option("-v", "--verbose", action="store_const", dest="verbosity",
+                   const=2, help="Verbose mode")
     p.add_option_group(cog)
 
     cfog = optparse.OptionGroup(p, "Configuration options")
@@ -276,5 +276,30 @@ def opt_parser(usage=_USAGE, conf=None):
     p.add_option_group(dog)
 
     return p
+
+
+def _find_loglevel(verbosity):
+    """
+    :param verbosity: Verbosity level = 0 | 1 | 2. It's 1 by default (see also
+        ``_init_by_preset_defaults``).
+    :return: Logging level
+
+    >>> assert logging.WARN == _find_loglevel(0)  # -q/--quiet
+    >>> assert logging.INFO == _find_loglevel(1)  # default
+    >>> assert logging.DEBUG == _find_loglevel(2)  # -v/--verbose
+    """
+    assert verbosity in (0, 1, 2), "Wrong verbosity level ! : %d" % verbosity
+    return [logging.WARN, logging.INFO, logging.DEBUG][verbosity]
+
+
+def find_loglevel(options):
+    """
+    :param options: An instance of optparse.Values created by parsing args w/
+        optparse.OptionParser.parse_args().
+    :return: Logging level
+    """
+    assert isinstance(options, optparse.Values), "Wrong type object passed!"
+    return _find_loglevel(options.verbosity)
+
 
 # vim:sw=4:ts=4:et:

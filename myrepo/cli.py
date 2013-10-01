@@ -111,20 +111,11 @@ def modmain(argv):
     p = CF.opt_parser()
     (options, args) = p.parse_args(argv[1:])
 
-    if options.verbose:
-        loglevel = logging.INFO
-    elif options.debug:
-        loglevel = logging.DEBUG
-    elif options.quiet:
-        loglevel = logging.ERROR
-    else:
-        loglevel = logging.WARN
-
-    logging.getLogger().setLevel(loglevel)
-
     if not args:
         p.print_usage()
         return 1
+
+    logging.getLogger().setLevel(CF.find_loglevel(options))
 
     func = CM.find_cmd(args[0])  # @throw CM.CommandNotFoundError
 
