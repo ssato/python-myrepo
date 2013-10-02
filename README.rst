@@ -11,22 +11,8 @@ Myrepo is a tool to help custom yum repositories management tasks such as:
 
 It may be used as poor man's koji, I guess.
 
-How to install
-================
-
-a. [Recommended] Make srpm, build rpm and install:
-
-   1. python setup.py srpm
-   2. mock dist/SRPMS/<built src.rpm>
-   3. yum install -y /var/lib/mock/<your_build_dist>/results/<built rpm>
-
-b. Build rpm and install:
-
-   1. python setup.py rpm
-   2. yum install -y dist/RPMS/noarch/<built rpm>
-
-How to use
-============
+Usage
+=======
 
 1. Arrange system global or user configuration files in accordance with your
    environment and needs:
@@ -57,6 +43,19 @@ How to use
 
    myrepo -v d /path/to/foo-x.y.z-1.src.rpm
 
+How to install
+================
+
+a. [Recommended] Make srpm, build rpm and install:
+
+   1. python setup.py srpm
+   2. mock dist/SRPMS/<built src.rpm>
+   3. yum install -y /var/lib/mock/<your_build_dist>/results/<built rpm>
+
+b. Build rpm and install:
+
+   1. python setup.py rpm
+   2. yum install -y dist/RPMS/noarch/<built rpm>
 
 Hacking
 =========
